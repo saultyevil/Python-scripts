@@ -1,9 +1,33 @@
 #!/usr/bin/env python3
 
+"""
+Create spectra from the .spec files from a MCRT Python simulation.
+
+The script requires you to provide 2 arguments:
+    - The base output name of the spectra which are going to be produced
+    - The viewing angles to create spectra for: possible choices for this include all, a single number or a list of
+      numbers separated by a comma, i.e. 20,30,40
+There are also some optional arguments:
+    - wmin: the smallest wavelength to plot
+    - wmax: the largest wavelength to plot
+    - filetype: the file type of the output spectra plots, by default this is png
+There are two optional switches also:
+    - -v or --verbose which will enable more verbose output
+    - -s or --show which will show the output spectra as well as saving to disk
+
+This script works by using the unix find command to find .spec files recursively in the current directory and deeper.
+Thus, it's possible to plot spectra for a single simulation or by plotting multiple simulations at once on the same
+plot for comparison purposes.
+
+Example usage:
+    python spec_plot.py qDNe all -v -show
+"""
+
+import py_util
 import argparse
 import numpy as np
 from matplotlib import pyplot as plt
-from subprocess import Popen, PIPE
+
 
 verbose = False      # More info will be printed to screen if True
 show_plot = False    # If True, the plot will be drawn on screen
@@ -12,120 +36,7 @@ wmax = 2000          # The largest wavelength to show on the spectra
 filetype = "png"    # The file type of the output spectra
 
 
-def read_file(filename, delim=" "):
-    """
-    Read in data from an external file, line by line whilst ignoring comments.
-        - Comments begin with #
-        - The default delimiter is assumed to be a space
-
-    Parameters
-    ----------
-    filename: str
-        The path to the file to be read
-    delim: str
-        The delimiter between values in the file. By default, space is assumed
-
-    Returns
-    -------
-    lines: ncols x nlines array of strings
-        The file as a numpy array of strings for each column and line
-    """
-
-    # Try to open the file, otherwise return an error
-    try:
-        f = open(filename, "r")
-        flines = f.readlines()
-        f.close()
-    except IOError:
-        print("Can't open file {}".format(filename))
-        return -1
-
-    # Now read in the line one by one and append to the list, lines
-    lines = []
-    for i in range(len(flines)):
-        line = flines[i].strip()
-        if delim == " ":
-            line = line.split()
-        else:
-            line = line.split(delim)
-        if len(line) > 0:
-            if line[0] == "Freq.":  # Clean up the inclination angle names; makes life easier later
-                for j in range(len(line)):
-                    if line[j][0] == "A":
-                        line[j] = line[j].replace("P0.50", "").replace("A", "")            
-            if line[0][0] != "#":  # Don't add lines which are comments
-                lines.append(line)
-
-    return np.array(lines)
-
-
-def plot_spectra(files, angles, filename):
-    """
-    Plot the spectra for the give .spec files and for the given viewing angles.
-
-    Parameters
-    ----------
-    files: nfiles list of strings.
-        The file pathes to the .spec files.
-    angles: nangles list of ints.
-        The viewing angles to be plotted.
-    filename: str
-        The base filename for the output spectra.
-
-    Returns
-    -------
-    None
-    """
-
-    assert(len(files) >= 1)
-    assert(len(angles) >= 1)
-
-    # Loop over the viewing angles
-    for angle in angles:
-        fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-        # Loop over each .spec file
-        for file in files:
-            # Read in the data, this could probably be hardcoded instead...
-            # I don't think the .spec standard is changing anytime soon.
-            data = read_file(file)
-            if data == -1:
-                return -1
-            wavelength = np.array(data[1:, data[0, :] == "Lambda"], dtype=float)
-            flux = np.array(data[1:, data[0, :] == "{}".format(angle)], dtype=float)
-
-            # Find the final slash and final dot and assume between this slash and
-            # dot is the rootname of the Python pf
-            slashIdx = 0
-            dotIdx = len(file) - 1
-            for i in range(len(file)):
-                if file[i] == "/":
-                    slashIdx = i
-                elif file[i] == ".":
-                    dotIdx = i
-            rootname = file[slashIdx+1:dotIdx]
-            legend = rootname.replace("_", " ")
-
-            # Plot the spectra
-            ax.plot(wavelength, flux, label=legend)
-            ax.set_xlim(wmin, wmax)
-            ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
-            ax.set_ylabel("Flux", fontsize=17)
-            ax.tick_params(labelsize=17)
-            ax.legend(loc="best")
-
-        title = "Viewing angle = {}".format(angle) + "$^{\circ}$"
-        ax.set_title(title, fontsize=20)
-        plt.savefig("{}_{}.{}".format(filename, angle, filetype))
-
-        if show_plot:
-            plt.show()
-        else:
-            plt.close()
-
-    return
-
-
-def parse_args():
+def get_outname_angles(specfiles):
     """
     Parse the various global parameters from the command line.
 
@@ -173,7 +84,7 @@ def parse_args():
     # Get the viewing angles to plot
     angles = []
     if args.angles == "all":
-        angles = [20, 40, 60, 70, 75, 80, 85, 89]
+        angles = py_util.get_spec_viewing_angles(specfiles)
     elif args.angles.isdigit() is True:
         angles.append(int(args.angles))
     else:
@@ -181,78 +92,90 @@ def parse_args():
         for i in range(len(ang)):
             angles.append(int(ang[i]))
 
-    # Check that the provided viewing angles are legal
-    allowed_angles = [20, 40, 60, 70, 75, 80, 85, 89]
-    for i in range(len(angles)):
-        allowed = False
-        for j in range(len(allowed_angles)):
-            if angles[i] == allowed_angles[j]:
-                allowed = True
-                break
-        if allowed is False:
-            print("Incorrect viewing angle: {}".format(angles[i]))
-            return -1, -1
-
     return args.output_name, angles
 
 
-def find_spec_files():
+def plot_spectra():
     """
-    Use the unix find command to find spec files in the current working directory and in directories below
+    Plot the spectra for the give .spec files and for the given viewing angles.
 
     Parameters
     ----------
-    None
-
-    Returns
-    -------
-    spec_files: nfiles list of str
-        The file paths for the .spec files.
-    """
-
-    find = "find . -name '*.spec'"
-    stdout, stderr = Popen(find, stdout=PIPE, stderr=PIPE, shell=True).communicate()
-    spec_files = sorted(stdout.decode("utf-8").split(), key=str.lower)
-    if len(spec_files) == 0:
-        return -1
-
-    return spec_files
-
-
-def main():
-    """
-    The main steering function of the script.
-
-    Parameters
-    ----------
-    None
+    files: nfiles list of strings.
+        The file pathes to the .spec files.
+    angles: nangles list of ints.
+        The viewing angles to be plotted.
+    filename: str
+        The base filename for the output spectra.
 
     Returns
     -------
     None
     """
 
-    outname, angles = parse_args()
-    if outname == -1 or angles == -1:
-        return
-
-    spec_files = find_spec_files()
-    if spec_files == -1:
+    # Get the output name, the viewing angles and the file paths to the .spec files
+    specfiles = py_util.find_spec_files()
+    if len(specfiles) == 0:
         print("No spec files found, exiting.")
+        return
+    outname, angles = get_outname_angles(specfiles)
+    if len(angles) == 0:
+        print("No angles were provided")
         return
 
     print("Creating spectra for the following .spec files:")
-    for i in range(len(spec_files)):
-        print("\t-{}".format(spec_files[i]))
-    print("Spectra will be created for the viewing angles:")
+    for i in range(len(specfiles)):
+        print("\t+ {}".format(specfiles[i]))
+    print("Spectra will be created for the following viewing angles:")
     for i in range(len(angles)):
-        print("\t-{}°".format(angles[i]))
-    err = plot_spectra(spec_files, angles, outname)
-    if err == -1:
-        print("Error when loading .spec file.")
+        print("\t+ {}".format(angles[i]))
+
+    # Loop over the viewing angles
+    for angle in angles:
+        fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+        # Loop over each .spec file
+        for file in specfiles:
+            # Read in the data, this could probably be hardcoded instead...
+            # I don't think the .spec standard is changing anytime soon.
+            spec = py_util.read_file(file)
+            allowed = py_util.check_viewing_angle(angle, spec)
+            if allowed is False:
+                print("Error: viewing angle {} not found in .spec file {}".format(angle, file))
+                continue
+            wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
+            flux = np.array(spec[1:, spec[0, :] == "{}".format(angle)], dtype=float)
+
+            # Find the final slash and final dot and assume between this slash and
+            # dot is the rootname of the Python pf
+            slashIdx = 0
+            dotIdx = len(file) - 1
+            for i in range(len(file)):
+                if file[i] == "/":
+                    slashIdx = i
+                elif file[i] == ".":
+                    dotIdx = i
+            rootname = file[slashIdx+1:dotIdx]
+            legend = rootname.replace("_", " ")
+
+            # Plot the spectrum
+            ax.plot(wavelength, flux, label=legend)
+            ax.set_xlim(wmin, wmax)
+            ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
+            ax.set_ylabel("Flux", fontsize=17)
+            ax.tick_params(labelsize=17)
+            ax.legend(loc="best")
+
+        title = "Viewing angle = {}".format(angle) + "$^{\circ}$"
+        ax.set_title(title, fontsize=20)
+        plt.savefig("{}_{}.{}".format(outname, angle, filetype))
+
+        if show_plot:
+            plt.show()
+        else:
+            plt.close()
 
     return
 
 
 if __name__ == "__main__":
-    main()
+    plot_spectra()
