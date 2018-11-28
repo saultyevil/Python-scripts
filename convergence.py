@@ -85,7 +85,7 @@ def grep_convergence(filename):
     converged = []
     converging = []
     for i in range(len(out)):
-        if stdout[i] == "converged":
+        if out[i] == "converged":
             n_converged = out[i-1].replace("(", "").replace(")", "")
             converged.append([cycle, float(n_converged)])
         elif out[i] == "converging":
