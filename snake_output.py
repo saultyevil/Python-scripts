@@ -84,12 +84,12 @@ def plot_each_var_and_cycle(sgrid):
                 if sgrid[i, :, inds[j][k]].min() == sgrid[i, :, inds[j][k]].max():
                     ax[j, k].set_ylim(0.1 * sgrid[i, :, inds[j][k]].min(), 10.0 * sgrid[i, :, inds[j][k]].min())
                 # Use a log scale for some plots, I guess
-                if ylabs[j][k] == r"Optical Depth To Escape, $\tau$":  # or ylabs[j][k] == r"$T$":
+                if ylabs[j][k] == r"Optical Depth To Escape, $\tau$" or ylabs[j][k] == r"Temperature, $T$":
                     ax[j, k].plot(sgrid[i, :, 1], sgrid[i, :, inds[j][k]])
                 else:
                     ax[j, k].semilogy(sgrid[i, :, 1], sgrid[i, :, inds[j][k]])
                 ax[j, k].set_xlim(sgrid[i, :, 1].min(), sgrid[i, :, 1].max())
-                ax[j, k].set_xlabel("Disk height, $z$", fontsize=13)
+                ax[j, k].set_xlabel("Height, $z$", fontsize=13)
                 ax[j, k].set_ylabel(ylabs[j][k], fontsize=13)
         fig.suptitle("Snake: cycle {}".format(i), y=0.95, fontsize=25)
         plt.savefig("{}/cycle_{}.{}".format(dirname, i, filetype))
@@ -98,32 +98,32 @@ def plot_each_var_and_cycle(sgrid):
         else:
             plt.close()
 
-    # Plot above but only cycles 0, 1, 2 and the final
-    fig, ax = plt.subplots(nrows, ncols, figsize=(15, 15))
-    for i in [0, 1, 2, -1]:
-        inds = [[2, 3], [5, 6]]
-        ylabs = [[r"Density, $\rho$", r"Rosseland Opacity, $\kappa_{R}$"],
-                 [r"Optical Depth To Escape, $\tau$", r"Temperature, $T$"]]
-        markers = ["-", "--", ":", "-."]
-        for j in range(ncols):
-            for k in range(nrows):
-                # Horrid hack so I don't have to see a matplotlib error which I don't know how to suppress
-                if sgrid[i, :, inds[j][k]].min() == sgrid[i, :, inds[j][k]].max():
-                    ax[j, k].set_ylim(0.1 * sgrid[i, :, inds[j][k]].min(), 10.0 * sgrid[i, :, inds[j][k]].min())
-                if j == 0 and k == 0:
-                    ax[j, k].semilogy(sgrid[i, :, 1], sgrid[i, :, inds[j][k]], markers[i], label="Cycle {}".format(i))
-                else:
-                    ax[j, k].semilogy(sgrid[i, :, 1], sgrid[i, :, inds[j][k]], markers[i])
-                ax[j, k].set_xlim(sgrid[i, :, 1].min(), sgrid[i, :, 1].max())
-                ax[j, k].set_xlabel("Disk height, $z$", fontsize=13)
-                ax[j, k].set_ylabel(ylabs[j][k], fontsize=13)
-    fig.legend()
-    fig.suptitle("Snake: cycles {}".format([0, 1, 2, -1]), y=0.95, fontsize=25)
-    plt.savefig("{}/cycle_comparison.{}".format(dirname, filetype))
-    if plot_show:
-        plt.show()
-    else:
-        plt.close()
+    # # Plot above but only cycles 0, 1, 2 and the final
+    # fig, ax = plt.subplots(nrows, ncols, figsize=(15, 15))
+    # for i in [0, 1, 2, -1]:
+    #     inds = [[2, 3], [5, 6]]
+    #     ylabs = [[r"Density, $\rho$", r"Rosseland Opacity, $\kappa_{R}$"],
+    #              [r"Optical Depth To Escape, $\tau$", r"Temperature, $T$"]]
+    #     markers = ["-", "--", ":", "-."]
+    #     for j in range(ncols):
+    #         for k in range(nrows):
+    #             # Horrid hack so I don't have to see a matplotlib error which I don't know how to suppress
+    #             if sgrid[i, :, inds[j][k]].min() == sgrid[i, :, inds[j][k]].max():
+    #                 ax[j, k].set_ylim(0.1 * sgrid[i, :, inds[j][k]].min(), 10.0 * sgrid[i, :, inds[j][k]].min())
+    #             if j == 0 and k == 0:
+    #                 ax[j, k].semilogy(sgrid[i, :, 1], sgrid[i, :, inds[j][k]], markers[i], label="Cycle {}".format(i))
+    #             else:
+    #                 ax[j, k].semilogy(sgrid[i, :, 1], sgrid[i, :, inds[j][k]], markers[i])
+    #             ax[j, k].set_xlim(sgrid[i, :, 1].min(), sgrid[i, :, 1].max())
+    #             ax[j, k].set_xlabel("Disk height, $z$", fontsize=13)
+    #             ax[j, k].set_ylabel(ylabs[j][k], fontsize=13)
+    # fig.legend()
+    # fig.suptitle("Snake: cycles {}".format([0, 1, 2, -1]), y=0.95, fontsize=25)
+    # plt.savefig("{}/cycle_comparison.{}".format(dirname, filetype))
+    # if plot_show:
+    #     plt.show()
+    # else:
+    #     plt.close()
 
     return
 
@@ -140,7 +140,7 @@ def plot_comparsion():
     ax.semilogy(sgridlow[-1, :, 1], sgridlow[-1, :, 6], label=r"$\rho = 10^{-8}$ g/cm$^{3}$")
     ax.semilogy(sgridhigh[-1, :, 1], sgridhigh[-1, :, 6], label=r"$\rho = 10^{-5}$ g/cm$^{3}$")
     ax.set_xlim(sgridlow[-1, :, 1].min(), sgridlow[-1, :, 1].max())
-    ax.set_xlabel("Disk height, $z$", fontsize=13)
+    ax.set_xlabel("Height, $z$", fontsize=13)
     ax.set_ylabel("Temperature, $T$", fontsize=13)
     ax.legend()
     fig.suptitle(r"$\rho = 10^{-8}$ g/cm$^{3}$ Vs. $\rho = 10^{-5}$ g/cm$^{3}$")
@@ -170,7 +170,7 @@ def main():
 
     sgrid = read_and_reshape_data("sgrid.out")
     plot_each_var_and_cycle(sgrid)
-    plot_comparsion()
+    # plot_comparsion()
 
     print("\n--------------------------------------------------------------------------------\n")
 
