@@ -4,8 +4,8 @@
 Various common routines which are used in scripts concerned with MCRT Python.
 """
 
-import sys
 import numpy as np
+from sys import exit
 from subprocess import Popen, PIPE
 
 
@@ -24,7 +24,7 @@ def tests():
     """
 
     print("This script is not designed to be run. Instead, import it using import py_util.")
-    return
+    exit(0)
 
 
 def read_file(filename, delim=" "):
@@ -53,7 +53,7 @@ def read_file(filename, delim=" "):
         f.close()
     except IOError:
         print("Can't open file {}".format(filename))
-        sys.exit(1)
+        exit(1)
 
     # Now read in the line one by one and append to the list, lines
     lines = []
@@ -94,7 +94,7 @@ def find_spec_files():
     specfiles = sorted(specfiles, key=str.lower)
     if len(specfiles) == 0:
         print("No .spec files found")
-        sys.exit(2)
+        exit(2)
 
     return specfiles
 
