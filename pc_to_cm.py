@@ -35,29 +35,28 @@ def parse_distance():
 
     p = argparse.ArgumentParser(description="Convert a parsec distance to cm")
     p.add_argument("distance", type=float, help="The distance in parsecs")
-    p.add_argument("-OoM", type=str, nargs="?", action="store", help="The prefix for the order of magnitude of the distance")
+    p.add_argument("-k", "-K", action="store_true", help="Use for kilo parsecs")
+    p.add_argument("-m", "-M", action="store_true", help="Use for Mega parsecs")
+    p.add_argument("-g", "-G", action="store_true", help="Use for Giga parsecs")
     p.add_argument("-v", "--verbose", action="store_true", help="Increase output verbosity")
     args = p.parse_args()
 
     # Parse the distance in pc from the command line
     dist_pc = args.distance
 
+    # Set up the order of magnitude factor
+    OoM_value = 1  # default value
+    if args.k:
+        OoM_value = 1e3
+    if args.m:
+        OoM_value = 1e6
+    if args.g:
+        OoM_value = 1e9
+
     # Set up optional variables
     if args.verbose:
         global verbose
         verbose = True
-    OoM_value = 1  # default value
-    if args.OoM:
-        OoM_str = args.OoM.lower()
-        if OoM_str == "k":
-            OoM_value = 1e3
-        elif OoM_str == "m":
-            OoM_value = 1e6
-        elif OoM_str == "g":
-            OoM_value = 1e9
-        else:
-            print("Only Kilo, Mega and Giga supported!")
-            exit(1)
 
     return dist_pc, OoM_value
 
