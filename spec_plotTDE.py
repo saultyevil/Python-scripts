@@ -110,7 +110,7 @@ def get_outname_angles(specfiles):
     return args.output_name, angles
 
 
-def print_info (specfiles, angles):
+def print_info(specfiles, angles):
     """
     Print extra information to the screen
 
@@ -171,7 +171,15 @@ def plot_spectra():
     # Loop over the viewing angles
     for angle in angles:
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+        # cenkospec = np.loadtxt("ASASSN-14li_spec_Cenko.dat")
+        # ax.semilogy(cenkospec[:, 0], cenkospec[:, 1], label="Cenko et al. 2016")
+        blagorodnovaspec = np.loadtxt("Blagorodnova_iPTF15af_UV.dat",skiprows=36)
+        sm_blagorodnovaspec = blagorodnovaspec.copy()
+        sm_blagorodnovaspec[:, 1] = convolve(sm_blagorodnovaspec[:, 1], boxcar(smooth)/float(smooth), mode="same")
+        ax.loglog(sm_blagorodnovaspec[:, 0], sm_blagorodnovaspec[:, 1], label="Blagorodnova et al. 2018")
+        markers = ["--", "--", "-", "-"]
         # Loop over each .spec file
+        k=0
         for file in specfiles:
             # Read in the data, this could probably be hardcoded instead...
             # I don't think the .spec standard is changing anytime soon.
@@ -205,12 +213,16 @@ def plot_spectra():
                 dobserve = dpy
 
             # Plot the spectrum
-            ax.plot(wavelength, smoothflux*(dpy**2/dobserve**2), label=legend)
+            ax.loglog(wavelength, smoothflux*(dpy**2/dobserve**2), markers[k], label=legend)
             ax.set_xlim(wmin, wmax)
             ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
             ax.set_ylabel("Flux", fontsize=17)
             ax.tick_params(labelsize=17)
-            ax.legend(loc="best")
+            ax.legend(loc="lower right")
+            k+=1
+
+            print(legend, np.average(sm_blagorodnovaspec[:, 1]), np.average(smoothflux*(dpy**2/dobserve**2)),
+                  np.average(sm_blagorodnovaspec[:, 1]) /  np.average(smoothflux*(dpy**2/dobserve**2)))
 
         title = "Viewing angle = {}".format(angle) + "$^{\circ}$"
         ax.set_title(title, fontsize=20)
