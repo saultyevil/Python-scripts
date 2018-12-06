@@ -8,6 +8,7 @@ The script requires you to provide 2 arguments:
     - The viewing angles to create spectra for: possible choices for this include all, a single number or a list of
       numbers separated by a comma, i.e. 20,30,40
 There are also some optional arguments:
+    - dist: the distance of the object from the observer, by default Python uses 100 pc
     - wmin: the smallest wavelength to plot
     - wmax: the largest wavelength to plot
     - filetype: the file type of the output spectra plots, by default this is png
@@ -40,6 +41,7 @@ smooth = 11          # The amount of smoothing for the spectra
 chg_dist = False
 obs_dist = 90 * 1e6 * 3e18  # 90 Mpc in cm
 
+
 def get_outname_angles(specfiles):
     """
     Parse the various global parameters from the command line.
@@ -57,13 +59,12 @@ def get_outname_angles(specfiles):
     """
 
     p = argparse.ArgumentParser(description="")
-    p.add_argument("output_name", type=str, help="The base name for the output spectra")
+    p.add_argument("output_name", type=str, help="The base name for the output")
     p.add_argument("angles", type=str,
                    help="The viewing angles to plot: all, a single angle or a comma separated list")
     p.add_argument("-wmin", type=float, nargs="?", action="store", help="The smallest wavelength to show")
     p.add_argument("-wmax", type=float, nargs="?", action="store", help="The largest wavelength to show")
-    p.add_argument("-filetype", type=str, nargs="?", action="store",
-                   help="The file format of the output mspectra")
+    p.add_argument("-filetype", type=str, nargs="?", action="store", help="The file format of the output")
     p.add_argument("-smooth", type=float, nargs="?", action="store", help="The amount of smoothing of the spectra")
     p.add_argument("-dist", type=float, nargs="?", action="store", help="Distance of the observer")
     p.add_argument("-v", "--verbose", help="Increase output to screen", action="store_true")
@@ -92,7 +93,8 @@ def get_outname_angles(specfiles):
     if args.dist:
         global chg_dist
         global obs_dist
-        print("Ensure that dist is given in cm!")
+        if verbose:
+            print("Ensure that dist is given in cm!")
         chg_dist = True
         obs_dist = args.dist
 
@@ -134,6 +136,8 @@ def print_info (specfiles, angles):
     for i in range(len(angles)):
         print("\t+ {}".format(angles[i]))
 
+    print("")  # Spacer
+
     return
 
 
@@ -164,15 +168,28 @@ def plot_spectra():
     if len(angles) == 0:
         print("No angles were provided")
         return 1
+    print_info(specfiles, angles)
 
-    if verbose:
-        print_info(specfiles, angles)
-
+    print("Beginning plotting...\n")
     # Loop over the viewing angles
     for angle in angles:
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
         # Loop over each .spec file
         for file in specfiles:
+            # Figure out the name of the spec file
+            # Find the final slash and final dot and assume between this slash and
+            # dot is the rootname of the Python pf
+            slashIdx = 0
+            dotIdx = len(file) - 1
+            for i in range(len(file)):
+                if file[i] == "/":
+                    slashIdx = i
+                elif file[i] == ".":
+                    dotIdx = i
+            rootname = file[slashIdx+1:dotIdx]
+            legend = rootname.replace("_", " ")
+            print("\t+ {} for viewing angle {}".format(legend, angle))
+
             # Read in the data, this could probably be hardcoded instead...
             # I don't think the .spec standard is changing anytime soon.
             spec = py_util.read_file(file)
@@ -185,27 +202,15 @@ def plot_spectra():
             flux = np.reshape(flux, len(flux))  # Make this 1D because it isn't for some reason
             smoothflux = convolve(flux, boxcar(smooth)/float(smooth), mode="same")
 
-            # Find the final slash and final dot and assume between this slash and
-            # dot is the rootname of the Python pf
-            slashIdx = 0
-            dotIdx = len(file) - 1
-            for i in range(len(file)):
-                if file[i] == "/":
-                    slashIdx = i
-                elif file[i] == ".":
-                    dotIdx = i
-            rootname = file[slashIdx+1:dotIdx]
-            legend = rootname.replace("_", " ")
-
             # Scale the results to the observer distance if required
-            dpy = 100 * 3.086e18  # 100 pc - the default Python distance
+            dpy = 100 * 3.08567758128e18  # 100 pc - the default Python distance
             if chg_dist:
                 dobserve = obs_dist
             else:
                 dobserve = dpy
 
             # Plot the spectrum
-            ax.plot(wavelength, smoothflux*(dpy**2/dobserve**2), label=legend)
+            ax.semilogy(wavelength, smoothflux*(dpy**2/dobserve**2), label=legend)
             ax.set_xlim(wmin, wmax)
             ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
             ax.set_ylabel("Flux", fontsize=17)
@@ -220,6 +225,8 @@ def plot_spectra():
             plt.show()
         else:
             plt.close()
+
+    print("\nAll done :-)")
 
     return
 
