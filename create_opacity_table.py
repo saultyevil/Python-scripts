@@ -8,32 +8,57 @@ Solar mass fractions:
 """
 
 
+import argparse
 import numpy as np
 from sys import exit
 from subprocess import Popen, PIPE
 
 
+# Global variables
 verbose = False
-
+splicingTemp = 3.8
+opalTable = "data/GN93hz"
+la08Table = "data/la08opac.dat"
+la08TableSets = "data/la08set.dat"
+newTableOutputName = "data/new_opacity.dat"
 
 def parse_inputs():
-    return
-
-
-def find_opacity_tables():
     """
-    Find the file paths to the data which we need, hard coded for now
+    Parse various options from the command line
     """
 
-    opalTable = "GN93hz"
-    la08Table = "opac.dat"
-    la08TableSets = "set.dat"
+    p = argparse.ArgumentParser(description="Splice two opacity tables together :-)")
+    p.add_argument("X", type=float, help="Hydrogen mass fraction")
+    p.add_argument("Z", type=float, help="Metals mass fraction")
+    p.add_argument("-spliceT", type=float, nargs="?", action="store", help="The temperature to splice the tables between")
+    p.add_argument("-opal_location", type=str, nargs="?", action="store", help="Location of the Opal opacity tables")
+    p.add_argument("-low_temp_location", type=str, nargs="?", action="store", help="Location of the LA08 Low Temperature Opacity Tables")
+    p.add_argument("-low_temp_sets", type=str, nargs="?", action="store", help="Location of the LA08 Low Temperature sets data")
+    p.add_argument("-output_name", type=str, nargs="?", action="store", help="The name of the new opacity table")
+    p.add_argument("-v", "--verbose", action="store_true", help="Increase output verbosity")
 
-    opalFile = "/home/saultyevil/Dropbox/Snake/examples/GN93hz"
-    la08File = "/home/saultyevil/Dropbox/Snake/LowTempOpac/opac.dat"
-    la08Sets = "/home/saultyevil/Dropbox/Snake/LowTempOpac/set.dat"
+    args = p.parse_args()
 
-    return opalFile, la08File, la08Sets
+    if args.verbose:
+        global verbose
+        verbose = True
+    if args.spliceT:
+        global splicingTemp
+        splicingTemp = args.spliceT
+    if args.opal_location:
+        global opalTable
+        opalTable = args.opal_location
+    if args.low_temp_location:
+        global la08Table
+        la08Table = args.low_temp_loaction
+    if args.low_temp_sets:
+        global la08TableSets
+        la08TableSets = args.low_temp_sets
+    if args.output_name:
+        global newTableOutputName
+        newTableOutputName = args.output_name
+
+    return args.X, args.Z
 
 
 def writeTable(newTable, outputName):
@@ -41,10 +66,10 @@ def writeTable(newTable, outputName):
     Write the new table out to disk.
     """
 
-    print("\t-Writing table out to {}".format(outputName))
+    print("- Writing table out to {}".format(outputName))
 
     with open(outputName, "w") as out:
-        out.write("\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t  logR\n")
+        out.write("                                                                              logR\n")
         out.write("{:^7}\n".format("logT"))
         for i in range(newTable.shape[0]):
             for j in range(newTable.shape[1]):
@@ -59,7 +84,7 @@ def readOpal(filename):
     Read in the Opal Opacity Tables
     """
 
-    print("\t-Reading Opal Opacity")
+    print("- Reading Opal Opacity")
     try:
         with open(filename, "r") as f:
             opal = f.readlines()
@@ -120,7 +145,7 @@ def readLowTempOpac(filenameOpac, filenameSets):
     Read in the low temperature RMO data
     """
 
-    print("\t-Reading LA08 Low Temperature Opacity")
+    print("- Reading LA08 Low Temperature Opacity")
     try:
         with open(filenameOpac, "r"):
             lowTemp = np.loadtxt(filenameOpac)
@@ -155,12 +180,16 @@ def readLowTempOpac(filenameOpac, filenameSets):
     return lowTempRMO, lowTempMassFractions
 
 
+def findLowTempIndex(lowTempMassFrac, X, Z):
+    return 70
+
+
 def createNewTable(outputName, lowTempRMO, opalRMO, idx, X, Z):
     """
     Create the new opacity table featuring both low and high temperature RMO
     """
 
-    print("\t-Generating new opacity table")
+    print("- Generating new opacity table\n")
 
     #  Determine the total number of logT values in both tables
     nLowT = lowTempRMO.shape[1] - 1
@@ -177,7 +206,8 @@ def createNewTable(outputName, lowTempRMO, opalRMO, idx, X, Z):
     nLogT = len(logT)
     splicingTemp = 3.8
     if 3.6 <= splicingTemp <= 3.9:
-        k, = int(np.where(logT == splicingTemp))
+        x, = np.where(logT == splicingTemp)
+        k = int(x)
     else:
         print("3.6 <= splicingTemp <= 3.9")
         exit (1)
@@ -209,23 +239,23 @@ def createNewTable(outputName, lowTempRMO, opalRMO, idx, X, Z):
     #
 
     for i in range(nOpalT-1):
-        T6 = 10 ** logT[i+k] * 1e-6
+        T6 = 1e-6 * 10 ** logT[i+k]
         for j in range(nLogR):
             R = 10 ** logR[j]
-            callOpal = "./opal {:e} {:e} {} {}".format(T6, R, X, Z)
+            callOpal = "libs/opal {:e} {:e} {} {}".format(T6, R, X, Z)
             stdout, stderr = Popen(callOpal, stdout=PIPE, stderr=PIPE, shell=True).communicate()
             try:
                 opalRMO = float(stdout.decode("utf-8"))
             except ValueError:
                 if verbose:
-                    print("logT = {:1.2e} or logR = {:1.2e} out of table range".format(lT, lR))
+                    print("logT = {:1.2e} or logR = {:1.2e} out of table range".format(logT[i+k], logR[j]))
                     print("Setting to 9.999 for table element [{}, {}]".format(i+1+k, 1+j))
                 opalRMO = 9.999
             newTable[1+i+k, 1+j] = opalRMO
-        if i % 5 == 0:
-            print("\t    - Row {} of {} completed".format(i+1, nLogT-k))
+        if i % 5 == 0 and i != 0:
+            print("\t- Row {} of {} completed".format(i, nLogT-k))
 
-    print("\t    - Table completed")
+    print("\t- Table completed")
     writeTable(newTable, outputName)
 
     return
@@ -236,21 +266,23 @@ def main():
     Main function
     """
 
-    print("Welcome to the degenerate code Jack Oliver Cuthbertson:")
-    print("We will be splicing together two opacity tables for a large temperature range")
+    print("Welcome to the degenerate code Jack 'Oliver' Cuthbertson\n")
+    print("We will be splicing together two opacity tables together to create")
+    print("one large temperature range table\n")
+
+    X, Z = parse_inputs()
 
     # Read in the tables into file. I assume that the opacity tables are within the current directory or within a
-    # sub-directory
-    opalFile, la08File, la08Sets = find_opacity_tables()
-    opalRMO, opalMassFrac = readOpal(opalFile)
-    lowTempRMO, lowTempMassFrac = readLowTempOpac(la08File, la08Sets)
+    # sub-directory:
+    #   The directory paths can be changes with some switches on the command line
+    opalRMO, opalMassFrac = readOpal(opalTable)
+    lowTempRMO, lowTempMassFrac = readLowTempOpac(la08Table, la08TableSets)
 
-    # Now splice the table together given the desired mass fractions, which is hardcoded for now
-    X = 0.70
-    Z = 0.02
-    idx = 70
-    outputName = "final_table.txt"
-    createNewTable(outputName, lowTempRMO, opalRMO, idx, X, Z)
+    # Now splice the table together given the desired mass fractions
+    idx = findLowTempIndex(lowTempMassFrac, X, Z)
+    createNewTable(newTableOutputName, lowTempRMO, opalRMO, idx, X, Z)
+
+    print("\nEnjoy!")
 
     return
 

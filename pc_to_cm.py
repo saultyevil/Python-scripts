@@ -3,7 +3,7 @@
 """
 
 Usage:
-    pc_to_cm.py 350 -OoM M
+    pc_to_cm.py 350 -M
 
     This will convert 350 Mpc into cm.
 
