@@ -12,15 +12,18 @@ import argparse
 import numpy as np
 from sys import exit
 from subprocess import Popen, PIPE
+from matplotlib import pyplot as plt
 
 
 # Global variables
 verbose = False
+show_comparison = False
 splicingTemp = 3.8
 opalTable = "data/GN93hz"
 la08Table = "data/la08opac.dat"
 la08TableSets = "data/la08set.dat"
 newTableOutputName = "data/new_opacity.dat"
+
 
 def parse_inputs():
     """
@@ -36,6 +39,7 @@ def parse_inputs():
     p.add_argument("-low_temp_sets", type=str, nargs="?", action="store", help="Location of the LA08 Low Temperature sets data")
     p.add_argument("-output_name", type=str, nargs="?", action="store", help="The name of the new opacity table")
     p.add_argument("-v", "--verbose", action="store_true", help="Increase output verbosity")
+    p.add_argument("-s", "--show_comparison", action="store_true", help="Show a plot of the log(RMO) against temperature")
 
     args = p.parse_args()
 
@@ -57,11 +61,14 @@ def parse_inputs():
     if args.output_name:
         global newTableOutputName
         newTableOutputName = args.output_name
+    if args.show_comparison:
+        global show_comparison
+        show_comparison = True
 
     return args.X, args.Z
 
 
-def writeTable(newTable, outputName):
+def writeTable(table, outputName):
     """
     Write the new table out to disk.
     """
@@ -71,9 +78,9 @@ def writeTable(newTable, outputName):
     with open(outputName, "w") as out:
         out.write("                                                                              logR\n")
         out.write("{:^7}\n".format("logT"))
-        for i in range(newTable.shape[0]):
-            for j in range(newTable.shape[1]):
-                out.write("{:^7.3f} ".format(newTable[i, j]))
+        for i in range(table.shape[0]):
+            for j in range(table.shape[1]):
+                out.write("{:^7.3f} ".format(table[i, j]))
             out.write("\n")
 
     return
@@ -181,7 +188,22 @@ def readLowTempOpac(filenameOpac, filenameSets):
 
 
 def findLowTempIndex(lowTempMassFrac, X, Z):
-    return 70
+    """
+    Find the index for the LA08 data which has the same mass fractions X and Z.
+    """
+
+    idx = 0
+    for i in range(lowTempMassFrac.shape[0]):
+        if lowTempMassFrac[i, 1] == X and lowTempMassFrac[i, 3] == Z:
+            idx = i
+            break
+
+    if idx == 0:
+        print("\nUh oh! Couldn't find default LA08 table for X = {} and Z = {}".format(X, Z))
+        print("4D interpolation hasn't been implemented because I'm being lazy")
+        exit(1)
+
+    return idx
 
 
 def createNewTable(outputName, lowTempRMO, opalRMO, idx, X, Z):
@@ -189,7 +211,7 @@ def createNewTable(outputName, lowTempRMO, opalRMO, idx, X, Z):
     Create the new opacity table featuring both low and high temperature RMO
     """
 
-    print("- Generating new opacity table\n")
+    print("- Generating new opacity table for X = {} and Z = {}\n".format(X, Z))
 
     #  Determine the total number of logT values in both tables
     nLowT = lowTempRMO.shape[1] - 1
@@ -255,8 +277,42 @@ def createNewTable(outputName, lowTempRMO, opalRMO, idx, X, Z):
         if i % 5 == 0 and i != 0:
             print("\t- Row {} of {} completed".format(i, nLogT-k))
 
-    print("\t- Table completed")
+    print("\t- Table completed\n")
     writeTable(newTable, outputName)
+
+    return newTable
+
+
+def plot_comparisons(newTable, la08Table):
+    """
+    Plot comparisons of the new table
+    """
+
+    print("- Creating comparison plots as requested")
+
+    nrows = 2
+    ncols = 2
+    cols = [1, 7, 12, 17]
+    titles = ["logR = -7.0", "logR = -4.0", "logR = -1.5", "logR = 1.0"]
+    fig, ax = plt.subplots(nrows, ncols, figsize=(11.69, 8.27))
+
+    k = 0
+    for i in range(nrows):
+        for j in range(ncols):
+            colIdx = cols[k]
+            title = titles[k]
+            ax[i, j].plot(newTable[:13, 0], newTable[:13, colIdx], "-x", label="New table")
+            ax[i, j].plot(la08Table[2:15, 0], la08Table[2:15, colIdx], "--+", label="LA08")
+            ax[i, j].set_title(title)
+            ax[i, j].set_xlabel("log T [K]")
+            ax[i, j].set_ylabel("log $\kappa_{R}$ [$cm^{2}g^{-1}$]")
+            ax[i, j].set_xlim(newTable[0, 0], newTable[12, 0])
+            ax[i, j].legend()
+            k += 1
+
+    fig.tight_layout()
+    plt.savefig("data/log_kappa_comparison.png")
+    plt.show()
 
     return
 
@@ -274,13 +330,15 @@ def main():
 
     # Read in the tables into file. I assume that the opacity tables are within the current directory or within a
     # sub-directory:
-    #   The directory paths can be changes with some switches on the command line
+    #  - The directory paths can be changed with some switches on the command line
     opalRMO, opalMassFrac = readOpal(opalTable)
     lowTempRMO, lowTempMassFrac = readLowTempOpac(la08Table, la08TableSets)
 
     # Now splice the table together given the desired mass fractions
     idx = findLowTempIndex(lowTempMassFrac, X, Z)
-    createNewTable(newTableOutputName, lowTempRMO, opalRMO, idx, X, Z)
+    newTable = createNewTable(newTableOutputName, lowTempRMO, opalRMO, idx, X, Z)
+    if show_comparison:
+        plot_comparisons(newTable[3:, :], lowTempRMO[idx, 1:, :])
 
     print("\nEnjoy!")
 
