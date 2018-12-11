@@ -728,7 +728,7 @@ c..... The purpose of this subroutine is to read the data tables
 c
       close (2)
 c..... read  tables
-       open(2, FILE='data/GN93hz')
+       open(2, FILE='data/opal_opac.dat')
 c
 c      read header
       do i=1,240

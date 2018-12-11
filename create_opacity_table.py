@@ -19,10 +19,12 @@ from matplotlib import pyplot as plt
 verbose = False
 show_comparison = False
 splicingTemp = 3.8
-opalTable = "data/GN93hz"
-la08Table = "data/la08opac.dat"
-la08TableSets = "data/la08set.dat"
-newTableOutputName = "data/new_opacity.dat"
+opalTable = "opal_opac.dat"
+la08Table = "la08_opac.dat"
+la08TableSets = "la08_sets.dat"
+newTableOutputName = "largerT_opacity.dat"
+X = 0.7
+Z = 0.02
 
 
 def parse_inputs():
@@ -31,8 +33,8 @@ def parse_inputs():
     """
 
     p = argparse.ArgumentParser(description="Splice two opacity tables together :-)")
-    p.add_argument("X", type=float, help="Hydrogen mass fraction")
-    p.add_argument("Z", type=float, help="Metals mass fraction")
+    p.add_argument("-X", type=float, nargs="?", action="store", help="Hydrogen mass fraction")
+    p.add_argument("-Z", type=float, nargs="?", action="store", help="Metals mass fraction")
     p.add_argument("-spliceT", type=float, nargs="?", action="store", help="The temperature to splice the tables between")
     p.add_argument("-opal_location", type=str, nargs="?", action="store", help="Location of the Opal opacity tables")
     p.add_argument("-low_temp_location", type=str, nargs="?", action="store", help="Location of the LA08 Low Temperature Opacity Tables")
@@ -54,7 +56,7 @@ def parse_inputs():
         opalTable = args.opal_location
     if args.low_temp_location:
         global la08Table
-        la08Table = args.low_temp_loaction
+        la08Table = args.low_temp_location
     if args.low_temp_sets:
         global la08TableSets
         la08TableSets = args.low_temp_sets
@@ -64,8 +66,14 @@ def parse_inputs():
     if args.show_comparison:
         global show_comparison
         show_comparison = True
+    if args.X:
+        global X
+        X = args.X
+    if args.Z:
+        global Z
+        Z = args.Z
 
-    return args.X, args.Z
+    return
 
 
 def writeTable(table, outputName):
@@ -80,7 +88,7 @@ def writeTable(table, outputName):
         out.write("{:^7}\n".format("logT"))
         for i in range(table.shape[0]):
             for j in range(table.shape[1]):
-                out.write("{:^7.3f} ".format(table[i, j]))
+                out.write("{:^+7.3f} ".format(table[i, j]))
             out.write("\n")
 
     return
@@ -138,7 +146,7 @@ def readOpal(filename):
             while len(line) != nLogR + 1:
                 line.append(0)
                 nAppends += 1
-            if verbose:
+            if verbose and nAppends != 0:
                 print("Appended {} 0's to line {} in table {}".format(nAppends, i, nTable))
             opalRMO[table, 1+i, :] = line
         tableId += nLines
@@ -264,6 +272,7 @@ def createNewTable(outputName, lowTempRMO, opalRMO, idx, X, Z):
         T6 = 1e-6 * 10 ** logT[i+k]
         for j in range(nLogR):
             R = 10 ** logR[j]
+            # TODO: error checking for opal to make sure it can find the opacity tables
             callOpal = "libs/opal {:e} {:e} {} {}".format(T6, R, X, Z)
             stdout, stderr = Popen(callOpal, stdout=PIPE, stderr=PIPE, shell=True).communicate()
             try:
@@ -311,7 +320,6 @@ def plot_comparisons(newTable, la08Table):
             k += 1
 
     fig.tight_layout()
-    plt.savefig("data/log_kappa_comparison.png")
     plt.show()
 
     return
@@ -326,7 +334,7 @@ def main():
     print("We will be splicing together two opacity tables together to create")
     print("one large temperature range table\n")
 
-    X, Z = parse_inputs()
+    parse_inputs()
 
     # Read in the tables into file. I assume that the opacity tables are within the current directory or within a
     # sub-directory:
