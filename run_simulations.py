@@ -3,6 +3,8 @@
 from subprocess import Popen, PIPE
 
 show_output = False
+convergence = True
+plots = True
 
 
 def standard_python(wd, pf):
@@ -29,12 +31,20 @@ def standard_python(wd, pf):
     if err:
         with open("py_err_{}.out", "w") as f:
             f.writelines(err)
+    if convergence:
+        cmd = Popen("convergence.py tde", stdout=PIPE, stderr=PIPE, shell=True)
+    if plots:
+        cmd = Popen("spec_plotTDE.py tde all -dist 1.079987153448e+27")
 
-    return
+    return output
 
 
 if __name__ == "__main__":
     with open("simulations", "r") as f:
         sims = f.readlines()
+    f = open("script_output.txt", "w")
     for i in sims:
-        standard_python(i, "tde.pf")
+        output = standard_python(i, "tde.pf")
+        f.write(i)
+        f.writelines(output)
+    f.close()
