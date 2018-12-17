@@ -1,21 +1,40 @@
 #!/usr/bin/env python3
 
-import numpy as np
 from subprocess import Popen, PIPE
 
-with open("simulations", "r") as f:
-    sims = f.readlines()
+show_output = False
 
-for sim in sims:
-    cd = "cd {}".format(sim)
-    print(cd)
-    a = Popen(cd, stdout=PIPE, stderr=PIPE, shell=True)
-    setup = "Setup_Py_Dir"
-    aa = Popen(setup, stdout=PIPE, stderr=PIPE, shell=True)
-    pf = "tde.pf"
-    run_python = "mpirun py {}".format(pf)
-    aaa = Popen(run_python, stdout=PIPE, stderr=PIPE, shell=True)
-    convergence = "convergence.py {}".format(pf)
-    aaaa = Popen(convergence, stdout=PIPE, stderr=PIPE, shell=True)
-    plot = "spec_plot.py tde all -dist 1.079987153448e+27"
-    aaaaa = Popen(plot, stdout=PIPE, stderr=PIPE, shell=True)
+
+def standard_python(wd, pf):
+    """
+    Initialise a standard Python multi-processor run
+    """
+
+    cd = "cd {}".format(wd)
+    cmd = Popen(cd, stdout=PIPE, stderr=PIPE, shell=True)
+    print("Currently in: {}".format(wd))
+    cmd = Popen("Setup_Py_Dir", stdout=PIPE, stderr=PIPE, shell=True)
+    cmd = Popen("mpirun py {}".format(pf), stdout=PIPE, stderr=PIPE, shell=True)
+    pystdout, pystderr = cmd.communicate()
+    output = pystdout.decode("utf-8")
+    err = pystderr.decode("utf-8")
+    if show_output:
+        print("Output from Python:")
+        print(output)
+        if err:
+            print("Errors returned from stderr:")
+            print(err)
+    with open("py_{}.out", "w") as f:
+        f.writelines(output)
+    if err:
+        with open("py_err_{}.out", "w") as f:
+            f.writelines(err)
+
+    return
+
+
+if __name__ == "__main__":
+    with open("simulations", "r") as f:
+        sims = f.readlines()
+    for i in sims:
+        standard_python(i, "tde.pf")
