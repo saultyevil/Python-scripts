@@ -7,7 +7,7 @@ with open("simulations", "r") as f:
     sims = f.readlines()
 
 for sim in sims:
-    cd = "cd {}".format(sims)
+    cd = "cd {}".format(sim)
     print(cd)
     a = Popen(cd, stdout=PIPE, stderr=PIPE, shell=True)
     setup = "Setup_Py_Dir"
