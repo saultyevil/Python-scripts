@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import multiprocessing
 from subprocess import Popen, PIPE
+from multiprocessing import cpu_count
 
 
 show_output = False
@@ -14,7 +14,9 @@ def standard_python(wd, root_name, ncores, pyver):
 
     pf = root_name + ".pf"
     command = "cd {}; Setup_Py_Dir; mpirun -n {} {} {}".format(wd, ncores, pyver, pf)
-    print(command)
+    print("Working dir ........ {}".format(wd))
+    print("Root name .......... {}".format(root_name))
+    print("\n{}\n".format(command))
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
     pystdout, pystderr = cmd.communicate()
     output = pystdout.decode("utf-8")
@@ -81,10 +83,14 @@ def find_pf():
     command = "find . -type f -name '*.pf'"
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
-    pfs = stdout.decode("utf-8")
+    pfs = stdout.decode("utf-8").split()
     err = stderr.decode("utf-8")
     if err:
         print(err)
+
+    for i, dir in enumerate(pfs):
+        if dir.find(".out") != -1:
+            del(pfs[i])
 
     return pfs
 
@@ -92,54 +98,50 @@ def find_pf():
 def main(py):
     """
     Main control function
-
-    Parameters
-    ----------
-    py: str
-        The command to call py from the command line
     """
 
     show_convergence = True
     create_plots = True
 
-    sims = find_pf().split()
-    ncores = multiprocessing.cpu_count()
+    ncores = cpu_count()
+    sims_to_run = find_pf()
 
-    print("The following simulations will be run,")
-    for sim in sims:
-        sim = sim.strip("\r\n")
+    print("The following simulations will be run using {} cores:\n".format(ncores))
+    for sim in sims_to_run:
         print("- {}".format(sim))
 
     with open("output.txt", "w") as f:
-        for sim in sims:
-            # Find the root name of the simulation
+        for sim in sims_to_run:
+            # Find root name and clean up sim path
             dot = 0
             slash = 0
-            for i in range(len(sim)):
-                if sim[i] == "/":
-                    slash = i + 1
-                if sim[i] == ".":
-                    dot = i
+            for l in range(len(sim)):
+                if sim[l] == "/":
+                    slash = l + 1
+                if sim[l] == ".":
+                    dot = l
             root_name = sim[slash:dot]
-            if root_name.find(".out") != -1:
-                root_name = root_name[:len(".out") - 1]
-
-            # Wark
             sim = sim[:slash]
-            print(sim)
-            print("\n--------------------------\n\n{}".format(sim))
-            python_output = standard_python(sim, root_name, ncores, py)
-            f.write("{}\n".format(sim))
+
+            # Do some wark
+            print("\n--------------------------\n")
             f.write("--------\nPython Output\n--------\n")
+            f.write("Working dir ........ {}\n".format(sim))
+            f.write("Root name .......... {}\n".format(root_name))
+            python_output = standard_python(sim, root_name, ncores, py)
             f.writelines(python_output)
+
+            # Assumes plot_convergence.py is in $PATH
             if show_convergence:
-                convergence_output = convergence(sim, root_name)
                 f.write("--------\nConvergence\n--------\n")
+                convergence_output = convergence(sim, root_name)
                 f.writelines(convergence_output)
+            # Assumes plotting scripts are in $PATH
             if create_plots:
                 TDE_plot(sim)
-            f.write("\n--------------------------\n")
-            print("\n--------------------------\n")
+
+            f.write("\n--------------------------")
+            print("\n--------------------------")
 
     return
 
