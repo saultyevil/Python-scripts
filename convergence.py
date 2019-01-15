@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 import argparse
 import numpy as np
 from subprocess import Popen, PIPE
@@ -77,7 +78,7 @@ def grep_convergence(filename):
     out = stdout.decode("utf-8").split()
     if len(out) == 0:
         print("No output from grep")
-        return
+        sys.exit(0)
     print(stdout.decode("utf-8"))
 
     # Loop over the grep output and separate converged and converging fractions into lists
