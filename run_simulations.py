@@ -111,7 +111,8 @@ def standard_py_progs(wd, root_name):
     output = stdout.decode("utf-8")
     err = stderr.decode("utf-8")
 
-    print(output)
+    if show_output:
+        print(output)
     if err:
         print(err)
 
@@ -129,7 +130,8 @@ def standard_spec_plot(wd):
     output = stdout.decode("utf-8")
     err = stderr.decode("utf-8")
 
-    print(output)
+    if show_output:
+        print(output)
     if err:
         print(err)
 
@@ -148,7 +150,8 @@ def TDE_plot(wd):
     output = stdout.decode("utf-8")
     err = stderr.decode("utf-8")
 
-    print(output)
+    if show_output:
+        print(output)
     if err:
         print(err)
 
@@ -263,13 +266,11 @@ def get_run_mode():
             print("Invalid value of c_value {}".format(args.c_value))
             sys.exit(1)
 
-    print("")
-    print("Run Simulations ............ {}".format(run_sims))
+    print("\nRun Simulations ............ {}".format(run_sims))
     print("Show Verbose Output ........ {}".format(show_output))
     print("Show Convergence ........... {}".format(show_convergence))
     print("Create Plots ............... {}".format(create_plots))
-    print("Convergence Limit .......... {}".format(clim))
-    print("")
+    print("Convergence Limit .......... {}\n".format(clim))
 
     if do_something is False:
         print("\nThere is nothing to do!")
@@ -315,6 +316,7 @@ def main(py):
 
             # wark wark wark
             if run_sims:
+                print("Running simulation")
                 f.write("--------\nPython Output\n--------\n")
                 f.write("Working dir ........ {}\n".format(pf_path))
                 f.write("Root name .......... {}\n".format(root_name))
@@ -328,12 +330,15 @@ def main(py):
                 f.writelines(convergence_output)
                 cvalue = list_non_converged(pf_path, root_name, clim)
                 if cvalue < clim:
+                    print("SIMULATION NOT CONVERGED cvalue {} < clim {}".format(cvalue, clim))
                     f.write("NOT CONVERGED, cvalue {} < clim {}\n".format(cvalue, clim))
                 else:
+                    print("SIMULATION CONVERGED")
                     f.write("CONVERGED, cvalue {} >= clim {}\n".format(cvalue, clim))
 
             # Assumes plotting scripts are in $PATH
             if create_plots:
+                print("Creating plots")
                 standard_py_progs(pf_path, root_name)
                 # standard_spec_plot(sim)
                 TDE_plot(pf_path)
