@@ -12,9 +12,10 @@ import hdf_utils
 from astropy import constants as c
 
 
-def write_z_v_density(fname, z, density):
+def write_z_v_density(fname, z, density, Ric):
 	with open(fname, "w") as f:
-		f.write("z            rho\n")
+		f.write("# R = {:2.4f} Ric\n".format(Ric))
+		f.write("# z          rho\n")
 		for i in range(len(z)):
 			f.write("{:^+7.5e} {:^+7.5e}\n".format(z[i], density[i]))
 	return
@@ -29,12 +30,12 @@ except:
 # Read in data using pyhdf
 data=hdf_utils.get_hdf_data(fname)
 
-if len(sys.argv) > 2:
-	itheta_disk=int(sys.argv[2])
+if len(sys.argv) > 3:
+	itheta_disk=int(sys.argv[3])
 else:
 	itheta_disk = -1
-if len(sys.argv) > 3:
-	iradmax = int(sys.argv[3])
+if len(sys.argv) > 4:
+	iradmax = int(sys.argv[4])
 else:
 	iradmax = -1
 
@@ -77,24 +78,33 @@ xi=data["Data"]["XI"]["data"]
 nt=len(theta)
 nr=len(r)
 
-rindex = 63
+try:
+	rindex = int(sys.argv[2])
+except:
+	print("No r index given")
+	sys.exit(1)
+
 print("------------------")
-print("Ric = {}".format(R_ic))
+print("Ric = {:e}".format(R_ic))
 print("index = {}".format(rindex))
-print("r[index] = {}".format(r[rindex]))
+print("r[index] = {:e}".format(r[rindex]))
+print("r/Ric = {}".format(r[rindex] / R_ic))
 print("n theta = {}".format(nt))
 print("n r = {}".format(nr))
 print("density.shape = {}".format(density.shape))
+print("temperature.shape = {}".format(temperature.shape))
 print("------------------")
 
 zidx = 0
 nlim = 37
 z = np.zeros(nlim)
 rho = np.zeros(nlim)
-print("\nz            rho")
+print("\nR = {:2.4} Ric".format(r[rindex] / R_ic))
+print("# z          rho\n")
 for i in range(nt-nlim, nt):
 	ztemp = z[zidx] = r[rindex] * np.cos(theta[i])
 	dtemp = rho[zidx] = density[i][rindex]
+	T = temperature[i][rindex]
 	zidx += 1
-	print("{:^+7.5e} {:^+7.5e}".format(ztemp, dtemp))
-write_z_v_density("grid.out", z,  rho)
+	print("{:^+7.5e} {:^+7.5e} {:^+7.5e}".format(ztemp, dtemp, T))
+write_z_v_density("grid.out", z,  rho, r[rindex] / R_ic)
