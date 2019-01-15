@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
 
+
+import sys
+import argparse
 from multiprocessing import cpu_count
 from subprocess import Popen, PIPE, CalledProcessError
 
 
+clim = 0.85
 show_output = False
+run_sims = False
+show_convergence = False
+non_converged = False
+create_plots = False
 
 
-def standard_python(wd, root_name, ncores, pyver):
+def mpi_py_run(wd, root_name, ncores, pyver):
     """
     Do a standard Python multi-processor run
     """
@@ -147,6 +155,24 @@ def TDE_plot(wd):
     return
 
 
+def clean_up_names(pf_path):
+    """
+    Split the path name into a directory and root name of the Python simulation
+    """
+
+    dot = 0
+    slash = 0
+    for l in range(len(pf_path)):
+        if pf_path[l] == "/":
+            slash = l + 1
+        if pf_path[l] == ".":
+            dot = l
+    root_name = pf_path[slash:dot]
+    sim = pf_path[:slash]
+
+    return root_name, sim
+
+
 def find_pf():
     """
     Find parameter files recursively
@@ -161,10 +187,88 @@ def find_pf():
         print(err)
 
     for i, dir in enumerate(pfs):
-        if dir.find(".out") != -1:
+        if dir.find(".out.pf") != -1:
             del(pfs[i])
 
+    if len(pfs) == 0:
+        print("No Python parameter files found")
+        print("\n--------------------------")
+        sys.exit(0)
+
     return pfs
+
+
+def find_physical_cpus():
+    """
+    Created due to multiprocessing.cpu_count() returning physical and logical threads. Pathetic.
+    """
+
+    ncores_cmd = "lscpu | grep 'Core(s) per socket'"
+    nsockets_cmd = "lscpu | grep 'Socket(s):'"
+    ncores, stderr = Popen(ncores_cmd, stdout=PIPE, stderr=PIPE, shell=True).communicate()
+    if ncores == "":
+        return 0
+    ncores = int(ncores.decode("utf-8").replace("\n", "").split()[-1])
+    nsockets, stderr = Popen(nsockets_cmd, stdout=PIPE, stderr=PIPE, shell=True).communicate()
+    if nsockets == "":
+        return 0
+    nsockets = int(nsockets.decode("utf-8").replace("\n", "").split()[-1])
+
+    return ncores * nsockets
+
+
+def get_run_mode():
+    """
+    Read command line flags to determine the mode of operation
+    """
+
+    p = argparse.ArgumentParser(description="Enable or disable features")
+    p.add_argument("-R", "-r", action="store_true", help="Run simulations")
+    p.add_argument("-C", "-c", action="store_true", help="Check the convergence of runs - calls convergence.py")
+    p.add_argument("-c_value", type=float, action="store", help="The convergence limit: c_value < 1")
+    p.add_argument("-P", "-p", action="store_true", help="Run plotting scripts")
+    p.add_argument("-V", "-v", action="store_true", help="Verbose outputting")
+    args = p.parse_args()
+
+    do_something = False
+
+    if args.V:
+        global show_output
+        show_output = True
+        do_something = True
+    if args.R:
+        global run_sims
+        run_sims = True
+        do_something = True
+    if args.C:
+        global show_convergence
+        show_convergence = True
+        do_something = True
+    if args.P:
+        global create_plots
+        create_plots = True
+        do_something = True
+    if args.c_value:
+        global clim
+        if 0 < args.c_value < 1:
+            clim = args.c_value
+        else:
+            print("Invalid value of c_value {}".format(args.c_value))
+            sys.exit(1)
+
+    print("Run Simulations ............ {}".format(run_sims))
+    print("Show Verbose Output ........ {}".format(show_output))
+    print("Show Convergence ........... {}".format(show_convergence))
+    print("Create Plots ............... {}".format(create_plots))
+    print("Convergence Limit .......... {}".format(clim))
+    print("")
+
+    if do_something is False:
+        print("\nThere is nothing to do!")
+        print("\n--------------------------")
+        sys.exit(0)
+
+    return
 
 
 def main(py):
@@ -172,57 +276,49 @@ def main(py):
     Main control function
     """
 
-    run_sims = False
-    show_convergence = False
-    non_converged = False
-    create_plots = True
+    print("--------------------------\n")
 
-    global show_output
-    show_output = True
+    sim_paths = find_pf()
+    n_cores = find_physical_cpus()  # I want the physical CPUs
+    if n_cores == 0:
+        n_cores = cpu_count()       # Not the physical CPU and SMT cores
 
-    clim = 0.85
-    ncores = cpu_count()
-    sims_to_run = find_pf()
+    print("The following simulations will be run using {} cores:\n".format(n_cores))
 
-    print("The following simulations will be run using {} cores:\n".format(ncores))
-    sims = []
-    for i, sim in enumerate(sims_to_run):
+    # Remove any py_wind parameter files which might be lurking about
+    py_sims = []
+    for i, sim in enumerate(sim_paths):
         if sim.find("py_wind.pf") == -1:
-            sims.append(sim)
+            py_sims.append(sim)
             print("- {}".format(sim))
 
-    open("not_converged.txt", "w").close()
+    # Determine which routines to run for each simulation
+    get_run_mode()
 
+    # If the not_converged file exists, delete the contents :-)
+    if show_convergence:
+        open("not_converged.txt", "w").close()
+
+    # Write everything out to file
     with open("output.txt", "w") as f:
-        for sim in sims:
-            # Find root name and clean up sim path
-            dot = 0
-            slash = 0
-            for l in range(len(sim)):
-                if sim[l] == "/":
-                    slash = l + 1
-                if sim[l] == ".":
-                    dot = l
-            root_name = sim[slash:dot]
-            sim = sim[:slash]
+        for sim in py_sims:
+            root_name, pf_path = clean_up_names(sim)
+            print("--------------------------\n")
 
-            print("\n--------------------------\n")
-
-            # Do some wark
+            # wark wark wark
             if run_sims:
                 f.write("--------\nPython Output\n--------\n")
-                f.write("Working dir ........ {}\n".format(sim))
+                f.write("Working dir ........ {}\n".format(pf_path))
                 f.write("Root name .......... {}\n".format(root_name))
-                python_output = standard_python(sim, root_name, ncores, py)
+                python_output = mpi_py_run(pf_path, root_name, n_cores, py)
                 f.writelines(python_output)
 
             # Assumes plot_convergence.py is in $PATH
             if show_convergence:
                 f.write("--------\nConvergence\n--------\n")
-                convergence_output = convergence(sim, root_name, show_output)
+                convergence_output = convergence(pf_path, root_name, show_output)
                 f.writelines(convergence_output)
-            if non_converged:
-                cvalue = list_non_converged(sim, root_name, clim)
+                cvalue = list_non_converged(pf_path, root_name, clim)
                 if cvalue < clim:
                     f.write("NOT CONVERGED, cvalue {} < clim {}\n".format(cvalue, clim))
                 else:
@@ -230,9 +326,9 @@ def main(py):
 
             # Assumes plotting scripts are in $PATH
             if create_plots:
-                standard_py_progs(sim, root_name)
+                standard_py_progs(pf_path, root_name)
                 # standard_spec_plot(sim)
-                TDE_plot(sim)
+                TDE_plot(pf_path)
 
         print("\n--------------------------")
 
