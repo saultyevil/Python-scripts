@@ -223,6 +223,7 @@ def get_run_mode():
     """
 
     p = argparse.ArgumentParser(description="Enable or disable features")
+    p.add_argument("-D", "-d", action="store_true", help="Run with -R -C -P")
     p.add_argument("-R", "-r", action="store_true", help="Run simulations")
     p.add_argument("-C", "-c", action="store_true", help="Check the convergence of runs - calls convergence.py")
     p.add_argument("-c_value", type=float, action="store", help="The convergence limit: c_value < 1")
@@ -230,32 +231,39 @@ def get_run_mode():
     p.add_argument("-V", "-v", action="store_true", help="Verbose outputting")
     args = p.parse_args()
 
+    global show_output
+    global run_sims
+    global show_convergence
+    global create_plots
+    global clim
+
     do_something = False
 
+    if args.D:
+        run_sims = True
+        show_convergence = True
+        create_plots = True
+        do_something = True
     if args.V:
-        global show_output
         show_output = True
         do_something = True
     if args.R:
-        global run_sims
         run_sims = True
         do_something = True
     if args.C:
-        global show_convergence
         show_convergence = True
         do_something = True
     if args.P:
-        global create_plots
         create_plots = True
         do_something = True
     if args.c_value:
-        global clim
         if 0 < args.c_value < 1:
             clim = args.c_value
         else:
             print("Invalid value of c_value {}".format(args.c_value))
             sys.exit(1)
 
+    print("")
     print("Run Simulations ............ {}".format(run_sims))
     print("Show Verbose Output ........ {}".format(show_output))
     print("Show Convergence ........... {}".format(show_convergence))
