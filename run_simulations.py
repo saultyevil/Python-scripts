@@ -88,6 +88,7 @@ def list_non_converged(wd, root_name, clim):
     final_conv = conv[final_cycle:]
     cvalue = float(final_conv[2].replace("(", "").replace(")", ""))
     print("dir ............. {}".format(wd))
+    print("root name ....... {}".format(root_name))
     print("clim ............ {}".format(clim))
     print("convergence ..... {}".format(cvalue))
     if cvalue < clim:
@@ -330,10 +331,8 @@ def main(py):
                 f.writelines(convergence_output)
                 cvalue = list_non_converged(pf_path, root_name, clim)
                 if cvalue < clim:
-                    print("SIMULATION NOT CONVERGED cvalue {} < clim {}".format(cvalue, clim))
                     f.write("NOT CONVERGED, cvalue {} < clim {}\n".format(cvalue, clim))
                 else:
-                    print("SIMULATION CONVERGED")
                     f.write("CONVERGED, cvalue {} >= clim {}\n".format(cvalue, clim))
 
             # Assumes plotting scripts are in $PATH
