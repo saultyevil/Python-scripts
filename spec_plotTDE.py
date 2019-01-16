@@ -24,6 +24,7 @@ Example usage:
 """
 
 
+import socket
 import py_util
 import argparse
 import numpy as np
@@ -38,7 +39,7 @@ wmax = 2000          # The largest wavelength to show on the spectra
 filetype = "png"     # The file type of the output spectra
 smooth = 11          # The amount of smoothing for the spectra
 chg_dist = False
-obs_dist = 90 * 1e6 * 3e18  # 90 Mpc in cm
+obs_dist = 1.079987153448e+27  # 350 Mpc in cm
 
 def get_outname_angles(specfiles):
     """
@@ -68,6 +69,7 @@ def get_outname_angles(specfiles):
     p.add_argument("-dist", type=float, nargs="?", action="store", help="Distance of the observer")
     p.add_argument("-v", "--verbose", help="Increase output to screen", action="store_true")
     p.add_argument("-s", "--show", help="Show the plots on screen", action="store_true")
+    p.add_argument("-blag", action="store_true", help="For the Blagodnova spec")
     args = p.parse_args()
 
     # Assign the optional arguments to their global vars
@@ -95,6 +97,8 @@ def get_outname_angles(specfiles):
         print("Ensure that dist is given in cm!")
         chg_dist = True
         obs_dist = args.dist
+    if args.blag:
+        chg_dist = True
 
     # Get the viewing angles to plot
     angles = []
@@ -169,15 +173,33 @@ def plot_spectra():
 
     print_info(specfiles, angles)
 
+    # Load the Blagorodnova spec into memory or sommat.. location depends on hostname
+    hostname = socket.gethostname()
+    blag_dir = ""
+    if hostname == "ASTRO-REX":
+        blag_dir = "/home/saultyevil/PythonSimulations/TDE/Blagorodnova_iPTF15af.dat"
+    elif hostname == "excession":
+        blag_dir = "/home/ejp1n17/PythonSimulations/TDE/Blagorodnova_iPTF15af.dat"
+    elif hostname == "REXBOOK-AIR.local":
+        blag_dir = "/Users/saultyevil/Dropbox/PythonSimulations/TDE/Blagorodnova_iPTF15af.dat"
+    else:
+        print("Unknown hostname, update script with directory for the Blagorodnova spectrum")
+
+    if blag_dir != "":
+        blagorodnovaspec = np.loadtxt(blag_dir, skiprows=36)
+        sm_blagorodnovaspec = blagorodnovaspec.copy()
+        sm_blagorodnovaspec[:, 1] = convolve(sm_blagorodnovaspec[:, 1], boxcar(smooth) / float(smooth), mode="same")
+    else:
+        print("No Blagorodnova UV spectrum will be plotted")
+
     # Loop over the viewing angles
     for angle in angles:
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-        # cenkospec = np.loadtxt("ASASSN-14li_spec_Cenko.dat")
-        # ax.semilogy(cenkospec[:, 0], cenkospec[:, 1], label="Cenko et al. 2016")
-        blagorodnovaspec = np.loadtxt("/home/saultyevil/Dropbox/TDE/Blagorodnova_iPTF15af.dat", skiprows=36)
-        sm_blagorodnovaspec = blagorodnovaspec.copy()
-        sm_blagorodnovaspec[:, 1] = convolve(sm_blagorodnovaspec[:, 1], boxcar(smooth)/float(smooth), mode="same")
-        ax.semilogy(sm_blagorodnovaspec[:, 0], sm_blagorodnovaspec[:, 1], label="Blagorodnova et al. 2018")
+
+        # Plot the Blagorodnova UV spectrum
+        if blag_dir != "":
+            ax.semilogy(sm_blagorodnovaspec[:, 0], sm_blagorodnovaspec[:, 1], label="Blagorodnova et al. 2018")
+
         # Loop over each .spec file
         k=0
         for file in specfiles:
