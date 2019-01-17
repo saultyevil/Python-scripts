@@ -24,7 +24,8 @@ def tests():
     None
     """
 
-    print("This script is not designed to be run. Instead, import it using import py_util.")
+    print("This script is not designed to be run. Instead, import it using "
+          "import py_util.")
     exit(0)
 
 
@@ -65,7 +66,7 @@ def read_file(filename, delim=" "):
         else:
             line = line.split(delim)
         if len(line) > 0:
-            if line[0] == "Freq.":  # Clean up the inclination angle names; makes life easier later
+            if line[0] == "Freq.":  # Clean up the inclination angle names
                 for j in range(len(line)):
                     if line[j][0] == "A":
                         line[j] = line[j].replace("P0.50", "").replace("A", "")
@@ -77,7 +78,8 @@ def read_file(filename, delim=" "):
 
 def find_spec_files():
     """
-    Use the unix find command to find spec files in the current working directory and in directories below
+    Use the unix find command to find spec files in the current working
+    directory and in directories below
 
     Parameters
     ----------
@@ -90,7 +92,8 @@ def find_spec_files():
     """
 
     find = "find . -name '*.spec'"
-    stdout, stderr = Popen(find, stdout=PIPE, stderr=PIPE, shell=True).communicate()
+    stdout, stderr = Popen(find, stdout=PIPE, stderr=PIPE, shell=True)\
+        .communicate()
     specfiles = stdout.decode("utf-8").split()
     specfiles = sorted(specfiles, key=str.lower)
     if len(specfiles) == 0:
@@ -178,7 +181,8 @@ def check_viewing_angle(angle, spec):
     Returns
     -------
     allowed: bool
-        If True, angle is a legal angle. Otherwise will return False to indicate illegal angle.
+        If True, angle is a legal angle. Otherwise will return False to indicate
+        illegal angle.
     """
 
     headers = spec[0, :]

@@ -28,18 +28,20 @@ Example usage:
 import py_util
 import argparse
 import numpy as np
+from socket import gethostname
 from matplotlib import pyplot as plt
 from scipy.signal import convolve, boxcar
 
 
-verbose = False      # More info will be printed to screen if True
-show_plot = False    # If True, the plot will be drawn on screen
-wmin = 850           # The smallest wavelength to show on the spectra
-wmax = 2000          # The largest wavelength to show on the spectra
-filetype = "png"     # The file type of the output spectra
-smooth = 11          # The amount of smoothing for the spectra
-chg_dist = False
-obs_dist = 90 * 1e6 * 3e18  # 90 Mpc in cm
+VERBOSE = False                # More info will be printed to screen if True
+SHOW_PLOT = False              # If True, the plot will be drawn on screen
+TDE_PLOT = False               # Enable default TDE plotting
+WMIN = 1100                    # The smallest wavelength to show on the spectra
+WMAX = 2500                    # The largest wavelength to show on the spectra
+FILETYPE = "png"               # The file type of the output spectra
+SMOOTH = 11                    # The amount of smoothing for the spectra
+OBSERVE_DIST = 100 * 3.086e18  # 100 pc in cm
+Z = 0                          # Redshift
 
 
 def get_outname_angles(specfiles):
@@ -60,43 +62,61 @@ def get_outname_angles(specfiles):
 
     p = argparse.ArgumentParser(description="")
     p.add_argument("output_name", type=str, help="The base name for the output")
-    p.add_argument("angles", type=str,
-                   help="The viewing angles to plot: all, a single angle or a comma separated list")
-    p.add_argument("-wmin", type=float, nargs="?", action="store", help="The smallest wavelength to show")
-    p.add_argument("-wmax", type=float, nargs="?", action="store", help="The largest wavelength to show")
-    p.add_argument("-filetype", type=str, nargs="?", action="store", help="The file format of the output")
-    p.add_argument("-smooth", type=float, nargs="?", action="store", help="The amount of smoothing of the spectra")
-    p.add_argument("-dist", type=float, nargs="?", action="store", help="Distance of the observer")
-    p.add_argument("-v", "--verbose", help="Increase output to screen", action="store_true")
-    p.add_argument("-s", "--show", help="Show the plots on screen", action="store_true")
+    p.add_argument("angles", type=str, help=
+        "The viewing angles to plot: all, a single angle or a comma "
+        "separated list")
+    p.add_argument("-wmin", type=float, action="store", help=
+        "The smallest wavelength to show")
+    p.add_argument("-wmax", type=float, action="store", help=
+        "The largest wavelength to show")
+    p.add_argument("-filetype", type=str, action="store", help=
+        "The file format of the output")
+    p.add_argument("-smooth", type=float, action="store", help=
+        "The amount of smoothing of the spectra")
+    p.add_argument("-dist", type=float, action="store", help=
+        "Distance of the observer")
+    p.add_argument("-v", "--verbose", action="store_true", help=
+        "Increase output to screen")
+    p.add_argument("-s", "--show", action="store_true", help=
+        "Show the plots on screen")
+    p.add_argument("-z", type=float, action="store", help=
+        "The redshift of the object")
+    p.add_argument("-blag", action="store_true", help=
+        "Plot for the Blagodovnova (?) UV TDE spec")
     args = p.parse_args()
+
+    global VERBOSE
+    global SHOW_PLOT
+    global WMIN
+    global WMAX
+    global FILETYPE
+    global SMOOTH
+    global CHANGE_DIST
+    global OBSERVE_DIST
+    global TDE_PLOT
+    global Z
 
     # Assign the optional arguments to their global vars
     if args.verbose:
-        global verbose
-        verbose = True
+        VERBOSE = True
     if args.show:
-        global show_plot
-        show_plot = True
+        SHOW_PLOT = True
     if args.wmin:
-        global wmin
-        wmin = args.wmin
+        WMIN = args.wmin
     if args.wmax:
-        global wmax
-        wmax = args.wmax
+        WMAX = args.wmax
     if args.filetype:
-        global filetype
-        filetype = args.filetype
+        FILETYPE = args.filetype
     if args.smooth:
-        global smooth
-        smooth = args.smooth
+        SMOOTH = args.smooth
     if args.dist:
-        global chg_dist
-        global obs_dist
-        if verbose:
-            print("Ensure that dist is given in cm!")
-        chg_dist = True
-        obs_dist = args.dist
+        OBSERVE_DIST = args.dist
+    if args.z:
+        Z = args.z
+    if args.blag:
+        TDE_PLOT = True
+        OBSERVE_DIST = 1.079987153448e+27
+        Z = 0.07897
 
     # Get the viewing angles to plot
     angles = []
@@ -141,6 +161,38 @@ def print_info (specfiles, angles):
     return
 
 
+def load_blag_spec():
+    """
+    Load the Blagorodnova iPTF15af UV spectrum into
+    """
+
+    blag_dir = ""
+    hostname = gethostname()
+    if hostname == "ASTRO-REX":
+        blag_dir = "/home/saultyevil/PythonSimulations/TDE/" \
+                   "Blagorodnova_iPTF15af.dat"
+    elif hostname == "excession":
+        blag_dir = "/home/ejp1n17/PythonSimulations/TDE/" \
+                   "Blagorodnova_iPTF15af.dat"
+    elif hostname == "REXBOOK-AIR.local":
+        blag_dir = "/Users/saultyevil/Dropbox/PythonSimulations/TDE/" \
+                   "Blagorodnova_iPTF15af.dat"
+    elif hostname == "REXBUNTU":
+        blag_dir = "/home/saultyevil/Dropbox/PythonSimulations/TDE/" \
+                   "Blagorodnova_iPTF15af.dat"
+    else:
+        print("Unknown hostname, update script with directory for the "
+              "Blagorodnova spectrum")
+        exit(1)
+
+    blagorodnovaspec = np.loadtxt(blag_dir, skiprows=36)
+    sm_blagorodnovaspec = blagorodnovaspec.copy()
+    sm_blagorodnovaspec[:, 1] = convolve(
+        sm_blagorodnovaspec[:, 1], boxcar(SMOOTH) / float(SMOOTH), mode="same")
+
+    return sm_blagorodnovaspec
+
+
 def plot_spectra():
     """
     Plot the spectra for the give .spec files and for the given viewing angles.
@@ -153,11 +205,9 @@ def plot_spectra():
         The viewing angles to be plotted.
     filename: str
         The base filename for the output spectra.
-
-    Returns
-    -------
-    None or 1 if error.
     """
+
+    print("--------------------------\n")
 
     # Get the output name, the viewing angles and the file paths to the .spec files
     specfiles = py_util.find_spec_files()
@@ -174,59 +224,49 @@ def plot_spectra():
     # Loop over the viewing angles
     for angle in angles:
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-        # Loop over each .spec file
+        if TDE_PLOT:
+            blag_spec = load_blag_spec()
+            ax.semilogy(blag_spec[:, 0], blag_spec[:, 1], label=
+                "Blagorodnova et al. 2018 (in prep)")
+        # Loop over each spec file
         for file in specfiles:
-            # Figure out the name of the spec file
-            # Find the final slash and final dot and assume between this slash and
-            # dot is the rootname of the Python pf
-            slashIdx = 0
-            dotIdx = len(file) - 1
-            for i in range(len(file)):
-                if file[i] == "/":
-                    slashIdx = i
-                elif file[i] == ".":
-                    dotIdx = i
-            rootname = file[slashIdx+1:dotIdx]
-            legend = rootname.replace("_", " ")
-            print("\t+ {} for viewing angle {}".format(legend, angle))
-
-            # Read in the data, this could probably be hardcoded instead...
-            # I don't think the .spec standard is changing anytime soon.
+            rootname, filepath = py_util.get_root_name_and_path(file)
+            legend = filepath + rootname
+            print("\t+ Plotting {} for viewing angle {}".format(legend, angle))
             spec = py_util.read_file(file)
             allowed = py_util.check_viewing_angle(angle, spec)
-            if allowed is False:
-                print("Error: viewing angle {} not found in .spec file {}".format(angle, file))
+            if not allowed:
+                print("Error: viewing angle {} not found in .spec file {}"
+                      .format(angle, file))
                 continue
+            # Read the wavelength and flux and smooth the flux
             wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
-            flux = np.array(spec[1:, spec[0, :] == "{}".format(angle)], dtype=float)
-            flux = np.reshape(flux, len(flux))  # Make this 1D because it isn't for some reason
-            smoothflux = convolve(flux, boxcar(smooth)/float(smooth), mode="same")
-
-            # Scale the results to the observer distance if required
-            dpy = 100 * 3.08567758128e18  # 100 pc - the default Python distance
-            if chg_dist:
-                dobserve = obs_dist
-            else:
-                dobserve = dpy
-
-            # Plot the spectrum
-            ax.semilogy(wavelength, smoothflux*(dpy**2/dobserve**2), label=legend)
-            ax.set_xlim(wmin, wmax)
+            flux = np.array(spec[1:, spec[0, :] == "{}".format(angle)],
+                            dtype=float)
+            flux = np.reshape(flux, len(flux))
+            smoothflux = convolve(flux, boxcar(SMOOTH) / float(SMOOTH),
+                                  mode="same")
+            # Plot and scale flux for observer distance
+            default_dist = 100 * 3.08567758128e18  # 100 pc in cm
+            ax.semilogy(wavelength * (Z + 1), smoothflux *
+                        (default_dist**2 / OBSERVE_DIST**2), label=legend)
+            ax.set_xlim(WMIN, WMAX)
             ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
-            ax.set_ylabel("Flux", fontsize=17)
+            ax.set_ylabel("$F_{\lambda}$ (ergs/s/cm$^{2}$/$\AA$)", fontsize=17)
             ax.tick_params(labelsize=17)
             ax.legend(loc="best")
 
         title = "Viewing angle = {}".format(angle) + "$^{\circ}$"
         ax.set_title(title, fontsize=20)
-        plt.savefig("{}_{}.{}".format(outname, angle, filetype))
+        plt.savefig("{}_{}.{}".format(outname, angle, FILETYPE))
 
-        if show_plot:
+        if SHOW_PLOT:
             plt.show()
         else:
             plt.close()
 
     print("\nAll done :-)")
+    print("\n--------------------------")
 
     return
 
