@@ -5,19 +5,22 @@ Create spectra from the .spec files from a MCRT Python simulation.
 
 The script requires you to provide 2 arguments:
     - The base output name of the spectra which are going to be produced
-    - The viewing angles to create spectra for: possible choices for this include all, a single number or a list of
-      numbers separated by a comma, i.e. 20,30,40
+    - The viewing angles to create spectra for: possible choices for this
+      include all, a single number or a list of numbers separated by a comma,
+      i.e. 20,30,40
 There are also some optional arguments:
     - wmin: the smallest wavelength to plot
     - wmax: the largest wavelength to plot
-    - filetype: the file type of the output spectra plots, by default this is png
+    - filetype: the file type of the output spectra plots, by default this is
+                png
 There are two optional switches also:
     - -v or --verbose which will enable more verbose output
     - -s or --show which will show the output spectra as well as saving to disk
 
-This script works by using the unix find command to find .spec files recursively in the current directory and deeper.
-Thus, it's possible to plot spectra for a single simulation or by plotting multiple simulations at once on the same
-plot for comparison purposes.
+This script works by using the unix find command to find .spec files recursively
+in the current directory and deeper. Thus, it's possible to plot spectra for a
+single simulation or by plotting multiple simulations at once on the same plot
+for comparison purposes.
 
 Example usage:
     python spec_plot.py qDNe all -v -show
@@ -39,7 +42,8 @@ wmax = 2000          # The largest wavelength to show on the spectra
 filetype = "png"     # The file type of the output spectra
 smooth = 11          # The amount of smoothing for the spectra
 chg_dist = False
-obs_dist = 1.079987153448e+27  # 350 Mpc in cm
+obs_dist = 100 * 3.086e18  # 100 pc - the default Python distance
+
 
 def get_outname_angles(specfiles):
     """
@@ -58,17 +62,25 @@ def get_outname_angles(specfiles):
     """
 
     p = argparse.ArgumentParser(description="")
-    p.add_argument("output_name", type=str, help="The base name for the output spectra")
+    p.add_argument("output_name", type=str,
+                   help="The base name for the output spectra")
     p.add_argument("angles", type=str,
-                   help="The viewing angles to plot: all, a single angle or a comma separated list")
-    p.add_argument("-wmin", type=float, nargs="?", action="store", help="The smallest wavelength to show")
-    p.add_argument("-wmax", type=float, nargs="?", action="store", help="The largest wavelength to show")
+                   help="The viewing angles to plot: all, a single angle or a "
+                        "comma separated list")
+    p.add_argument("-wmin", type=float, nargs="?", action="store",
+                   help="The smallest wavelength to show")
+    p.add_argument("-wmax", type=float, nargs="?", action="store",
+                   help="The largest wavelength to show")
     p.add_argument("-filetype", type=str, nargs="?", action="store",
                    help="The file format of the output mspectra")
-    p.add_argument("-smooth", type=float, nargs="?", action="store", help="The amount of smoothing of the spectra")
-    p.add_argument("-dist", type=float, nargs="?", action="store", help="Distance of the observer")
-    p.add_argument("-v", "--verbose", help="Increase output to screen", action="store_true")
-    p.add_argument("-s", "--show", help="Show the plots on screen", action="store_true")
+    p.add_argument("-smooth", type=float, nargs="?", action="store",
+                   help="The amount of smoothing of the spectra")
+    p.add_argument("-dist", type=float, nargs="?", action="store",
+                   help="Distance of the observer")
+    p.add_argument("-v", "--verbose", help="Increase output to screen",
+                   action="store_true")
+    p.add_argument("-s", "--show", help="Show the plots on screen",
+                   action="store_true")
     p.add_argument("-blag", action="store_true", help="For the Blagodnova spec")
     args = p.parse_args()
 
@@ -99,6 +111,7 @@ def get_outname_angles(specfiles):
         obs_dist = args.dist
     if args.blag:
         chg_dist = True
+        obs_dist = 1.079987153448e+27
 
     # Get the viewing angles to plot
     angles = []
@@ -161,7 +174,8 @@ def plot_spectra():
     None or 1 if error.
     """
 
-    # Get the output name, the viewing angles and the file paths to the .spec files
+    # Get the output name, the viewing angles and the file paths to the .spec
+    # files
     specfiles = py_util.find_spec_files()
     if len(specfiles) == 0:
         print("No spec files found, exiting.")
@@ -173,9 +187,10 @@ def plot_spectra():
 
     print_info(specfiles, angles)
 
-    # Load the Blagorodnova spec into memory or sommat.. location depends on hostname
-    hostname = socket.gethostname()
+    # Load the Blagorodnova spec into memory or sommat.. location depends on
+    # hostname
     blag_dir = ""
+    hostname = socket.gethostname()
     if hostname == "ASTRO-REX":
         blag_dir = "/home/saultyevil/PythonSimulations/TDE/Blagorodnova_iPTF15af.dat"
     elif hostname == "excession":
@@ -188,7 +203,9 @@ def plot_spectra():
     if blag_dir != "":
         blagorodnovaspec = np.loadtxt(blag_dir, skiprows=36)
         sm_blagorodnovaspec = blagorodnovaspec.copy()
-        sm_blagorodnovaspec[:, 1] = convolve(sm_blagorodnovaspec[:, 1], boxcar(smooth) / float(smooth), mode="same")
+        sm_blagorodnovaspec[:, 1] = convolve(sm_blagorodnovaspec[:, 1],
+                                             boxcar(smooth) / float(smooth),
+                                             mode="same")
     else:
         print("No Blagorodnova UV spectrum will be plotted")
 
@@ -198,56 +215,46 @@ def plot_spectra():
 
         # Plot the Blagorodnova UV spectrum
         if blag_dir != "":
-            ax.semilogy(sm_blagorodnovaspec[:, 0], sm_blagorodnovaspec[:, 1], label="Blagorodnova et al. 2018")
+            ax.semilogy(sm_blagorodnovaspec[:, 0], sm_blagorodnovaspec[:, 1],
+                        label="Blagorodnova et al. 2018")
 
         # Loop over each .spec file
         k=0
         for file in specfiles:
             # Figure out the name of the spec file
-            # Find the final slash and final dot and assume between this slash and
-            # dot is the rootname of the Python pf
-            slashIdx = 0
-            dotIdx = len(file) - 1
-            for i in range(len(file)):
-                if file[i] == "/":
-                    slashIdx = i
-                elif file[i] == ".":
-                    dotIdx = i
-            rootname = file[slashIdx + 1:dotIdx]
-            legend = rootname.replace("_", " ")
-            print("\t+ {} for viewing angle {}".format(legend, angle))
+            # Find the final slash and final dot and assume between this slash
+            # and dot is the rootname of the Python pf
+            rootname, filepath = py_util.get_root_name_and_path(file)
+            legend = filepath + rootname
+            print("\t+ Plotting {} for viewing angle {}".format(legend, angle))
 
             # Read in the data, this could probably be hardcoded instead...
             # I don't think the .spec standard is changing anytime soon.
             spec = py_util.read_file(file)
             allowed = py_util.check_viewing_angle(angle, spec)
             if allowed is False:
-                print("Error: viewing angle {} not found in .spec file {}".format(angle, file))
+                print("Error: viewing angle {} not found in .spec file {}".
+                      format(angle, file))
                 continue
             wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
-            flux = np.array(spec[1:, spec[0, :] == "{}".format(angle)], dtype=float)
+            flux = np.array(spec[1:, spec[0, :] == "{}".format(angle)],
+                            dtype=float)
             flux = np.reshape(flux, len(flux))  # Make this 1D because it isn't for some reason
-            smoothflux = convolve(flux, boxcar(smooth)/float(smooth), mode="same")
+            smoothflux = convolve(flux, boxcar(smooth)/float(smooth),
+                                  mode="same")
 
             # Scale the results to the observer distance if required
-            dpy = 100 * 3.086e18  # 100 pc - the default Python distance
-            if chg_dist:
-                dobserve = obs_dist
-            else:
-                dobserve = dpy
-
             # Plot the spectrum
             z = 0.07897
-            ax.semilogy(wavelength/(z+1), smoothflux*(dpy**2/dobserve**2), label=legend)
+            default_dist = 100 * 3.086e18  # 100 pc - the default distance
+            ax.semilogy(wavelength*(z+1),
+                        smoothflux*(default_dist**2/obs_dist**2),label=legend)
             ax.set_xlim(wmin, wmax)
             ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
             ax.set_ylabel("Flux", fontsize=17)
             ax.tick_params(labelsize=17)
             ax.legend(loc="lower right")
-            k+=1
-
-            # print(legend, angle, np.average(sm_blagorodnovaspec[:, 1]), np.average(smoothflux*(dpy**2/dobserve**2)),
-            #       np.average(sm_blagorodnovaspec[:, 1]) /  np.average(smoothflux*(dpy**2/dobserve**2)))
+            k += 1
 
         title = "Viewing angle = {}".format(angle) + "$^{\circ}$"
         ax.set_title(title, fontsize=20)
@@ -257,6 +264,8 @@ def plot_spectra():
             plt.show()
         else:
             plt.close()
+
+    print("\nDone!")
 
     return
 

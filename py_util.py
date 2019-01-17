@@ -4,6 +4,7 @@
 Various common routines which are used in scripts concerned with MCRT Python.
 """
 
+import sys
 import numpy as np
 from sys import exit
 from subprocess import Popen, PIPE
@@ -99,6 +100,34 @@ def find_spec_files():
     return specfiles
 
 
+def find_pf(ignore_out_pf):
+    """
+    Find parameter files recursively
+    """
+
+    command = "find . -type f -name '*.pf'"
+    cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
+    stdout, stderr = cmd.communicate()
+    pfs = stdout.decode("utf-8").split()
+    err = stderr.decode("utf-8")
+
+    if err:
+        print("Captured from stderr:")
+        print(err)
+
+    if ignore_out_pf:
+        for i, dir in enumerate(pfs):
+            if dir.find(".out.pf") != -1:
+                del(pfs[i])
+
+    if len(pfs) == 0:
+        print("No Python parameter files found\n")
+        print("--------------------------")
+        sys.exit(0)
+
+    return pfs
+
+
 def get_spec_viewing_angles(specfiles, delim=" "):
     """
     Get all of the unique viewing angles for a set of .spec files.
@@ -160,6 +189,24 @@ def check_viewing_angle(angle, spec):
                 allowed = True
 
     return allowed
+
+
+def get_root_name_and_path(pf_path):
+    """
+    Split the path name into a directory and root name of the Python simulation
+    """
+
+    dot = 0
+    slash = 0
+    for l in range(len(pf_path)):
+        if pf_path[l] == "/":
+            slash = l + 1
+        if pf_path[l] == ".":
+            dot = l
+    root_name = pf_path[slash:dot]
+    sim = pf_path[:slash]
+
+    return root_name, sim
 
 
 if __name__ == "__main__":

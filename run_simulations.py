@@ -2,6 +2,7 @@
 
 
 import sys
+import py_util
 import argparse
 from shutil import which
 from multiprocessing import cpu_count
@@ -13,7 +14,6 @@ VERSION = "py"
 SHOW_OUTPUT = False
 RUN_SIMS = False
 SHOW_CONVERGENCE = False
-non_converged = False
 CREATE_PLOTS = False
 TDE_PLOT = False
 
@@ -26,12 +26,16 @@ def get_run_mode():
     p = argparse.ArgumentParser(description="Enable or disable features")
     p.add_argument("-D", "-d", action="store_true", help="Run with -R -C -P")
     p.add_argument("-R", "-r", action="store_true", help="Run simulations")
-    p.add_argument("-C", "-c", action="store_true", help="Check the convergence of runs - calls convergence.py")
-    p.add_argument("-C_LIM", type=float, action="store", help="The convergence limit: c_value < 1")
+    p.add_argument("-C", "-c", action="store_true",
+                   help="Check the convergence of runs - calls convergence.py")
+    p.add_argument("-C_LIM", type=float, action="store",
+                   help="The convergence limit: c_value < 1")
     p.add_argument("-P", "-p", action="store_true", help="Run plotting scripts")
     p.add_argument("-O", "-o", action="store_true", help="Verbose outputting")
-    p.add_argument("-TP", "-tp", action="store_true", help="Enable TDE plotting")
-    p.add_argument("-PY_VER", "-py_ver", type=str, action="store", help="Name of the Python executable")
+    p.add_argument("-TP", "-tp", action="store_true",
+                   help="Enable TDE plotting")
+    p.add_argument("-PY_VER", "-py_ver", type=str, action="store",
+                   help="Name of the Python executable")
     args = p.parse_args()
 
     global SHOW_OUTPUT
@@ -74,31 +78,37 @@ def get_run_mode():
             print("Invalid value of c_value {}".format(args.c_value))
             sys.exit(1)
 
-    print("\nRun Simulations ............ {}".format(RUN_SIMS))
+    print("--------------------------\n")
+    print("Run Simulations ............ {}".format(RUN_SIMS))
     print("Show Verbose Output ........ {}".format(SHOW_OUTPUT))
     print("Show Convergence ........... {}".format(SHOW_CONVERGENCE))
     print("Create Plots ............... {}".format(CREATE_PLOTS))
     print("Convergence Limit .......... {}".format(CLIM))
     print("Python version ............. {}".format(VERSION))
     if args.TP:
-        print("Plot TDE ............... {}".format(TDE_PLOT))
+        print("Plot TDE ................... {}".format(TDE_PLOT))
     print("")
 
     if do_something is False:
-        print("\nThere is nothing to do!\n")
+        print("\nNo arguments provided. There is nothing to do!\n")
+        p.print_help()
         print("--------------------------")
         sys.exit(0)
 
     return
 
 
-def py_run(wd, root_name):
+def py_run(wd, root_name, mp, ncores):
     """
     Do a standard Python run using a single process
     """
 
     pf = root_name + ".pf"  # Don't actually need the .pf at the end
-    command = "cd {}; Setup_Py_Dir; {} {}".format(wd, VERSION, pf)
+    if mp:
+        command = "cd {}; Setup_Py_Dir; mpirun -n {} {} {}".format(wd, ncores,
+                                                                   VERSION, pf)
+    else:
+        command = "cd {}; Setup_Py_Dir; {} {}".format(wd, VERSION, pf)
 
     print("Working dir ........ {}".format(wd))
     print("Root name .......... {}".format(root_name))
@@ -106,62 +116,36 @@ def py_run(wd, root_name):
 
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
 
-    if SHOW_OUTPUT:
-        for stdout_line in iter(cmd.stdout.readline, ""):
-            if not stdout_line:
-                break
-            print(stdout_line.decode("utf-8").replace("\n", ""))
-        print("")
+    for stdout_line in iter(cmd.stdout.readline, ""):
+        if not stdout_line:
+            break
+        line = stdout_line.decode("utf-8").replace("\n", "")
+
+        #
+        # This horrid bit of logic will determine from the output which
+        # ionisation and wind cycle is currently being done and print out to
+        # the screen. If SHOW_OUTPUT is True, then all lines will be printed
+        # to the screen instead.
+        #
+
+        if line.find("for defining wind") != -1:
+            line = line.split()
+            cycle = int(line[3]) + 1
+            ncycles = line[5]
+            print("Beginning Ionisation Cycle {}/{}".format(cycle, ncycles))
+        elif line.find("to calculate a detailed spectrum") != -1:
+            line = line.split()
+            cycle = int(line[1]) + 1
+            ncycles = line[3]
+            print("Beginning Spectrum Cycle {}/{}".format(cycle, ncycles))
+        elif SHOW_OUTPUT:
+            print(line)
+    print("")
 
     #
-    # When the stdout or stderr buffer becomes too large (>4KB), cmd.wait() deadlocks.
-    # We can get around this by using cmd.communicate instead, I think.
-    #
-
-    pystdout, pystderr = cmd.communicate()
-    returncode = cmd.returncode
-    if returncode:
-        raise CalledProcessError(returncode, command)
-    output = pystdout.decode("utf-8")
-    err = pystderr.decode("utf-8")
-
-    if err:
-        print("Captured from stderr:")
-        print(err)
-
-    with open("{}/py_{}.out".format(wd, root_name), "w") as f:
-        f.writelines(output)
-    if err:
-        with open("{}/py_err_{}.out".format(wd, root_name), "w") as f:
-            f.writelines(err)
-
-    return output, err
-
-
-def mpi_py_run(wd, root_name, ncores):
-    """
-    Do a standard Python multi-processor run
-    """
-
-    pf = root_name + ".pf"  # Don't actually need the .pf at the end
-    command = "cd {}; Setup_Py_Dir; mpirun -n {} {} {}".format(wd, ncores, VERSION, pf)
-
-    print("Working dir ........ {}".format(wd))
-    print("Root name .......... {}".format(root_name))
-    print("\n{}\n".format(command))
-
-    cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
-
-    if SHOW_OUTPUT:
-        for stdout_line in iter(cmd.stdout.readline, ""):
-            if not stdout_line:
-                break
-            print(stdout_line.decode("utf-8").replace("\n", ""))
-        print("")
-
-    #
-    # When the stdout or stderr buffer becomes too large (>4KB), cmd.wait() deadlocks.
-    # We can get around this by using cmd.communicate instead, I think.
+    # When the stdout or stderr buffer becomes too large (>4KB), cmd.wait()
+    # deadlocks. We can get around this by using cmd.communicate instead, I
+    # think...
     #
 
     pystdout, pystderr = cmd.communicate()
@@ -202,13 +186,20 @@ def check_convergence(wd, root_name, show_output):
         print("Captured from stderr:")
         print(err)
 
-    conv = output.split()
+    return output
+
+
+def display_convergence(conv, wd, root_name):
+    """
+    Write to the screen if the simulation has or hasn't converged
+    """
+
     final_cycle = 0
     for i, word in enumerate(conv):
         if word == "!!Check_converging:":
             final_cycle = i
     if final_cycle == 0:
-        return output, 0
+        return 0
 
     final_cycle_conv = conv[final_cycle:]
     cvalue = float(final_cycle_conv[2].replace("(", "").replace(")", ""))
@@ -225,7 +216,7 @@ def check_convergence(wd, root_name, show_output):
         print("CONVERGED")
     print("")
 
-    return output, cvalue
+    return cvalue
 
 
 def do_py_plot_output(wd, root_name):
@@ -241,6 +232,7 @@ def do_py_plot_output(wd, root_name):
 
     if SHOW_OUTPUT:
         print(output)
+    print("")
 
     return
 
@@ -251,6 +243,7 @@ def do_spec_plot(wd, root_name):
     """
 
     commands = "cd {}; spec_plot.py {} all".format(wd, root_name)
+    print(commands)
     cmd = Popen(commands, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
     output = stdout.decode("utf-8")
@@ -261,16 +254,19 @@ def do_spec_plot(wd, root_name):
     if err:
         print("Captured from stderr:")
         print(err)
+    print("")
 
     return
 
 
-def TDE_plot(wd, root_name):
+def do_spec_plotTDE(wd, root_name):
     """
     Execute the standard Blag spec_plotTDE plotting script
     """
 
-    commands = "cd {}; spec_plotTDE.py {} all -blag -wmin 1000 -wmax 2500".format(wd, root_name)
+    commands = "cd {}; spec_plotTDE.py {} all -blag -wmin 1000 -wmax 2500".\
+        format(wd, root_name)
+    print(commands)
     cmd = Popen(commands, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
     output = stdout.decode("utf-8")
@@ -281,6 +277,7 @@ def TDE_plot(wd, root_name):
     if err:
         print("Captured from stderr:")
         print(err)
+    print("")
 
     return
 
@@ -304,11 +301,13 @@ def find_number_of_physical_cores():
 
     ncores_cmd = "lscpu | grep 'Core(s) per socket'"
     nsockets_cmd = "lscpu | grep 'Socket(s):'"
-    ncores, stderr = Popen(ncores_cmd, stdout=PIPE, stderr=PIPE, shell=True).communicate()
+    ncores, stderr = Popen(ncores_cmd, stdout=PIPE, stderr=PIPE,
+                           shell=True).communicate()
     if ncores == "":
         return 0
     ncores = int(ncores.decode("utf-8").replace("\n", "").split()[-1])
-    nsockets, stderr = Popen(nsockets_cmd, stdout=PIPE, stderr=PIPE, shell=True).communicate()
+    nsockets, stderr = Popen(nsockets_cmd, stdout=PIPE, stderr=PIPE,
+                             shell=True).communicate()
     if nsockets == "":
         return 0
     nsockets = int(nsockets.decode("utf-8").replace("\n", "").split()[-1])
@@ -316,57 +315,15 @@ def find_number_of_physical_cores():
     return ncores * nsockets
 
 
-def find_pf():
-    """
-    Find parameter files recursively
-    """
-
-    command = "find . -type f -name '*.pf'"
-    cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
-    stdout, stderr = cmd.communicate()
-    pfs = stdout.decode("utf-8").split()
-    err = stderr.decode("utf-8")
-    if err:
-        print(err)
-
-    for i, dir in enumerate(pfs):
-        if dir.find(".out.pf") != -1:
-            del(pfs[i])
-
-    if len(pfs) == 0:
-        print("No Python parameter files found")
-        print("\n--------------------------")
-        sys.exit(0)
-
-    return pfs
-
-
-def get_root_name_and_path(pf_path):
-    """
-    Split the path name into a directory and root name of the Python simulation
-    """
-
-    dot = 0
-    slash = 0
-    for l in range(len(pf_path)):
-        if pf_path[l] == "/":
-            slash = l + 1
-        if pf_path[l] == ".":
-            dot = l
-    root_name = pf_path[slash:dot]
-    sim = pf_path[:slash]
-
-    return root_name, sim
-
-
 def main():
     """
     Main control function
     """
 
-    print("--------------------------\n")
+    # Determine which routines to run for each simulation
+    get_run_mode()
 
-    all_par_file_paths = find_pf()
+    all_par_file_paths = py_util.find_pf(ignore_out_pf=True)
     mpi = check_for_mpi()
 
     n_cores = 1
@@ -385,8 +342,7 @@ def main():
             par_file_paths.append(path)
             print("- {}".format(path))
 
-    # Determine which routines to run for each simulation
-    get_run_mode()
+
 
     # If the not_converged file exists, delete the contents :-)
     if SHOW_CONVERGENCE:
@@ -395,16 +351,14 @@ def main():
     # Write everything out to file
     with open("output.txt", "w") as f:
         for path in par_file_paths:
-            root_name, pf_relative_path = get_root_name_and_path(path)
+            root_name, pf_relative_path = py_util.get_root_name_and_path(path)
             print("--------------------------\n")
 
             # wark wark wark
             if RUN_SIMS:
                 print("Running the simulation: {}\n".format(root_name))
-                if mpi:
-                    python_output, python_err = mpi_py_run(pf_relative_path, root_name, n_cores)
-                else:
-                    python_output, python_err = py_run(pf_relative_path, root_name)
+                python_output, python_err = py_run(pf_relative_path, root_name,
+                                                   mpi, n_cores)
 
                 f.write("--------\nPython Output\n--------\n")
                 f.write("Working dir ........ {}\n".format(pf_relative_path))
@@ -416,7 +370,8 @@ def main():
             # Assumes plot_convergence.py is in $PATH
             if SHOW_CONVERGENCE:
                 print("Checking the convergence of the simulation:\n")
-                convergence_output, cvalue = check_convergence(pf_relative_path, root_name, SHOW_OUTPUT)
+                convergence_output = check_convergence(pf_relative_path, root_name, SHOW_OUTPUT)
+                cvalue = display_convergence(convergence_output.split(), pf_relative_path, root_name)
                 f.write("--------\nConvergence\n--------\n")
                 f.writelines(convergence_output)
                 if cvalue < CLIM:
@@ -431,9 +386,9 @@ def main():
                 do_py_plot_output(pf_relative_path, root_name)
                 do_spec_plot(pf_relative_path, root_name)
                 if TDE_PLOT:
-                    TDE_plot(pf_relative_path, root_name)
+                    do_spec_plotTDE(pf_relative_path, root_name)
 
-        print("\n--------------------------")
+        print("--------------------------")
 
     return
 
