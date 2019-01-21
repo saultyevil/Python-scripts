@@ -3,6 +3,7 @@
 
 import py_util
 import argparse
+import datetime
 from sys import exit
 from shutil import which
 from platform import system
@@ -19,6 +20,7 @@ CREATE_PLOTS = False
 TDE_PLOT = False
 WMIN = 1000
 WMAX = 2500
+DATE = datetime.datetime.now()
 
 
 def get_run_mode():
@@ -114,7 +116,7 @@ def get_run_mode():
     print("")
 
     if do_something is False:
-        print("\nNo run mode parameter provided, there is nothing to do!\n")
+        print("No run mode parameter provided, there is nothing to do!\n")
         p.print_help()
         print("\n--------------------------")
         exit(0)
@@ -140,10 +142,18 @@ def py_run(wd, root_name, mpi, ncores):
 
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
 
+    outfname = "{}/py_{}_{}{}{}_{}:{}.out"\
+        .format(wd, root_name, DATE.year, DATE.month, DATE.day, DATE.hour,
+                DATE.minute)
+    outf = open(outfname, "w")
+
+    lines = []
     for stdout_line in iter(cmd.stdout.readline, ""):
         if not stdout_line:
             break
         line = stdout_line.decode("utf-8").replace("\n", "")
+        lines.append(line)
+        outf.write(line)
 
         #
         # This horrid bit of logic will determine from the output which
@@ -156,16 +166,17 @@ def py_run(wd, root_name, mpi, ncores):
             line = line.split()
             cycle = int(line[3]) + 1
             ncycles = line[5]
-            print("Beginning Ionisation Cycle {}/{}".format(cycle, ncycles))
+            print("Ionisation Cycle ... {}/{}".format(cycle, ncycles))
         elif line.find("to calculate a detailed spectrum") != -1:
             line = line.split()
             cycle = int(line[1]) + 1
             ncycles = line[3]
-            print("Beginning Spectrum Cycle {}/{}".format(cycle, ncycles))
+            print("Spectrum Cycle ..... {}/{}".format(cycle, ncycles))
         elif SHOW_OUTPUT:
             print(line)
-
     print("")
+
+    outf.close()
 
     #
     # When the stdout or stderr buffer becomes too large (>4KB), cmd.wait()
@@ -177,20 +188,17 @@ def py_run(wd, root_name, mpi, ncores):
     rc = cmd.returncode
     if rc:
         raise CalledProcessError(rc, command)
-    output = pystdout.decode("utf-8")
     err = pystderr.decode("utf-8")
-
     if err:
         print("Captured from stderr:")
         print(err)
-
-    with open("{}/py_{}.out".format(wd, root_name), "w") as f:
-        f.writelines(output)
-    if err:
-        with open("{}/py_err_{}.out".format(wd, root_name), "w") as f:
+        errfname = "{}/py_err_{}{}{}_{}:{}.out"\
+            .format(wd, root_name, DATE.year, DATE.month, DATE.day, DATE.hour,
+                    DATE.minute)
+        with open(errfname, "w") as f:
             f.writelines(err)
 
-    return output, err
+    return lines, err
 
 
 def check_convergence(wd, root_name, show_output):
@@ -348,7 +356,7 @@ def main():
     mpi = check_for_mpi()
 
     n_cores = 1
-    if mpi and RUN_SIMS:
+    if RUN_SIMS and mpi:
         # We will suffer for macOS
         if system() == "Darwin":
             n_cores = cpu_count()
@@ -370,17 +378,19 @@ def main():
             par_file_paths.append(path)
             print("- {}".format(path))
     print("")
+    n_sims = len(par_file_paths)
 
     # If the not_converged file exists, delete the contents :-)
     if SHOW_CONVERGENCE:
         open("not_converged.txt", "w").close()
 
     # Write everything out to file
-    with open("output.txt", "w") as f:
-        for path in par_file_paths:
+    with open("output_{}{}{}_{}:{}.txt".format(DATE.year, DATE.month, DATE.day,
+                                               DATE.hour, DATE.minute), "w") as f:
+        for i, path in enumerate(par_file_paths):
             root_name, pf_relative_path = py_util.get_root_name_and_path(path)
             print("--------------------------\n")
-
+            print("Simulation {}/{}\n".format(i+1, n_sims))
             # wark wark wark
             if RUN_SIMS:
                 print("Running the simulation: {}\n".format(root_name))
@@ -407,8 +417,8 @@ def main():
                     f.write("NOT CONVERGED, cvalue {} < clim {}\n"
                             .format(cvalue, CLIM))
                 else:
-                    f.write("CONVERGED, cvalue {} >= clim {}\n".format(cvalue,
-                                                                       CLIM))
+                    f.write("CONVERGED, cvalue {} >= clim {}\n"
+                            .format(cvalue, CLIM))
                 f.write("\n--------------------------")
 
             # Assumes plotting scripts are in $PATH

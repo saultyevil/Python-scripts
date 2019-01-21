@@ -5,10 +5,12 @@ Create spectra from the .spec files from a MCRT Python simulation.
 
 The script requires you to provide 2 arguments:
     - The base output name of the spectra which are going to be produced
-    - The viewing angles to create spectra for: possible choices for this include all, a single number or a list of
-      numbers separated by a comma, i.e. 20,30,40
+    - The viewing angles to create spectra for: possible choices for this
+      include all, a single number or a list of numbers separated by a comma,
+      i.e. 20,30,40
 There are also some optional arguments:
-    - dist: the distance of the object from the observer, by default Python uses 100 pc
+    - dist: the distance of the object from the observer, by default Python
+            uses 100 pc
     - wmin: the smallest wavelength to plot
     - wmax: the largest wavelength to plot
     - filetype: the file type of the output spectra plots, by default this is png
@@ -16,9 +18,10 @@ There are two optional switches also:
     - -v or --verbose which will enable more verbose output
     - -s or --show which will show the output spectra as well as saving to disk
 
-This script works by using the unix find command to find .spec files recursively in the current directory and deeper.
-Thus, it's possible to plot spectra for a single simulation or by plotting multiple simulations at once on the same
-plot for comparison purposes.
+This script works by using the unix find command to find .spec files recursively
+in the current directory and deeper. Thus, it's possible to plot spectra for a
+single simulation or by plotting multiple simulations at once on the same plot
+for comparison purposes.
 
 Example usage:
     python spec_plot.py qDNe all -v -show
@@ -254,8 +257,7 @@ def plot_spectra():
             ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
             ax.set_ylabel("$F_{\lambda}$ (ergs/s/cm$^{2}$/$\AA$)", fontsize=17)
             ax.tick_params(labelsize=17)
-            ax.legend(loc="best")
-
+        ax.legend(loc="best")
         title = "Viewing angle = {}".format(angle) + "$^{\circ}$"
         ax.set_title(title, fontsize=20)
         plt.savefig("{}_{}.{}".format(outname, angle, FILETYPE))
