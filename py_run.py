@@ -18,9 +18,30 @@ RUN_SIMS = False
 SHOW_CONVERGENCE = False
 CREATE_PLOTS = False
 TDE_PLOT = False
-WMIN = 1000
+WMIN = 1150
 WMAX = 2500
 DATE = datetime.datetime.now()
+DRY_RUN = False
+
+CONVERGED = \
+    """
+                                                 _
+      ___ ___  _ ____   _____ _ __ __ _  ___  __| |
+     / __/ _ \| '_ \ \ / / _ \ '__/ _` |/ _ \/ _` |
+    | (_| (_) | | | \ V /  __/ | | (_| |  __/ (_| |
+     \___\___/|_| |_|\_/ \___|_|  \__, |\___|\__,_|
+                                  |___/
+    """
+
+NOT_CONVERGED = \
+    """
+                 _                                                 _
+     _ __   ___ | |_    ___ ___  _ ____   _____ _ __ __ _  ___  __| |
+    | '_ \ / _ \| __|  / __/ _ \| '_ \ \ / / _ \ '__/ _` |/ _ \/ _` |
+    | | | | (_) | |_  | (_| (_) | | | \ V /  __/ | | (_| |  __/ (_| |
+    |_| |_|\___/ \__|  \___\___/|_| |_|\_/ \___|_|  \__, |\___|\__,_|
+                                                    |___/
+    """
 
 
 def get_run_mode():
@@ -44,6 +65,8 @@ def get_run_mode():
     p.add_argument("-clim", type=float, action="store", help=
         "The convergence limit: c_value < 1")
     p.add_argument("-o", action="store_true", help="Verbose outputting")
+    p.add_argument("-dry", action="store_true", help=
+        "Print the simulations found and exit")
     # Plot parameters
     p.add_argument("-wmin", type=float, action="store",help=
         "The smallest wavelength to display")
@@ -61,6 +84,7 @@ def get_run_mode():
     global VERSION
     global WMIN
     global WMAX
+    global DRY_RUN
 
     do_something = False
 
@@ -94,6 +118,9 @@ def get_run_mode():
         else:
             print("Invalid value of c_value {}".format(args.c_value))
             exit(1)
+    if args.dry:
+        DRY_RUN = True
+        do_something = True
     # Set up plotting parameters
     if args.wmin:
         WMIN = args.wmin
@@ -131,7 +158,7 @@ def py_run(wd, root_name, mpi, ncores):
 
     pf = root_name + ".pf"  # Don't actually need the .pf at the end
     if mpi:
-        command = "cd {}; Setup_Py_Dir; mpirun -n {} {} {}"\
+        command = "cd {}; Setup_Py_Dir; mpirun -n {} {} {}; rm data"\
             .format(wd, ncores, VERSION, pf)
     else:
         command = "cd {}; Setup_Py_Dir; {} {}".format(wd, VERSION, pf)
@@ -153,7 +180,7 @@ def py_run(wd, root_name, mpi, ncores):
             break
         line = stdout_line.decode("utf-8").replace("\n", "")
         lines.append(line)
-        outf.write(line)
+        outf.write("{}\n".format(line))
 
         #
         # This horrid bit of logic will determine from the output which
@@ -242,11 +269,11 @@ def display_convergence(conv, wd, root_name):
     print("clim ............ {}".format(CLIM))
     print("convergence ..... {}\n".format(cvalue))
     if cvalue < CLIM:
-        print("NOT CONVERGED")
+        print(NOT_CONVERGED)
         with open("not_converged.txt", "a") as f:
             f.write("{}\t{}.pf\t{}\n".format(wd, root_name, cvalue))
     else:
-        print("CONVERGED")
+        print(CONVERGED)
     print("")
 
     return cvalue
@@ -262,7 +289,8 @@ def do_py_plot_output(wd, root_name):
         print("py_plot_output.py not in $PATH")
         return
 
-    commands = "cd {}; py_plot_output.py {} all".format(wd, root_name)
+    commands = "cd {}; Setup_Py_Dir; py_plot_output.py {} all; rm data"\
+        .format(wd, root_name)
     print(commands)
     cmd = Popen(commands, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
@@ -378,6 +406,9 @@ def main():
             par_file_paths.append(path)
             print("- {}".format(path))
     print("")
+    if DRY_RUN:
+        print("--------------------------")
+        return
     n_sims = len(par_file_paths)
 
     # If the not_converged file exists, delete the contents :-)
@@ -385,8 +416,9 @@ def main():
         open("not_converged.txt", "w").close()
 
     # Write everything out to file
-    with open("output_{}{}{}_{}:{}.txt".format(DATE.year, DATE.month, DATE.day,
-                                               DATE.hour, DATE.minute), "w") as f:
+    outfname = "py_run_output_{}{}{}_{}:{}.txt"\
+        .format(DATE.year, DATE.month, DATE.day, DATE.hour, DATE.minute)
+    with open(outfname, "w") as f:
         for i, path in enumerate(par_file_paths):
             root_name, pf_relative_path = py_util.get_root_name_and_path(path)
             print("--------------------------\n")
@@ -414,10 +446,12 @@ def main():
                 f.write("--------\nConvergence\n--------\n")
                 f.writelines(convergence_output)
                 if cvalue < CLIM:
-                    f.write("NOT CONVERGED, cvalue {} < clim {}\n"
+                    f.write("{}\n".format(NOT_CONVERGED))
+                    f.write("cvalue {} < clim {}\n"
                             .format(cvalue, CLIM))
                 else:
-                    f.write("CONVERGED, cvalue {} >= clim {}\n"
+                    f.write("{}\n".format(CONVERGED))
+                    f.write("cvalue {} >= clim {}\n"
                             .format(cvalue, CLIM))
                 f.write("\n--------------------------")
 
