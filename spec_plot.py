@@ -39,8 +39,8 @@ from scipy.signal import convolve, boxcar
 VERBOSE = False                # More info will be printed to screen if True
 SHOW_PLOT = False              # If True, the plot will be drawn on screen
 TDE_PLOT = False               # Enable default TDE plotting
-WMIN = 1100                    # The smallest wavelength to show on the spectra
-WMAX = 2500                    # The largest wavelength to show on the spectra
+WMIN = None                    # The smallest wavelength to show on the spectra
+WMAX = None                    # The largest wavelength to show on the spectra
 FILETYPE = "png"               # The file type of the output spectra
 SMOOTH = 11                    # The amount of smoothing for the spectra
 OBSERVE_DIST = 100 * 3.086e18  # 100 pc in cm
@@ -172,16 +172,14 @@ def load_blag_spec():
     blag_dir = ""
     hostname = gethostname()
     if hostname == "ASTRO-REX":
-        blag_dir = "/home/saultyevil/PythonSimulations/TDE/" \
-                   "Blagorodnova_iPTF15af.dat"
+        blag_dir = "/home/saultyevil/PySims/TDE/Blagorodnova_iPTF15af.dat"
     elif hostname == "excession":
-        blag_dir = "/home/ejp1n17/PythonSimulations/TDE/" \
-                   "Blagorodnova_iPTF15af.dat"
+        blag_dir = "/home/ejp1n17/PySims/TDE/Blagorodnova_iPTF15af.dat"
     elif hostname == "REXBOOK-AIR.local":
-        blag_dir = "/Users/saultyevil/Dropbox/PythonSimulations/TDE/" \
+        blag_dir = "/Users/saultyevil/Dropbox/DiskWinds/PySims/TDE/" \
                    "Blagorodnova_iPTF15af.dat"
     elif hostname == "REXBUNTU":
-        blag_dir = "/home/saultyevil/Dropbox/PythonSimulations/TDE/" \
+        blag_dir = "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/" \
                    "Blagorodnova_iPTF15af.dat"
     else:
         print("Unknown hostname, update script with directory for the "
@@ -244,11 +242,26 @@ def plot_spectra():
                 continue
             # Read the wavelength and flux and smooth the flux
             wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
-            flux = np.array(spec[1:, spec[0, :] == "{}".format(angle)],
-                            dtype=float)
-            flux = np.reshape(flux, len(flux))
+
+            ####################################################################
+            # Here is pure suffering
+            # TODO: replace this with some horrid hack using a Python list >:-)
+            ####################################################################
+
+            idx = 0
+            for i in range(spec.shape[1]):
+                if spec[0, i].isdigit() and float(spec[0, i]) == float(angle):
+                    spec[0, i] = float(spec[0, i])
+                    idx = i
+                    break
+
+            flux = np.array(spec[1:, idx], dtype=float)
+            flux = np.reshape(flux, (len(flux),))
             smoothflux = convolve(flux, boxcar(SMOOTH) / float(SMOOTH),
                                   mode="same")
+
+            ####################################################################
+
             # Plot and scale flux for observer distance
             default_dist = 100 * 3.08567758128e18  # 100 pc in cm
             ax.semilogy(wavelength * (Z + 1), smoothflux *

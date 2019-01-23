@@ -18,30 +18,30 @@ RUN_SIMS = False
 SHOW_CONVERGENCE = False
 CREATE_PLOTS = False
 TDE_PLOT = False
-WMIN = 1150
-WMAX = 2500
+WMIN = None
+WMAX = None
 DATE = datetime.datetime.now()
 DRY_RUN = False
 
 CONVERGED = \
-    """
-                                                 _
-      ___ ___  _ ____   _____ _ __ __ _  ___  __| |
-     / __/ _ \| '_ \ \ / / _ \ '__/ _` |/ _ \/ _` |
-    | (_| (_) | | | \ V /  __/ | | (_| |  __/ (_| |
-     \___\___/|_| |_|\_/ \___|_|  \__, |\___|\__,_|
-                                  |___/
-    """
+"""
+                                             _
+  ___ ___  _ ____   _____ _ __ __ _  ___  __| |
+ / __/ _ \| '_ \ \ / / _ \ '__/ _` |/ _ \/ _` |
+| (_| (_) | | | \ V /  __/ | | (_| |  __/ (_| |
+ \___\___/|_| |_|\_/ \___|_|  \__, |\___|\__,_|
+                              |___/
+"""
 
 NOT_CONVERGED = \
-    """
-                 _                                                 _
-     _ __   ___ | |_    ___ ___  _ ____   _____ _ __ __ _  ___  __| |
-    | '_ \ / _ \| __|  / __/ _ \| '_ \ \ / / _ \ '__/ _` |/ _ \/ _` |
-    | | | | (_) | |_  | (_| (_) | | | \ V /  __/ | | (_| |  __/ (_| |
-    |_| |_|\___/ \__|  \___\___/|_| |_|\_/ \___|_|  \__, |\___|\__,_|
-                                                    |___/
-    """
+"""
+             _                                                 _
+ _ __   ___ | |_    ___ ___  _ ____   _____ _ __ __ _  ___  __| |
+| '_ \ / _ \| __|  / __/ _ \| '_ \ \ / / _ \ '__/ _` |/ _ \/ _` |
+| | | | (_) | |_  | (_| (_) | | | \ V /  __/ | | (_| |  __/ (_| |
+|_| |_|\___/ \__|  \___\___/|_| |_|\_/ \___|_|  \__, |\___|\__,_|
+                                                |___/
+"""
 
 
 def get_run_mode():
@@ -112,9 +112,9 @@ def get_run_mode():
     # Set up script parameters
     if args.py_ver:
         VERSION = args.PY_VER
-    if args.clim:  # Bad variable names here :-) C_LIM is from the arg list
+    if args.clim:  # Bad variable names here :-) clim is from the arg list
         if 0 < args.c_value < 1:
-            CLIM = args.C_LIM
+            CLIM = args.clim
         else:
             print("Invalid value of c_value {}".format(args.c_value))
             exit(1)
@@ -169,9 +169,8 @@ def py_run(wd, root_name, mpi, ncores):
 
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
 
-    outfname = "{}/py_{}_{}{}{}_{}:{}.out"\
-        .format(wd, root_name, DATE.year, DATE.month, DATE.day, DATE.hour,
-                DATE.minute)
+    outfname = "{}/{}_{}{}{}.out"\
+        .format(wd, root_name, DATE.year, DATE.month, DATE.day)
     outf = open(outfname, "w")
 
     lines = []
@@ -219,9 +218,8 @@ def py_run(wd, root_name, mpi, ncores):
     if err:
         print("Captured from stderr:")
         print(err)
-        errfname = "{}/py_err_{}{}{}_{}:{}.out"\
-            .format(wd, root_name, DATE.year, DATE.month, DATE.day, DATE.hour,
-                    DATE.minute)
+        errfname = "{}/err_{}{}{}.out"\
+            .format(wd, root_name, DATE.year, DATE.month, DATE.day)
         with open(errfname, "w") as f:
             f.writelines(err)
 
@@ -313,15 +311,15 @@ def do_spec_plot(wd, root_name):
         print("spec_plot.py not in $PATH")
         return
 
+    commands = "cd {}; spec_plot.py {} all".format(wd, root_name)
     if TDE_PLOT:
-        commands = "cd {}; spec_plot.py {} all -blag -wmin {} -wmax {}"\
-            .format(wd, root_name, WMIN, WMAX)
-    else:
-        commands = "cd {}; spec_plot.py {} all -wmin {} -wmax {}"\
-            .format(wd, root_name, WMIN, WMAX)
-
-
+        commands += " -blag"
+    if WMIN:
+        commands += " -wmin {}".format(WMIN)
+    if WMAX:
+        commands += " -wmax {}".format(WMAX)
     print(commands)
+
     cmd = Popen(commands, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
     output = stdout.decode("utf-8")
@@ -416,13 +414,14 @@ def main():
         open("not_converged.txt", "w").close()
 
     # Write everything out to file
-    outfname = "py_run_output_{}{}{}_{}:{}.txt"\
+    outfname = "py_run_{}{}{}.txt"\
         .format(DATE.year, DATE.month, DATE.day, DATE.hour, DATE.minute)
     with open(outfname, "w") as f:
         for i, path in enumerate(par_file_paths):
             root_name, pf_relative_path = py_util.get_root_name_and_path(path)
             print("--------------------------\n")
             print("Simulation {}/{}\n".format(i+1, n_sims))
+
             # wark wark wark
             if RUN_SIMS:
                 print("Running the simulation: {}\n".format(root_name))
