@@ -1,5 +1,34 @@
 #!/usr/bin/env python3
 
+"""
+Automatically run Python simulations, plot and check convergence by searching
+for .pf files recursively from the calling directory
+
+There are no required arguments to provide the script. However, if no "run time"
+parameters are provided, then the script will exit as there is nothing to do.
+
+The switches which can be used are as follows:
+
+  -h, --help      show this help message and exit
+  -d              Run with -r -c -p
+  -r              Run simulations
+  -c              Check the convergence of runs - calls convergence.py
+  -p              Run plotting scripts
+  -tde            Enable TDE plotting
+  -py_ver PY_VER  Name of the Python executable
+  -clim CLIM      The convergence limit: c_value < 1
+  -o              Verbose outputting
+  -dry            Print the simulations found and exit
+  -wmin WMIN      The smallest wavelength to display
+  -wmax WMAX      The largest wavelength to display
+
+
+Note that -d, -p, -c, -dry or -r are required for the script to do something.
+
+Example usage:
+    python py_run.py -r -p -tde
+    python py_run.py -d -tde -WMIN 200 -WMAX 5000 -o
+"""
 
 import py_util
 import argparse
@@ -106,9 +135,7 @@ def get_run_mode():
         CREATE_PLOTS = True
         do_something = True
     if args.tde:
-        CREATE_PLOTS = True
         TDE_PLOT = True
-        do_something = True
     # Set up script parameters
     if args.py_ver:
         VERSION = args.PY_VER
@@ -158,18 +185,15 @@ def py_run(wd, root_name, mpi, ncores):
 
     pf = root_name + ".pf"  # Don't actually need the .pf at the end
     if mpi:
-        command = "cd {}; Setup_Py_Dir; mpirun -n {} {} {}; rm data"\
+        command = "cd {}; mpirun -n {} {} {}"\
             .format(wd, ncores, VERSION, pf)
     else:
-        command = "cd {}; Setup_Py_Dir; {} {}".format(wd, VERSION, pf)
-
-    print("Working dir ........ {}".format(wd))
-    print("Root name .......... {}".format(root_name))
+        command = "cd {}; {} {}".format(wd, VERSION, pf)
     print("\n{}\n".format(command))
 
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
 
-    outfname = "{}/{}_{}{}{}.out"\
+    outfname = "{}/{}_{}{}{}.txt"\
         .format(wd, root_name, DATE.year, DATE.month, DATE.day)
     outf = open(outfname, "w")
 
@@ -231,6 +255,11 @@ def check_convergence(wd, root_name, show_output):
     Check the convergence of the simulation
     """
 
+    path = which("convergence.py")
+    if not path:
+        print("convergence.py not in $PATH and executable")
+        return
+
     commands = "cd {}; convergence.py {}".format(wd, root_name)
     cmd = Popen(commands, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
@@ -262,16 +291,16 @@ def display_convergence(conv, wd, root_name):
     final_cycle_conv = conv[final_cycle:]
     cvalue = float(final_cycle_conv[2].replace("(", "").replace(")", ""))
 
-    print("dir ............. {}".format(wd))
-    print("root name ....... {}".format(root_name))
     print("clim ............ {}".format(CLIM))
     print("convergence ..... {}\n".format(cvalue))
+
     if cvalue < CLIM:
         print(NOT_CONVERGED)
         with open("not_converged.txt", "a") as f:
             f.write("{}\t{}.pf\t{}\n".format(wd, root_name, cvalue))
     else:
         print(CONVERGED)
+
     print("")
 
     return cvalue
@@ -284,18 +313,19 @@ def do_py_plot_output(wd, root_name):
 
     path = which("py_plot_output.py")
     if not path:
-        print("py_plot_output.py not in $PATH")
+        print("py_plot_output.py not in $PATH and executable")
         return
 
-    commands = "cd {}; Setup_Py_Dir; py_plot_output.py {} all; rm data"\
-        .format(wd, root_name)
+    commands = "cd {}; py_plot_output.py {} all".format(wd, root_name)
     print(commands)
+
     cmd = Popen(commands, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
     output = stdout.decode("utf-8")
 
     if SHOW_OUTPUT:
         print(output)
+
     print("")
 
     return
@@ -308,7 +338,7 @@ def do_spec_plot(wd, root_name):
 
     path = which("spec_plot.py")
     if not path:
-        print("spec_plot.py not in $PATH")
+        print("spec_plot.py not in $PATH and executable")
         return
 
     commands = "cd {}; spec_plot.py {} all".format(wd, root_name)
@@ -347,7 +377,7 @@ def check_for_mpi():
     return True
 
 
-def find_number_of_physical_cores():
+def find_number_of_physical_cores_lscpu():
     """
     Created due to multiprocessing.cpu_count() returning physical and logical
     core count. Pathetic. (I don't want to use hyperthreads as this often can
@@ -370,24 +400,19 @@ def find_number_of_physical_cores():
     return ncores * nsockets
 
 
-def main():
+def get_num_cores():
     """
-    Main control function
+    Determine the number of cores Python should be run using
     """
-
-    # Determine which routines to run for each simulation
-    get_run_mode()
-
-    all_par_file_paths = py_util.find_pf(ignore_out_pf=True)
-    mpi = check_for_mpi()
 
     n_cores = 1
+    mpi = check_for_mpi()
     if RUN_SIMS and mpi:
         # We will suffer for macOS
         if system() == "Darwin":
             n_cores = cpu_count()
         else:
-            n_cores = find_number_of_physical_cores()
+            n_cores = find_number_of_physical_cores_lscpu()
             if n_cores == 0:
                 n_cores = cpu_count()
         print("The following simulations will be run using {} cores:\n"
@@ -397,6 +422,84 @@ def main():
     else:
         print("Processing the following runs:\n")
 
+    return mpi, n_cores
+
+
+def run_choices(par_file_paths, n_sims, mpi, n_cores):
+    """
+    Controls the general flow of the simulation running, plotting etc. I did
+    this to make the main function more readable.
+    """
+
+    # If the not_converged file exists, delete the contents :-)
+    if SHOW_CONVERGENCE:
+        open("not_converged.txt", "w").close()
+
+    # Open up an output file
+    outfname = "run_{}{}{}.txt"\
+        .format(DATE.year, DATE.month, DATE.day, DATE.hour, DATE.minute)
+    f = open(outfname, "w")
+
+    # Iterate over the possible simulations
+    for i, path in enumerate(par_file_paths):
+        root_name, pf_relative_path = py_util.get_root_name_and_path(path)
+
+        # Print some details to screen
+        print("--------------------------\n")
+        print("Simulation {}/{}".format(i+1, n_sims))
+        print("Working dir ........ {}".format(pf_relative_path))
+        print("Root name .......... {}\n".format(root_name))
+        # Print some details to the output file
+        f.write("--------------------------\n")
+        f.write("Simulation {}/{}\n".format(i+1, n_sims))
+        f.write("Working dir ........ {}\n".format(pf_relative_path))
+        f.write("Root name .......... {}\n".format(root_name))
+
+        if RUN_SIMS:
+            print("Running the simulation: {}\n".format(root_name))
+            python_output, python_err = \
+                py_run(pf_relative_path, root_name, mpi, n_cores)
+            f.writelines(python_output)
+            if python_err:
+                f.write(python_err)
+
+        if SHOW_CONVERGENCE:
+            print("Checking the convergence of the simulation:\n")
+            convergence_output = \
+                check_convergence(pf_relative_path, root_name, SHOW_OUTPUT)
+            conv_out = convergence_output.split()
+            cvalue = \
+                display_convergence(conv_out, pf_relative_path, root_name)
+            f.writelines(convergence_output)
+            if cvalue < CLIM:
+                f.write("{}\n".format(NOT_CONVERGED))
+                f.write("cvalue {} < clim {}\n".format(cvalue, CLIM))
+            else:
+                f.write("{}\n".format(CONVERGED))
+                f.write("cvalue {} >= clim {}\n".format(cvalue, CLIM))
+
+        f.write("\n--------------------------\n")
+
+        if CREATE_PLOTS:
+            print("Creating plots for the simulation\n")
+            do_py_plot_output(pf_relative_path, root_name)
+            do_spec_plot(pf_relative_path, root_name)
+
+    f.close()
+
+    return
+
+
+def main():
+    """
+    Main control function
+    """
+
+    # Determine which routines to run for each simulation
+    get_run_mode()
+    all_par_file_paths = py_util.find_pf(ignore_out_pf=True)
+    mpi, n_cores = get_num_cores()
+
     # Remove any py_wind parameter files which might be lurking about
     par_file_paths = []
     for i, path in enumerate(all_par_file_paths):
@@ -404,63 +507,16 @@ def main():
             par_file_paths.append(path)
             print("- {}".format(path))
     print("")
+
     if DRY_RUN:
         print("--------------------------")
         return
+
+    # Now run Python, plotting and convergence procedures
     n_sims = len(par_file_paths)
+    run_choices(par_file_paths, n_sims, mpi, n_cores)
 
-    # If the not_converged file exists, delete the contents :-)
-    if SHOW_CONVERGENCE:
-        open("not_converged.txt", "w").close()
-
-    # Write everything out to file
-    outfname = "py_run_{}{}{}.txt"\
-        .format(DATE.year, DATE.month, DATE.day, DATE.hour, DATE.minute)
-    with open(outfname, "w") as f:
-        for i, path in enumerate(par_file_paths):
-            root_name, pf_relative_path = py_util.get_root_name_and_path(path)
-            print("--------------------------\n")
-            print("Simulation {}/{}\n".format(i+1, n_sims))
-
-            # wark wark wark
-            if RUN_SIMS:
-                print("Running the simulation: {}\n".format(root_name))
-                python_output, python_err = py_run(pf_relative_path, root_name,
-                                                   mpi, n_cores)
-
-                f.write("--------\nPython Output\n--------\n")
-                f.write("Working dir ........ {}\n".format(pf_relative_path))
-                f.write("Root name .......... {}\n".format(root_name))
-                f.writelines(python_output)
-                if python_err:
-                    f.write(python_err)
-
-            # Assumes plot_convergence.py is in $PATH
-            if SHOW_CONVERGENCE:
-                print("Checking the convergence of the simulation:\n")
-                convergence_output = check_convergence(pf_relative_path,
-                                                       root_name, SHOW_OUTPUT)
-                cvalue = display_convergence(convergence_output.split(),
-                                             pf_relative_path, root_name)
-                f.write("--------\nConvergence\n--------\n")
-                f.writelines(convergence_output)
-                if cvalue < CLIM:
-                    f.write("{}\n".format(NOT_CONVERGED))
-                    f.write("cvalue {} < clim {}\n"
-                            .format(cvalue, CLIM))
-                else:
-                    f.write("{}\n".format(CONVERGED))
-                    f.write("cvalue {} >= clim {}\n"
-                            .format(cvalue, CLIM))
-                f.write("\n--------------------------")
-
-            # Assumes plotting scripts are in $PATH
-            if CREATE_PLOTS:
-                print("Creating plots for the simulation\n")
-                do_py_plot_output(pf_relative_path, root_name)
-                do_spec_plot(pf_relative_path, root_name)
-
-        print("--------------------------")
+    print("--------------------------")
 
     return
 

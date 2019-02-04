@@ -14,14 +14,6 @@ def tests():
     """
     Warns the user that this script is a utility script and not meant to be run.
     TODO: add unit tests
-
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    None
     """
 
     print("This script is not designed to be run. Instead, import it using "
@@ -135,6 +127,8 @@ def get_spec_viewing_angles(specfiles, delim=" "):
     """
     Get all of the unique viewing angles for a set of .spec files.
 
+    TODO: in the future, it may be beneficial to deal with phase angle
+
     Parameters
     ----------
     specfiles: list of str
@@ -198,6 +192,18 @@ def check_viewing_angle(angle, spec):
 def get_root_name_and_path(pf_path):
     """
     Split the path name into a directory and root name of the Python simulation
+
+    Parameters
+    ----------
+    pf_path: str
+        The file path to a .pf file.
+
+    Returns
+    -------
+    root_name: str
+        The root name of the simulation.
+    sim: str
+        The absolute directory containing the provided .pf file.
     """
 
     dot = 0

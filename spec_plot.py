@@ -8,13 +8,16 @@ The script requires you to provide 2 arguments:
     - The viewing angles to create spectra for: possible choices for this
       include all, a single number or a list of numbers separated by a comma,
       i.e. 20,30,40
+
 There are also some optional arguments:
     - dist: the distance of the object from the observer, by default Python
             uses 100 pc
     - wmin: the smallest wavelength to plot
     - wmax: the largest wavelength to plot
     - filetype: the file type of the output spectra plots, by default this is png
-There are two optional switches also:
+    - blag: default plotting parameter choices for modelling iPTF15af (TDE)
+
+There are also two optional switches:
     - -v or --verbose which will enable more verbose output
     - -s or --show which will show the output spectra as well as saving to disk
 
@@ -24,7 +27,7 @@ single simulation or by plotting multiple simulations at once on the same plot
 for comparison purposes.
 
 Example usage:
-    python spec_plot.py qDNe all -v -show
+    python spec_plot.py qDNe_test all -wmin 1250 -wmax 3000 -v
 """
 
 
@@ -47,20 +50,9 @@ OBSERVE_DIST = 100 * 3.086e18  # 100 pc in cm
 Z = 0                          # Redshift
 
 
-def get_outname_angles(specfiles):
+def get_outname_and_angles(specfiles):
     """
     Parse the various global parameters from the command line.
-
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    outputname: str
-        The base filename for the output spectra.
-    angles: nangles list of ints.
-        The viewing angles of the spectra to plot.
     """
 
     p = argparse.ArgumentParser(description="")
@@ -120,6 +112,10 @@ def get_outname_angles(specfiles):
         TDE_PLOT = True
         OBSERVE_DIST = 1.079987153448e+27
         Z = 0.07897
+        if not WMIN:
+            WMIN = 1100
+        if not WMAX:
+            WMAX = 2500
 
     # Get the viewing angles to plot
     angles = []
@@ -133,35 +129,6 @@ def get_outname_angles(specfiles):
             angles.append(int(ang[i]))
 
     return args.output_name, angles
-
-
-def print_info (specfiles, angles):
-    """
-    Print extra information to the screen
-
-    Parameters
-    ----------
-    specfiles: nfiles list of str
-        The file paths for the .spec files.
-    angles: list of ints
-        All of the unique viewing angles found in the provided .spec files
-
-    Returns
-    -------
-    None
-    """
-
-    print("Creating spectra for the following .spec files:\n")
-    for i in range(len(specfiles)):
-        print("\t+ {}".format(specfiles[i]))
-
-    print("\nSpectra will be created for the following viewing angles:\n")
-    for i in range(len(angles)):
-        print("\t+ {}".format(angles[i]))
-
-    print("")  # Spacer
-
-    return
 
 
 def load_blag_spec():
@@ -186,26 +153,39 @@ def load_blag_spec():
               "Blagorodnova spectrum")
         exit(1)
 
+    if VERBOSE:
+        print("Hostname: {}".format(hostname))
+        print("Blagordnova spectra being read in from {}".format(blag_dir))
+
     blagorodnovaspec = np.loadtxt(blag_dir, skiprows=36)
-    sm_blagorodnovaspec = blagorodnovaspec.copy()
+    sm_blagorodnovaspec = np.copy(blagorodnovaspec)
     sm_blagorodnovaspec[:, 1] = convolve(
         sm_blagorodnovaspec[:, 1], boxcar(SMOOTH) / float(SMOOTH), mode="same")
 
     return sm_blagorodnovaspec
 
 
+def print_info (specfiles, angles):
+    """
+    Print extra information to the screen
+    """
+
+    print("Creating spectra for the following .spec files:\n")
+    for i in range(len(specfiles)):
+        print("\t- {}".format(specfiles[i]))
+
+    print("\nSpectra will be created for the following viewing angles:\n")
+    for i in range(len(angles)):
+        print("\t- {}".format(angles[i]))
+
+    print("")
+
+    return
+
+
 def plot_spectra():
     """
     Plot the spectra for the give .spec files and for the given viewing angles.
-
-    Parameters
-    ----------
-    files: nfiles list of strings.
-        The file pathes to the .spec files.
-    angles: nangles list of ints.
-        The viewing angles to be plotted.
-    filename: str
-        The base filename for the output spectra.
     """
 
     print("--------------------------\n")
@@ -213,44 +193,54 @@ def plot_spectra():
     # Get the output name, the viewing angles and the file paths to the .spec files
     specfiles = py_util.find_spec_files()
     if len(specfiles) == 0:
-        print("No spec files found, exiting.")
-        return 1
-    outname, angles = get_outname_angles(specfiles)
+        print("No spec files found")
+        exit(1)
+
+    outname, angles = get_outname_and_angles(specfiles)
     if len(angles) == 0:
-        print("No angles were provided")
-        return 1
+        print("No angles provided")
+        exit(1)
+
     print_info(specfiles, angles)
 
     print("Beginning plotting...\n")
-    # Loop over the viewing angles
+
+    # Loop over all the possible viewing angles
     for angle in angles:
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+
         if TDE_PLOT:
             blag_spec = load_blag_spec()
-            ax.semilogy(blag_spec[:, 0], blag_spec[:, 1], label=
-                "Blagorodnova et al. 2018 (in prep)")
-        # Loop over each spec file
+            ax.semilogy(blag_spec[:, 0], blag_spec[:, 1],
+                        label="Blagorodnova et al. 2018")
+
+        # Loop over each possible .spec file
         for file in specfiles:
             rootname, filepath = py_util.get_root_name_and_path(file)
             legend = filepath + rootname
-            print("\t+ Plotting {} for viewing angle {}".format(legend, angle))
+            print("\t- {}: {}°".format(legend, angle))
+
+            # Read in .spec file and check that it can be plotted for the
+            # current viewing angle
             spec = py_util.read_file(file)
             allowed = py_util.check_viewing_angle(angle, spec)
             if not allowed:
-                print("Error: viewing angle {} not found in .spec file {}"
-                      .format(angle, file))
+                if VERBOSE:
+                    print("Error: {}° not found in .spec file {}"
+                          .format(angle, file))
                 continue
-            # Read the wavelength and flux and smooth the flux
-            wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
 
-            ####################################################################
-            # Here is pure suffering
-            # TODO: replace this with some horrid hack using a Python list >:-)
-            ####################################################################
+            #
+            # Read the wavelength and flux and smooth the flux
+            # There is something weird happening to determine which index data
+            # should be extracted from. I did this because all of the data in
+            # the read in .spec file are strings
+            #
 
             idx = 0
             for i in range(spec.shape[1]):
                 if spec[0, i].isdigit() and float(spec[0, i]) == float(angle):
+                    # Found the index for the current angle to be plotted :-)
                     spec[0, i] = float(spec[0, i])
                     idx = i
                     break
@@ -259,20 +249,22 @@ def plot_spectra():
             flux = np.reshape(flux, (len(flux),))
             smoothflux = convolve(flux, boxcar(SMOOTH) / float(SMOOTH),
                                   mode="same")
-
-            ####################################################################
+            wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
 
             # Plot and scale flux for observer distance
-            default_dist = 100 * 3.08567758128e18  # 100 pc in cm
+            default_dist = 100 * 3.08567758128e18  #  default Python distance
             ax.semilogy(wavelength * (Z + 1), smoothflux *
                         (default_dist**2 / OBSERVE_DIST**2), label=legend)
             ax.set_xlim(WMIN, WMAX)
+            # TODO: implement smart way of determining correct ylim value
+            # ax.set_ylim(1e-18, 1e-13)
             ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
             ax.set_ylabel("$F_{\lambda}$ (ergs/s/cm$^{2}$/$\AA$)", fontsize=17)
             ax.tick_params(labelsize=17)
+
         ax.legend(loc="best")
-        title = "Viewing angle = {}".format(angle) + "$^{\circ}$"
-        ax.set_title(title, fontsize=20)
+        ax.set_title("Viewing angle = {}".format(angle) + "$^{\circ}$",
+                     fontsize=20)
         plt.savefig("{}_{}.{}".format(outname, angle, FILETYPE))
 
         if SHOW_PLOT:
