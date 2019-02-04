@@ -343,7 +343,7 @@ def do_spec_plot(wd, root_name):
 
     commands = "cd {}; spec_plot.py {} all".format(wd, root_name)
     if TDE_PLOT:
-        commands += " -blag"
+        commands += " -tde"
     if WMIN:
         commands += " -wmin {}".format(WMIN)
     if WMAX:

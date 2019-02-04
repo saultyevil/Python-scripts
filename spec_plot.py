@@ -76,7 +76,7 @@ def get_outname_and_angles(specfiles):
         "Show the plots on screen")
     p.add_argument("-z", type=float, action="store", help=
         "The redshift of the object")
-    p.add_argument("-blag", action="store_true", help=
+    p.add_argument("-tde", action="store_true", help=
         "Plot for the Blagodovnova (?) UV TDE spec")
     args = p.parse_args()
 
@@ -108,7 +108,7 @@ def get_outname_and_angles(specfiles):
         OBSERVE_DIST = args.dist
     if args.z:
         Z = args.z
-    if args.blag:
+    if args.tde:
         TDE_PLOT = True
         OBSERVE_DIST = 1.079987153448e+27
         Z = 0.07897
