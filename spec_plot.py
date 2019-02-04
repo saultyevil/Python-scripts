@@ -183,6 +183,38 @@ def print_info (specfiles, angles):
     return
 
 
+def get_ylims(wlength, flux):
+    """
+    Figure out the ylims given a wavelength range
+    """
+
+    wmin_flux = flux.min()
+    wmax_flux = flux.max()
+
+    if WMIN:
+        wmin_idx = np.abs(wlength - float(WMIN)).argmin()
+        if VERBOSE:
+            print("wmin_idx: {}".format(wmin_idx))
+        wmin_flux = flux[wmin_idx]
+    if WMAX:
+        wmax_idx = np.abs(wlength - float(WMAX)).argmin()
+        if VERBOSE:
+            print("wmax_idx: {}".format(wmax_idx))
+        wmax_flux = flux[wmax_idx]
+
+    if wmin_flux > wmax_flux:
+        yupper = wmin_flux
+        ylower = wmax_flux
+    else:
+        yupper = wmax_flux
+        ylower = wmin_flux
+
+    yupper *= 10
+    ylower /= 10
+
+    return yupper, ylower
+
+
 def plot_spectra():
     """
     Plot the spectra for the give .spec files and for the given viewing angles.
@@ -253,11 +285,11 @@ def plot_spectra():
 
             # Plot and scale flux for observer distance
             default_dist = 100 * 3.08567758128e18  #  default Python distance
-            ax.semilogy(wavelength * (Z + 1), smoothflux *
-                        (default_dist**2 / OBSERVE_DIST**2), label=legend)
+            flux_dist = smoothflux * (default_dist**2 / OBSERVE_DIST**2)
+            ax.semilogy(wavelength * (Z + 1), flux_dist, label=legend)
             ax.set_xlim(WMIN, WMAX)
-            # TODO: implement smart way of determining correct ylim value
-            # ax.set_ylim(1e-18, 1e-13)
+            yupper, ylower = get_ylims(wavelength, flux_dist)
+            ax.set_ylim(ylower, yupper)
             ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
             ax.set_ylabel("$F_{\lambda}$ (ergs/s/cm$^{2}$/$\AA$)", fontsize=17)
             ax.tick_params(labelsize=17)
