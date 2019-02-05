@@ -189,7 +189,7 @@ def py_run(wd, root_name, mpi, ncores):
             .format(wd, ncores, VERSION, pf)
     else:
         command = "cd {}; {} {}".format(wd, VERSION, pf)
-    print("\n{}\n".format(command))
+    print("{}\n".format(command))
 
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
 
@@ -222,8 +222,21 @@ def py_run(wd, root_name, mpi, ncores):
             cycle = int(line[1]) + 1
             ncycles = line[3]
             print("Spectrum Cycle ..... {}/{}".format(cycle, ncycles))
+        elif line.find("!!Check_converging:") != -1:
+            line = line.split()
+            nconverged = int(line[1])
+            fconverged = line[2]
+            print("   - {} cells converged {}".format(nconverged, fconverged))
+        elif line.find("Completed ionization cycle") != -1 or \
+                line.find("Completed spectrum cycle") != -1:
+            line = line.split()
+            print("   - Current elapsed time {}s".format(float(line[-1])))
+        elif line.find("Completed entire program.") != -1:
+            line = line.split()
+            print("\nSimulation completed in {}s".format(line[-1]))
         elif SHOW_OUTPUT:
             print(line)
+
     print("")
 
     outf.close()
