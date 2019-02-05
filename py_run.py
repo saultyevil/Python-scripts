@@ -30,6 +30,8 @@ Example usage:
     python py_run.py -d -tde -WMIN 200 -WMAX 5000 -o
 """
 
+
+import time
 import py_util
 import argparse
 import datetime
@@ -180,13 +182,12 @@ def get_run_mode():
 
 def py_run(wd, root_name, mpi, ncores):
     """
-    Do a standard Python run using a single process
+    Do a standard Python run using either a single process or multiple
     """
 
     pf = root_name + ".pf"  # Don't actually need the .pf at the end
     if mpi:
-        command = "cd {}; mpirun -n {} {} {}"\
-            .format(wd, ncores, VERSION, pf)
+        command = "cd {}; mpirun -n {} {} {}".format(wd, ncores, VERSION, pf)
     else:
         command = "cd {}; {} {}".format(wd, VERSION, pf)
     print("{}\n".format(command))
@@ -216,12 +217,16 @@ def py_run(wd, root_name, mpi, ncores):
             line = line.split()
             cycle = int(line[3]) + 1
             ncycles = line[5]
-            print("Ionisation Cycle ... {}/{}".format(cycle, ncycles))
+            current_time = time.strftime("%H:%M")
+            print("{} : Ionisation Cycle ... {}/{}".format(current_time, cycle,
+                                                           ncycles))
         elif line.find("to calculate a detailed spectrum") != -1:
             line = line.split()
             cycle = int(line[1]) + 1
             ncycles = line[3]
-            print("Spectrum Cycle ..... {}/{}".format(cycle, ncycles))
+            current_time = time.strftime("%H:%M")
+            print("{} : Spectrum Cycle ..... {}/{}".format(current_time, cycle,
+                                                           ncycles))
         elif line.find("!!Check_converging:") != -1:
             line = line.split()
             nconverged = int(line[1])

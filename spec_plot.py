@@ -15,7 +15,8 @@ There are also some optional arguments:
     - wmin: the smallest wavelength to plot
     - wmax: the largest wavelength to plot
     - filetype: the file type of the output spectra plots, by default this is png
-    - blag: default plotting parameter choices for modelling iPTF15af (TDE)
+    - tde: default plotting parameter choices for modelling iPTF15af (TDE)
+    - loglog: enable log log axes, otherwise semilogy
 
 There are also two optional switches:
     - -v or --verbose which will enable more verbose output
@@ -42,6 +43,7 @@ from scipy.signal import convolve, boxcar
 VERBOSE = False                # More info will be printed to screen if True
 SHOW_PLOT = False              # If True, the plot will be drawn on screen
 TDE_PLOT = False               # Enable default TDE plotting
+LOGLOG = False                 # Enable loglog axes
 WMIN = None                    # The smallest wavelength to show on the spectra
 WMAX = None                    # The largest wavelength to show on the spectra
 FILETYPE = "png"               # The file type of the output spectra
@@ -78,10 +80,12 @@ def get_outname_and_angles(specfiles):
         "The redshift of the object")
     p.add_argument("-tde", action="store_true", help=
         "Plot for the Blagodovnova (?) UV TDE spec")
+    p.add_argument("-loglog", action="store_true", help="Enable log log axes")
     args = p.parse_args()
 
     global VERBOSE
     global SHOW_PLOT
+    global LOGLOG
     global WMIN
     global WMAX
     global FILETYPE
@@ -96,6 +100,8 @@ def get_outname_and_angles(specfiles):
         VERBOSE = True
     if args.show:
         SHOW_PLOT = True
+    if args.loglog:
+        LOGLOG = True
     if args.wmin:
         WMIN = args.wmin
     if args.wmax:
@@ -103,7 +109,7 @@ def get_outname_and_angles(specfiles):
     if args.filetype:
         FILETYPE = args.filetype
     if args.smooth:
-        SMOOTH = args.smooth
+        SMOOTH = int(args.smooth)
     if args.dist:
         OBSERVE_DIST = args.dist
     if args.z:
@@ -267,6 +273,7 @@ def plot_spectra():
             # There is something weird happening to determine which index data
             # should be extracted from. I did this because all of the data in
             # the read in .spec file are strings
+            # NOTE: this won't work super well with different phase angles
             #
 
             idx = 0
@@ -286,7 +293,11 @@ def plot_spectra():
             # Plot and scale flux for observer distance
             default_dist = 100 * 3.08567758128e18  #  default Python distance
             flux_dist = smoothflux * (default_dist**2 / OBSERVE_DIST**2)
-            ax.semilogy(wavelength * (Z + 1), flux_dist, label=legend)
+            z_wav = wavelength * (Z + 1)
+            if LOGLOG:
+                ax.loglog(z_wav, flux_dist, label=legend)
+            else:
+                ax.semilogy(z_wav, flux_dist, label=legend)
             ax.set_xlim(WMIN, WMAX)
             yupper, ylower = get_ylims(wavelength, flux_dist)
             ax.set_ylim(ylower, yupper)
@@ -304,7 +315,8 @@ def plot_spectra():
         else:
             plt.close()
 
-    print("\nAll done :-)")
+    if VERBOSE:
+        print("\nAll done :-)")
     print("\n--------------------------")
 
     return
