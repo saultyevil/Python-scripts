@@ -46,6 +46,7 @@ CLIM = 0.85
 VERSION = "py"
 SHOW_OUTPUT = False
 RUN_SIMS = False
+RESUME_RUN = False
 SHOW_CONVERGENCE = False
 CREATE_PLOTS = False
 TDE_PLOT = False
@@ -85,6 +86,8 @@ def get_run_mode():
     # Different run modes
     p.add_argument("-d", action="store_true", help="Run with -r -c -p")
     p.add_argument("-r", action="store_true", help="Run simulations")
+    p.add_argument("-resume", action="store_true", help=
+        "Restart a previous run")
     p.add_argument("-c", action="store_true", help=
         "Check the convergence of runs - calls convergence.py")
     p.add_argument("-p", action="store_true", help="Run plotting scripts")
@@ -108,6 +111,7 @@ def get_run_mode():
 
     global SHOW_OUTPUT
     global RUN_SIMS
+    global RESUME_RUN
     global SHOW_CONVERGENCE
     global CREATE_PLOTS
     global CLIM
@@ -130,6 +134,8 @@ def get_run_mode():
     if args.r:
         RUN_SIMS = True
         do_something = True
+    if args.resume:
+        RESUME_RUN = True
     if args.c:
         SHOW_CONVERGENCE = True
         do_something = True
@@ -140,7 +146,7 @@ def get_run_mode():
         TDE_PLOT = True
     # Set up script parameters
     if args.py_ver:
-        VERSION = args.PY_VER
+        VERSION = args.py_ver
     if args.clim:  # Bad variable names here :-) clim is from the arg list
         if 0 < args.c_value < 1:
             CLIM = args.clim
@@ -160,6 +166,7 @@ def get_run_mode():
     print("Python version ............. {}".format(VERSION))
     print("Show Verbose Output ........ {}".format(SHOW_OUTPUT))
     print("Run Simulations ............ {}".format(RUN_SIMS))
+    print("Resume Run ................. {}".format(RESUME_RUN))
     print("Show Convergence ........... {}".format(SHOW_CONVERGENCE))
     if SHOW_CONVERGENCE:
         print("Convergence Limit .......... {}".format(CLIM))
@@ -186,10 +193,13 @@ def py_run(wd, root_name, mpi, ncores):
     """
 
     pf = root_name + ".pf"  # Don't actually need the .pf at the end
+    command = "cd {};".format(wd)
     if mpi:
-        command = "cd {}; mpirun -n {} {} {}".format(wd, ncores, VERSION, pf)
-    else:
-        command = "cd {}; {} {}".format(wd, VERSION, pf)
+        command += " mpirun -n {}".format(ncores)
+    command += " {}".format(VERSION)
+    if RESUME_RUN:
+        command += " -r"
+    command += " {}".format(pf)
     print("{}\n".format(command))
 
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
@@ -199,6 +209,7 @@ def py_run(wd, root_name, mpi, ncores):
     outf = open(outfname, "w")
 
     lines = []
+    spec_cycle = False
     for stdout_line in iter(cmd.stdout.readline, ""):
         if not stdout_line:
             break
@@ -213,34 +224,43 @@ def py_run(wd, root_name, mpi, ncores):
         # to the screen instead.
         #
 
-        if line.find("for defining wind") != -1:
+        if SHOW_OUTPUT:
+            print(line)
+        elif line.find("for defining wind") != -1:
             line = line.split()
-            cycle = int(line[3]) + 1
+            cycle = int(line[3])  # + 1
             ncycles = line[5]
             current_time = time.strftime("%H:%M")
-            print("{} : Ionisation Cycle ... {}/{}".format(current_time, cycle,
-                                                           ncycles))
+            print("{} : Ionisation Cycle ....... {}/{}".format(current_time,
+                                                               cycle, ncycles))
         elif line.find("to calculate a detailed spectrum") != -1:
             line = line.split()
-            cycle = int(line[1]) + 1
+            spec_cycle = True
+            cycle = int(line[1])  # + 1
             ncycles = line[3]
             current_time = time.strftime("%H:%M")
-            print("{} : Spectrum Cycle ..... {}/{}".format(current_time, cycle,
-                                                           ncycles))
+            print("{} : Spectrum Cycle ......... {}/{}".format(current_time,
+                                                               cycle, ncycles))
+        elif line.find("per cent") != -1 and line.find("Photon") != -1:
+            line = line.split()
+            print("   - {}% of {} photons transported".format(line[-3],
+                                                              line[-5]))
         elif line.find("!!Check_converging:") != -1:
             line = line.split()
             nconverged = int(line[1])
             fconverged = line[2]
+            print("           ----------           ")
             print("   - {} cells converged {}".format(nconverged, fconverged))
         elif line.find("Completed ionization cycle") != -1 or \
                 line.find("Completed spectrum cycle") != -1:
             line = line.split()
-            print("   - Current elapsed time {}s".format(float(line[-1])))
+            if spec_cycle:
+                print("           ----------           ")
+            print("   - Current elapsed time {:.1f}s".format(float(line[-1])))
+            print("           ----------           ")
         elif line.find("Completed entire program.") != -1:
             line = line.split()
-            print("\nSimulation completed in {}s".format(line[-1]))
-        elif SHOW_OUTPUT:
-            print(line)
+            print("\nSimulation completed in {:.1f}s".format(float(line[-1])))
 
     print("")
 
@@ -253,9 +273,7 @@ def py_run(wd, root_name, mpi, ncores):
     #
 
     pystdout, pystderr = cmd.communicate()
-    rc = cmd.returncode
-    if rc:
-        raise CalledProcessError(rc, command)
+
     err = pystderr.decode("utf-8")
     if err:
         print("Captured from stderr:")
@@ -264,6 +282,9 @@ def py_run(wd, root_name, mpi, ncores):
             .format(wd, root_name, DATE.year, DATE.month, DATE.day)
         with open(errfname, "w") as f:
             f.writelines(err)
+    rc = cmd.returncode
+    if rc:
+        raise CalledProcessError(rc, command)
 
     return lines, err
 
@@ -474,7 +495,12 @@ def run_choices(par_file_paths, n_sims, mpi, n_cores):
         f.write("Root name .......... {}\n".format(root_name))
 
         if RUN_SIMS:
-            print("Running the simulation: {}\n".format(root_name))
+
+            if RESUME_RUN:
+                print("Resuming the simulation: {}\n".format(root_name))
+            else:
+                print("Running the simulation: {}\n".format(root_name))
+
             python_output, python_err = \
                 py_run(pf_relative_path, root_name, mpi, n_cores)
             f.writelines(python_output)

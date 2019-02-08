@@ -163,7 +163,7 @@ def load_blag_spec():
         print("Hostname: {}".format(hostname))
         print("Blagordnova spectra being read in from {}".format(blag_dir))
 
-    blagorodnovaspec = np.loadtxt(blag_dir, skiprows=36)
+    blagorodnovaspec = np.loadtxt(blag_dir)
     sm_blagorodnovaspec = np.copy(blagorodnovaspec)
     sm_blagorodnovaspec[:, 1] = convolve(
         sm_blagorodnovaspec[:, 1], boxcar(SMOOTH) / float(SMOOTH), mode="same")
@@ -302,7 +302,8 @@ def plot_spectra():
             yupper, ylower = get_ylims(wavelength, flux_dist)
             ax.set_ylim(ylower, yupper)
             ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
-            ax.set_ylabel("$F_{\lambda}$ (ergs/s/cm$^{2}$/$\AA$)", fontsize=17)
+            ax.set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)",
+                          fontsize=17)
             ax.tick_params(labelsize=17)
 
         ax.legend(loc="best")
