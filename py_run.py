@@ -55,6 +55,7 @@ WMAX = None
 DATE = datetime.datetime.now()
 DRY_RUN = False
 
+
 CONVERGED = \
 """
                                              _
@@ -73,6 +74,16 @@ NOT_CONVERGED = \
 | | | | (_) | |_  | (_| (_) | | | \ V /  __/ | | (_| |  __/ (_| |
 |_| |_|\___/ \__|  \___\___/|_| |_|\_/ \___|_|  \__, |\___|\__,_|
                                                 |___/
+"""
+
+ITS_A_MYSTERY = \
+"""
+ _ _   _                                   _
+(_) |_( )___    __ _   _ __ ___  _   _ ___| |_ ___ _ __ _   _
+| | __|// __|  / _` | | '_ ` _ \| | | / __| __/ _ \ '__| | | |
+| | |_  \__ \ | (_| | | | | | | | |_| \__ \ ||  __/ |  | |_| |
+|_|\__| |___/  \__,_| |_| |_| |_|\__, |___/\__\___|_|   \__, |
+                                 |___/                  |___/
 """
 
 
@@ -260,7 +271,8 @@ def py_run(wd, root_name, mpi, ncores):
             print("           ----------           ")
         elif line.find("Completed entire program.") != -1:
             line = line.split()
-            print("\nSimulation completed in {:.1f}s".format(float(line[-1])))
+            tot_run_time = float(line[-1])
+            print("\nSimulation completed in {:.1f}s".format(tot_run_time))
 
     print("")
 
@@ -289,60 +301,29 @@ def py_run(wd, root_name, mpi, ncores):
     return lines, err
 
 
-def check_convergence(wd, root_name, show_output):
-    """
-    Check the convergence of the simulation
-    """
-
-    path = which("convergence.py")
-    if not path:
-        print("convergence.py not in $PATH and executable")
-        return
-
-    commands = "cd {}; convergence.py {}".format(wd, root_name)
-    cmd = Popen(commands, stdout=PIPE, stderr=PIPE, shell=True)
-    stdout, stderr = cmd.communicate()
-    output = stdout.decode("utf-8")
-    err = stderr.decode("utf-8")
-
-    if show_output:
-        print(output)
-
-    if err:
-        print("Captured from stderr:")
-        print(err)
-
-    return output
-
-
-def display_convergence(conv, wd, root_name):
+def get_convergence(wd, root_name):
     """
     Write to the screen if the simulation has or hasn't converged
     """
 
-    final_cycle = 0
-    for i, word in enumerate(conv):
-        if word == "!!Check_converging:":
-            final_cycle = i
-    if final_cycle == 0:
-        return 0
-
-    final_cycle_conv = conv[final_cycle:]
-    cvalue = float(final_cycle_conv[2].replace("(", "").replace(")", ""))
+    convergence_fraction = py_util.check_convergence(wd, root_name)
 
     print("clim ............ {}".format(CLIM))
-    print("convergence ..... {}\n".format(cvalue))
+    print("convergence ..... {}\n".format(convergence_fraction))
 
-    if cvalue < CLIM:
+    if convergence_fraction < CLIM:
         print(NOT_CONVERGED)
         with open("not_converged.txt", "a") as f:
-            f.write("{}\t{}.pf\t{}\n".format(wd, root_name, cvalue))
-    else:
+            f.write("{}\t{}.pf\t{}\n".format(wd, root_name,
+                                             convergence_fraction))
+    elif convergence_fraction >= CLIM:
         print(CONVERGED)
+    else:
+        print(ITS_A_MYSTERY)
 
     print("")
 
-    return cvalue
+    return convergence_fraction
 
 
 def do_py_plot_output(wd, root_name):
@@ -447,7 +428,7 @@ def get_num_cores():
     n_cores = 1
     mpi = check_for_mpi()
     if RUN_SIMS and mpi:
-        # We will suffer for macOS
+        # We will suffer for macOS since lscpu doesn't exist
         if system() == "Darwin":
             n_cores = cpu_count()
         else:
@@ -475,8 +456,8 @@ def run_choices(par_file_paths, n_sims, mpi, n_cores):
         open("not_converged.txt", "w").close()
 
     # Open up an output file
-    outfname = "run_{}{}{}.txt"\
-        .format(DATE.year, DATE.month, DATE.day, DATE.hour, DATE.minute)
+    outfname = "run_{}{}{}.txt".format(DATE.year, DATE.month, DATE.day,
+                                       DATE.hour, DATE.minute)
     f = open(outfname, "w")
 
     # Iterate over the possible simulations
@@ -495,33 +476,34 @@ def run_choices(par_file_paths, n_sims, mpi, n_cores):
         f.write("Root name .......... {}\n".format(root_name))
 
         if RUN_SIMS:
-
             if RESUME_RUN:
                 print("Resuming the simulation: {}\n".format(root_name))
             else:
                 print("Running the simulation: {}\n".format(root_name))
 
-            python_output, python_err = \
-                py_run(pf_relative_path, root_name, mpi, n_cores)
+            python_output, python_err = py_run(pf_relative_path, root_name, mpi,
+                                               n_cores)
             f.writelines(python_output)
             if python_err:
                 f.write(python_err)
 
         if SHOW_CONVERGENCE:
             print("Checking the convergence of the simulation:\n")
-            convergence_output = \
-                check_convergence(pf_relative_path, root_name, SHOW_OUTPUT)
-            conv_out = convergence_output.split()
-            cvalue = \
-                display_convergence(conv_out, pf_relative_path, root_name)
-            f.writelines(convergence_output)
-            if cvalue < CLIM:
-                f.write("{}\n".format(NOT_CONVERGED))
-                f.write("cvalue {} < clim {}\n".format(cvalue, CLIM))
-            else:
-                f.write("{}\n".format(CONVERGED))
-                f.write("cvalue {} >= clim {}\n".format(cvalue, CLIM))
 
+            convergence_fraction = get_convergence(pf_relative_path, root_name)
+
+            if convergence_fraction < CLIM:
+                f.write("{}\n".format(NOT_CONVERGED))
+                f.write("cvalue {} < clim {}\n".format(convergence_fraction,
+                                                       CLIM))
+            elif convergence_fraction >= CLIM:
+                f.write("{}\n".format(CONVERGED))
+                f.write("cvalue {} >= clim {}\n".format(convergence_fraction,
+                                                        CLIM))
+            else:
+                f.write("{}\n".format(ITS_A_MYSTERY))
+
+        # End of output to screen
         f.write("\n--------------------------\n")
 
         if CREATE_PLOTS:

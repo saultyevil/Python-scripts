@@ -57,7 +57,7 @@ def plot_temp_struc():
 if __name__ == "__main__":
     rootname = get_rootname()
     tefile = "{}.te.dat".format(rootname)
-    tedata = py_util.read_file(tefile)
+    tedata = py_util.read_spec_file(tefile)
     headers = tedata[0, :]
     tedata = np.array(tedata[1:, :], dtype=float)
 

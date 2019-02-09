@@ -48,7 +48,7 @@ WMIN = None                    # The smallest wavelength to show on the spectra
 WMAX = None                    # The largest wavelength to show on the spectra
 FILETYPE = "png"               # The file type of the output spectra
 SMOOTH = 11                    # The amount of smoothing for the spectra
-OBSERVE_DIST = 100 * 3.086e18  # 100 pc in cm
+OBSERVE_DIST = 100 * 3.086e18  # 100 pc in cm - the default Python distance
 Z = 0                          # Redshift
 
 
@@ -171,16 +171,16 @@ def load_blag_spec():
     return sm_blagorodnovaspec
 
 
-def print_info (specfiles, angles):
+def print_info (spec_files, angles):
     """
     Print extra information to the screen
     """
 
     print("Creating spectra for the following .spec files:\n")
-    for i in range(len(specfiles)):
-        print("\t- {}".format(specfiles[i]))
+    for i in range(len(spec_files)):
+        print("\t- {}".format(spec_files[i]))
 
-    print("\nSpectra will be created for the following viewing angles:\n")
+    print("\nSpectra will be created for the following inclinations:\n")
     for i in range(len(angles)):
         print("\t- {}".format(angles[i]))
 
@@ -229,38 +229,40 @@ def plot_spectra():
     print("--------------------------\n")
 
     # Get the output name, the viewing angles and the file paths to the .spec files
-    specfiles = py_util.find_spec_files()
-    if len(specfiles) == 0:
+    spec_files = py_util.find_spec_files()
+    if len(spec_files) == 0:
         print("No spec files found")
         exit(1)
 
-    outname, angles = get_outname_and_angles(specfiles)
-    if len(angles) == 0:
+    outname, spec_angles = get_outname_and_angles(spec_files)
+    if len(spec_angles) == 0:
         print("No angles provided")
-        exit(1)
+        exit(2)
 
-    print_info(specfiles, angles)
+    print_info(spec_files, spec_angles)
 
-    print("Beginning plotting...\n")
+    print("Plotting now...\n")
 
     # Loop over all the possible viewing angles
-    for angle in angles:
+    for angle in spec_angles:
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
 
         if TDE_PLOT:
             blag_spec = load_blag_spec()
             ax.semilogy(blag_spec[:, 0], blag_spec[:, 1],
-                        label="Blagorodnova et al. 2018")
+                        label="Blagorodnova et al. 2018 (in prep.)")
 
         # Loop over each possible .spec file
-        for file in specfiles:
+        for file in spec_files:
             rootname, filepath = py_util.get_root_name_and_path(file)
             legend = filepath + rootname
-            print("\t- {}: {}°".format(legend, angle))
+
+            if VERBOSE:
+                print("\t- {}: {}°".format(legend, angle))
 
             # Read in .spec file and check that it can be plotted for the
             # current viewing angle
-            spec = py_util.read_file(file)
+            spec = py_util.read_spec_file(file)
             allowed = py_util.check_viewing_angle(angle, spec)
             if not allowed:
                 if VERBOSE:
@@ -294,13 +296,16 @@ def plot_spectra():
             default_dist = 100 * 3.08567758128e18  #  default Python distance
             flux_dist = smoothflux * (default_dist**2 / OBSERVE_DIST**2)
             z_wav = wavelength * (Z + 1)
+
             if LOGLOG:
                 ax.loglog(z_wav, flux_dist, label=legend)
             else:
                 ax.semilogy(z_wav, flux_dist, label=legend)
+
             ax.set_xlim(WMIN, WMAX)
             yupper, ylower = get_ylims(wavelength, flux_dist)
             ax.set_ylim(ylower, yupper)
+
             ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
             ax.set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)",
                           fontsize=17)
@@ -309,6 +314,7 @@ def plot_spectra():
         ax.legend(loc="best")
         ax.set_title("Viewing angle = {}".format(angle) + "$^{\circ}$",
                      fontsize=20)
+
         plt.savefig("{}_{}.{}".format(outname, angle, FILETYPE))
 
         if SHOW_PLOT:
@@ -317,8 +323,8 @@ def plot_spectra():
             plt.close()
 
     if VERBOSE:
-        print("\nAll done :-)")
-    print("\n--------------------------")
+        print("\nAll done :-)\n")
+    print("--------------------------")
 
     return
 

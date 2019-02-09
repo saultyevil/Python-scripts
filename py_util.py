@@ -4,6 +4,7 @@
 Various common routines which are used in scripts concerned with MCRT Python.
 """
 
+
 import sys
 import numpy as np
 from sys import exit
@@ -18,10 +19,10 @@ def tests():
 
     print("This script is not designed to be run. Instead, import it using "
           "import py_util.")
-    exit(0)
+    return
 
 
-def read_file(filename, delim=" "):
+def read_spec_file(filename, delim=" "):
     """
     Read in data from an external file, line by line whilst ignoring comments.
         - Comments begin with #
@@ -40,11 +41,9 @@ def read_file(filename, delim=" "):
         The file as a numpy array of strings for each column and line
     """
 
-    # Try to open the file, otherwise return an error
     try:
-        f = open(filename, "r")
-        flines = f.readlines()
-        f.close()
+        with open(filename, "r") as f:
+            flines = f.readlines()
     except IOError:
         print("Can't open file {}".format(filename))
         exit(1)
@@ -61,6 +60,7 @@ def read_file(filename, delim=" "):
             if line[0] == "Freq.":  # Clean up the inclination angle names
                 for j in range(len(line)):
                     if line[j][0] == "A":
+                        # TODO: this will fail for other phase angles
                         line[j] = line[j].replace("P0.50", "").replace("A", "")
             if line[0][0] != "#":  # Don't add lines which are comments
                 lines.append(line)
@@ -86,13 +86,22 @@ def find_spec_files():
     find = "find . -name '*.spec'"
     stdout, stderr = Popen(find, stdout=PIPE, stderr=PIPE, shell=True)\
         .communicate()
-    specfiles = stdout.decode("utf-8").split()
-    specfiles = sorted(specfiles, key=str.lower)
-    if len(specfiles) == 0:
-        print("No .spec files found")
+    spec_files = stdout.decode("utf-8").split()
+    err = stderr.decode("utf-8")
+    spec_files = sorted(spec_files, key=str.lower)
+
+    if err:
+        print("ERROR: py_util.find_spec_files: find return something to "
+              "stderr...")
+        print("Captured from stderr:")
+        print(err)
+        sys.exit(1)
+
+    if len(spec_files) == 0:
+        print("py_util.find_spec_files: No .spec files found")
         exit(2)
 
-    return specfiles
+    return spec_files
 
 
 def find_pf(ignore_out_pf):
@@ -107,8 +116,10 @@ def find_pf(ignore_out_pf):
     err = stderr.decode("utf-8")
 
     if err:
+        print("ERROR: py_util.find_pf: find returned something to stderr...")
         print("Captured from stderr:")
         print(err)
+        sys.exit(1)
 
     if ignore_out_pf:
         for i, dir in enumerate(pfs):
@@ -116,7 +127,7 @@ def find_pf(ignore_out_pf):
                 del(pfs[i])
 
     if len(pfs) == 0:
-        print("No Python parameter files found\n")
+        print("py_util.find_pf: no Python parameter files found\n")
         print("--------------------------")
         sys.exit(0)
 
@@ -145,20 +156,20 @@ def get_spec_viewing_angles(specfiles, delim=" "):
     vangles = []
     # Find the viewing angles in each .spec file
     for i in range(len(specfiles)):
-        specdata = read_file(specfiles[i], delim)
-        colnames = specdata[0, :]
+        spec_data = read_spec_file(specfiles[i], delim)
+        col_names = spec_data[0, :]
         # Go over the columns and look for viewing angles
-        for i in range(len(colnames)):
-            if colnames[i].isdigit() is True:
-                ang = int(colnames[i])
-                dup = False
+        for i in range(len(col_names)):
+            if col_names[i].isdigit() is True:
+                angle = int(col_names[i])
+                duplicate_flag = False
                 for va in vangles:  # Check for duplicate angle
-                    if ang == va:
-                        dup = True
-                if dup is False:
-                    vangles.append(ang)
+                    if angle == va:
+                        duplicate_flag = True
+                if duplicate_flag is False:
+                    vangles.append(angle)
 
-    return vangles
+    return np.array(vangles)
 
 
 def check_viewing_angle(angle, spec):
@@ -179,8 +190,8 @@ def check_viewing_angle(angle, spec):
         illegal angle.
     """
 
-    headers = spec[0, :]
     allowed = False
+    headers = spec[0, :]
     for i in range(len(headers)):
         if headers[i].isdigit() is True:
             if float(angle) == float(headers[i]):
@@ -217,6 +228,56 @@ def get_root_name_and_path(pf_path):
     sim = pf_path[:slash]
 
     return root_name, sim
+
+
+def check_convergence(wd, root):
+    """
+    Determine the convergence of a Python simulation
+
+    Parameters
+    ----------
+    wd: str
+        The directory of the Python simulation
+    root: str
+        The root name of the Python simulation
+
+    Returns
+    -------
+    converge_fraction: float
+        The fraction of cells which are converged, between 0 and 1. A value of 0
+        means that no cells have converged, whereas a value of 1 means all cells
+        have converged.
+    """
+
+    diag_path = "{}/diag_{}/{}_0.diag".format(wd, root, root)
+
+    try:
+        with open(diag_path, "r") as file:
+            diag = file.readlines()
+    except IOError:
+        print("ERROR: py_util.read_convergence: Couldn't open ready only copy "
+              "of {}. Does the diag file exist?".format(diag_path))
+        return -1
+
+    converge_fraction = None
+    for line in diag:
+        if line.find("!!Check_converging") != -1:
+            c_string = line.split()[2].replace("(", "").replace(")","")
+            converge_fraction = float(c_string)
+
+    if converge_fraction is None:
+        print("ERROR: py_util.read_convergence: unable to parse convergence "
+              "fraction from diag file {}".format(diag_path))
+        return -1
+
+    if 0 > converge_fraction > 1:
+        print("ERROR: py_util.read_convergence: the convergence in the "
+              "simulation is negative or more than one")
+        print("ERROR: py_util.read_convergence: convergence_fraction = {}"
+              .format(converge_fraction))
+        return -1
+
+    return converge_fraction
 
 
 if __name__ == "__main__":
