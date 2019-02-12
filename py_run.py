@@ -28,6 +28,10 @@ Note that -d, -p, -c, -dry or -r are required for the script to do something.
 Example usage:
     python py_run.py -r -p -tde
     python py_run.py -d -tde -WMIN 200 -WMAX 5000 -o
+
+TODO: be able to run simulations from file input
+TODO: flexible flag choices for spec_plot.py
+TODO: specify the number of MPI processes
 """
 
 
@@ -226,7 +230,7 @@ def py_run(wd, root_name, mpi, ncores):
             break
         line = stdout_line.decode("utf-8").replace("\n", "")
         lines.append(line)
-        outf.write("{}\n".format(line))
+        outf.write("{}\n\n".format(line))
 
         #
         # This horrid bit of logic will determine from the output which
@@ -269,10 +273,16 @@ def py_run(wd, root_name, mpi, ncores):
                 print("           ----------           ")
             print("   - Current elapsed time {:.1f}s".format(float(line[-1])))
             print("           ----------           ")
+        elif line.find("PHOTON TRANSPORT COMPLETED") != -1:
+            line = line.split()
+            transport_time_seconds = float(line[4])
+            transport_time = datetime.timedelta(seconds=transport_time_seconds // 1)
+            print("   - Photon transport completed in {} hours".format(transport_time))
         elif line.find("Completed entire program.") != -1:
             line = line.split()
-            tot_run_time = float(line[-1])
-            print("\nSimulation completed in {:.1f}s".format(tot_run_time))
+            tot_run_time_seconds = float(line[-1])
+            tot_run_time = datetime.timedelta(seconds=tot_run_time_seconds // 1)
+            print("\nSimulation completed in {} hours".format(tot_run_time))
 
     print("")
 

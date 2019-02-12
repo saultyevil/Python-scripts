@@ -9,6 +9,7 @@ import sys
 import numpy as np
 from sys import exit
 from subprocess import Popen, PIPE
+from scipy.signal import convolve, boxcar
 
 
 def tests():
@@ -278,6 +279,57 @@ def check_convergence(wd, root):
         return -1
 
     return converge_fraction
+
+
+def smooth_spectra(flux, smooth, verbose=False):
+    """
+    Smooth the data flux using a Boxcar averaging algorithm.
+
+    Parameters
+    ----------
+    flux: list or array of floats/ints
+        The data which is to be smoothed
+    smooth: int
+        Number of points to smooth by
+    verbose: bool
+        Enable verbose printing
+
+    Returns
+    -------
+    smooth_flux: numpy array of floats
+        The smoothed data.
+    """
+
+    if verbose:
+        print("pu_util.smooth_spectra: type(flux) = {}".format(type(flux)))
+
+    if type(flux) is not list and type(flux) is not np.ndarray:
+        print("ERROR: py_util.smooth_spectra: data to be smoothed is not a "
+              "Python list or numpy ndarray")
+        print("ERROR: py_util.smooth_spectra: type(flux) = {}"
+              .format(type(flux)))
+        return flux
+
+    if type(flux) is list:
+        if verbose:
+            print("py_util.smooth_spectra: Converting Python list to numpy "
+                  "ndarray")
+        flux = np.array(flux, dtype=float)
+
+    if type(smooth) is not int:
+        try:
+            if verbose:
+                print("py_util.smooth_spectra: Converting smooth to an int")
+            smooth = int(smooth)
+        except ValueError:
+            print("ERROR: py_util.smooth_spectra: could not convert smooth {} "
+                  "into an integer".format(smooth))
+            return flux
+
+    flux = np.reshape(flux, (len(flux), ))
+    smooth_flux = convolve(flux, boxcar(smooth) / float(smooth), mode="same")
+
+    return smooth_flux
 
 
 if __name__ == "__main__":

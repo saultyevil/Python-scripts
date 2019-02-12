@@ -164,9 +164,7 @@ def load_blag_spec():
         print("Blagordnova spectra being read in from {}".format(blag_dir))
 
     blagorodnovaspec = np.loadtxt(blag_dir)
-    sm_blagorodnovaspec = np.copy(blagorodnovaspec)
-    sm_blagorodnovaspec[:, 1] = convolve(
-        sm_blagorodnovaspec[:, 1], boxcar(SMOOTH) / float(SMOOTH), mode="same")
+    sm_blagorodnovaspec = py_util.smooth_spectra(blagorodnovaspec)
 
     return sm_blagorodnovaspec
 
@@ -218,7 +216,43 @@ def get_ylims(wlength, flux):
     yupper *= 10
     ylower /= 10
 
+    # Revolting hack to make sure the TDE spectrum isn't cut off by the limits
+    if TDE_PLOT:
+        if yupper < 1e-14:
+            yupper = 1e-14
+
     return yupper, ylower
+
+
+def plot_spec_comps():
+
+    spec_files = py_util.find_spec_files()
+
+    fix, ax = plt.subplots(1, 1, figsize=(12, 8))
+    col = ["m", "k", "r"]
+    for i, file in enumerate(spec_files):
+        spec = py_util.read_spec_file(file, " ")
+        wavelength = np.array(spec[1:, 1], dtype=float)
+        flux = np.array(spec[1:, spec[0, :] == "Wind"], dtype=float)
+        flux = np.reshape(flux, (len(flux),))
+        smoothfluxwind = convolve(flux, boxcar(SMOOTH) / float(SMOOTH),
+                              mode="same")
+        flux = np.array(spec[1:, spec[0, :] == "Disk"], dtype=float)
+        flux = np.reshape(flux, (len(flux),))
+        smoothfluxdisk = convolve(flux, boxcar(SMOOTH) / float(SMOOTH),
+                              mode="same")
+        ax.plot(wavelength, smoothfluxwind, col[i], label=file+" wind")
+        num=25
+        ax.plot(wavelength[::num], smoothfluxdisk[::num], col[i]+":", label=file+" disk")
+        ax.set_xlim(800, 4500)
+        ax.set_ylim(0, 0.01)
+        ax.set_xlabel("Wavelength")
+        ax.set_ylabel("Flux")
+        ax.legend()
+
+    plt.savefig("spec_comps.png")
+
+    return
 
 
 def plot_spectra():
@@ -287,9 +321,7 @@ def plot_spectra():
                     break
 
             flux = np.array(spec[1:, idx], dtype=float)
-            flux = np.reshape(flux, (len(flux),))
-            smoothflux = convolve(flux, boxcar(SMOOTH) / float(SMOOTH),
-                                  mode="same")
+            smoothflux = py_util.smooth_spectra(flux, SMOOTH, VERBOSE)
             wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
 
             # Plot and scale flux for observer distance
@@ -330,4 +362,5 @@ def plot_spectra():
 
 
 if __name__ == "__main__":
+    plot_spec_comps()
     plot_spectra()
