@@ -164,7 +164,7 @@ def load_blag_spec():
         print("Blagordnova spectra being read in from {}".format(blag_dir))
 
     blagorodnovaspec = np.loadtxt(blag_dir)
-    sm_blagorodnovaspec = py_util.smooth_spectra(blagorodnovaspec)
+    sm_blagorodnovaspec = py_util.smooth_spectra(blagorodnovaspec[:, 1], SMOOTH)
 
     return sm_blagorodnovaspec
 
