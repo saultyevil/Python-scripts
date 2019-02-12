@@ -163,8 +163,8 @@ def load_blag_spec():
         print("Hostname: {}".format(hostname))
         print("Blagordnova spectra being read in from {}".format(blag_dir))
 
-    blagorodnovaspec = np.loadtxt(blag_dir)
-    sm_blagorodnovaspec = py_util.smooth_spectra(blagorodnovaspec[:, 1], SMOOTH)
+    sm_blagorodnovaspec = np.loadtxt(blag_dir)
+    sm_blagorodnovaspec[:, 1] = py_util.smooth_spectra(sm_blagorodnovaspec[:, 1], SMOOTH)
 
     return sm_blagorodnovaspec
 
