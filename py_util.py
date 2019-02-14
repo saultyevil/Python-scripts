@@ -92,11 +92,11 @@ def find_spec_files():
     spec_files = sorted(spec_files, key=str.lower)
 
     if err:
-        print("ERROR: py_util.find_spec_files: find return something to "
+        print("ERROR: py_util.find_spec_files: find returning something to "
               "stderr...")
         print("Captured from stderr:")
         print(err)
-        sys.exit(1)
+        return []
 
     if len(spec_files) == 0:
         print("py_util.find_spec_files: No .spec files found")
@@ -315,6 +315,11 @@ def smooth_spectra(flux, smooth, verbose=False):
             print("py_util.smooth_spectra: Converting Python list to numpy "
                   "ndarray")
         flux = np.array(flux, dtype=float)
+
+    if len(flux.shape) > 2:
+        print("ERROR: py_util.smooth_spectra: The data to be smoothed should"
+              " be one dimensional and not of dimension {}".format(flux.shape))
+        return flux
 
     if type(smooth) is not int:
         try:

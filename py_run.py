@@ -58,6 +58,7 @@ WMIN = None
 WMAX = None
 DATE = datetime.datetime.now()
 DRY_RUN = False
+NOT_QUIET = True
 
 
 CONVERGED = \
@@ -116,6 +117,7 @@ def get_run_mode():
     p.add_argument("-o", action="store_true", help="Verbose outputting")
     p.add_argument("-dry", action="store_true", help=
         "Print the simulations found and exit")
+    p.add_argument("-q", action="store_true", help="Enable quiet mode")
     # Plot parameters
     p.add_argument("-wmin", type=float, action="store",help=
         "The smallest wavelength to display")
@@ -135,6 +137,7 @@ def get_run_mode():
     global WMIN
     global WMAX
     global DRY_RUN
+    global NOT_QUIET
 
     do_something = False
 
@@ -171,6 +174,8 @@ def get_run_mode():
     if args.dry:
         DRY_RUN = True
         do_something = True
+    if args.q:
+        NOT_QUIET = False
     # Set up plotting parameters
     if args.wmin:
         WMIN = args.wmin
@@ -241,14 +246,14 @@ def py_run(wd, root_name, mpi, ncores):
 
         if SHOW_OUTPUT:
             print(line)
-        elif line.find("for defining wind") != -1:
+        elif line.find("for defining wind") != -1 and NOT_QUIET:
             line = line.split()
             cycle = int(line[3])  # + 1
             ncycles = line[5]
             current_time = time.strftime("%H:%M")
             print("{} : Ionisation Cycle ....... {}/{}".format(current_time,
                                                                cycle, ncycles))
-        elif line.find("to calculate a detailed spectrum") != -1:
+        elif line.find("to calculate a detailed spectrum") != -1 and NOT_QUIET:
             line = line.split()
             spec_cycle = True
             cycle = int(line[1])  # + 1
@@ -256,29 +261,33 @@ def py_run(wd, root_name, mpi, ncores):
             current_time = time.strftime("%H:%M")
             print("{} : Spectrum Cycle ......... {}/{}".format(current_time,
                                                                cycle, ncycles))
-        elif line.find("per cent") != -1 and line.find("Photon") != -1:
+        elif line.find("per cent") != -1 and line.find("Photon") != -1 and NOT_QUIET:
             line = line.split()
             print("   - {}% of {} photons transported".format(line[-3],
                                                               line[-5]))
-        elif line.find("!!Check_converging:") != -1:
+        elif line.find("!!Check_converging:") != -1 and NOT_QUIET:
             line = line.split()
             nconverged = int(line[1])
             fconverged = line[2]
             print("           ----------           ")
             print("   - {} cells converged {}".format(nconverged, fconverged))
-        elif line.find("Completed ionization cycle") != -1 or \
-                line.find("Completed spectrum cycle") != -1:
+        elif (line.find("Completed ionization cycle") != -1 or
+                line.find("Completed spectrum cycle") != -1) and NOT_QUIET:
             line = line.split()
+            elapsed_time_seconds = float(line[-1])
+            elapsed_time = datetime.timedelta(seconds=elapsed_time_seconds // 1)
             if spec_cycle:
                 print("           ----------           ")
-            print("   - Current elapsed time {:.1f}s".format(float(line[-1])))
+            print("   - Elapsed time: {} hours".format(elapsed_time))
             print("           ----------           ")
-        elif line.find("PHOTON TRANSPORT COMPLETED") != -1:
+        elif line.find("PHOTON TRANSPORT COMPLETED") != -1 and NOT_QUIET:
             line = line.split()
             transport_time_seconds = float(line[4])
-            transport_time = datetime.timedelta(seconds=transport_time_seconds // 1)
-            print("   - Photon transport completed in {} hours".format(transport_time))
-        elif line.find("Completed entire program.") != -1:
+            transport_time = datetime.timedelta(seconds=transport_time_seconds
+                                                        // 1)
+            print("   - Photon transport: {} hours"
+                  .format(transport_time))
+        elif line.find("Completed entire program.") != -1 and NOT_QUIET:
             line = line.split()
             tot_run_time_seconds = float(line[-1])
             tot_run_time = datetime.timedelta(seconds=tot_run_time_seconds // 1)

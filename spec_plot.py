@@ -231,6 +231,7 @@ def plot_spec_comps():
     fix, ax = plt.subplots(1, 1, figsize=(12, 8))
     col = ["m", "k", "r"]
     for i, file in enumerate(spec_files):
+        print(file)
         spec = py_util.read_spec_file(file, " ")
         wavelength = np.array(spec[1:, 1], dtype=float)
         flux = np.array(spec[1:, spec[0, :] == "Wind"], dtype=float)
@@ -244,8 +245,12 @@ def plot_spec_comps():
         ax.plot(wavelength, smoothfluxwind, col[i], label=file+" wind")
         num=25
         ax.plot(wavelength[::num], smoothfluxdisk[::num], col[i]+":", label=file+" disk")
+        smoothfluxcensrc = np.array(spec[1:, spec[0, :] == "CenSrc"], dtype=float)
+        smoothfluxcensrc = py_util.smooth_spectra(smoothfluxcensrc, SMOOTH)
+        num2 = 25
+        ax.plot(wavelength[::num2], smoothfluxcensrc[::num2], col[i]+"--", label=file+" CenSrc")
         ax.set_xlim(800, 4500)
-        ax.set_ylim(0, 0.01)
+        ax.set_ylim(0, 0.15)
         ax.set_xlabel("Wavelength")
         ax.set_ylabel("Flux")
         ax.legend()
@@ -362,5 +367,5 @@ def plot_spectra():
 
 
 if __name__ == "__main__":
-    plot_spec_comps()
     plot_spectra()
+    # plot_spec_comps()
