@@ -37,7 +37,6 @@ import argparse
 import numpy as np
 from socket import gethostname
 from matplotlib import pyplot as plt
-from scipy.signal import convolve, boxcar
 
 
 VERBOSE = False                # More info will be printed to screen if True
@@ -52,7 +51,7 @@ OBSERVE_DIST = 100 * 3.086e18  # 100 pc in cm - the default Python distance
 Z = 0                          # Redshift
 
 
-def get_outname_and_angles(specfiles):
+def get_script_arguments(specfiles):
     """
     Parse the various global parameters from the command line.
     """
@@ -154,6 +153,8 @@ def load_blag_spec():
     elif hostname == "REXBUNTU":
         blag_dir = "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/" \
                    "Blagorodnova_iPTF15af.dat"
+    elif hostname == "REX":
+        blag_dir = "/home/saultyevil/PySims/TDE/Blagorodnova_iPTF15af.dat"
     else:
         print("Unknown hostname, update script with directory for the "
               "Blagorodnova spectrum")
@@ -224,61 +225,54 @@ def get_ylims(wlength, flux):
     return yupper, ylower
 
 
-def plot_spec_comps():
+def plot_spec_comps(spec_file):
+    """
+    Plot the different components of the spectra
+    """
 
-    spec_files = py_util.find_spec_files()
+    if len(spec_file) > 1:
+        if VERBOSE:
+            print("Can only plot spectrum components for one spectrum at a time")
+        return
 
-    fix, ax = plt.subplots(1, 1, figsize=(12, 8))
-    col = ["m", "k", "r"]
-    for i, file in enumerate(spec_files):
-        print(file)
-        spec = py_util.read_spec_file(file, " ")
-        wavelength = np.array(spec[1:, 1], dtype=float)
-        flux = np.array(spec[1:, spec[0, :] == "Wind"], dtype=float)
-        flux = np.reshape(flux, (len(flux),))
-        smoothfluxwind = convolve(flux, boxcar(SMOOTH) / float(SMOOTH),
-                              mode="same")
-        flux = np.array(spec[1:, spec[0, :] == "Disk"], dtype=float)
-        flux = np.reshape(flux, (len(flux),))
-        smoothfluxdisk = convolve(flux, boxcar(SMOOTH) / float(SMOOTH),
-                              mode="same")
-        ax.plot(wavelength, smoothfluxwind, col[i], label=file+" wind")
-        num=25
-        ax.plot(wavelength[::num], smoothfluxdisk[::num], col[i]+":", label=file+" disk")
-        smoothfluxcensrc = np.array(spec[1:, spec[0, :] == "CenSrc"], dtype=float)
-        smoothfluxcensrc = py_util.smooth_spectra(smoothfluxcensrc, SMOOTH)
-        num2 = 25
-        ax.plot(wavelength[::num2], smoothfluxcensrc[::num2], col[i]+"--", label=file+" CenSrc")
-        ax.set_xlim(800, 4500)
-        ax.set_ylim(0, 0.15)
-        ax.set_xlabel("Wavelength")
-        ax.set_ylabel("Flux")
-        ax.legend()
+    spec_file = spec_file[0]
+    rootname, filepath = py_util.get_root_name_and_path(spec_file)
+    headers_top = ["Created", "Emitted"]
+    headers_bottom = ["CenSrc", "Disk", "Wind", "HitSurf", "Scattered"]
 
-    plt.savefig("spec_comps.png")
+    fig, ax = plt.subplots(2, 1, figsize=(15, 18))
+    spec = py_util.read_spec_file(spec_file, " ")
+    wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
+
+    for i in range(len(headers_top)):
+        flux = np.array(spec[1:, spec[0, :] == headers_top[i]], dtype=float)
+        smoothflux = py_util.smooth_spectra(flux, SMOOTH, VERBOSE)
+        ax[0].plot(wavelength, smoothflux, label=headers_top[i])
+    ax[0].set_xlim(wavelength.min(), wavelength.max())
+    ax[0].set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
+    ax[0].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)",
+                          fontsize=17)
+    ax[0].legend()
+
+    for i in range(len(headers_bottom)):
+        flux = np.array(spec[1:, spec[0, :] == headers_bottom[i]], dtype=float)
+        smoothflux = py_util.smooth_spectra(flux, SMOOTH, VERBOSE)
+        ax[1].plot(wavelength, smoothflux, label=headers_bottom[i])
+    ax[1].set_xlim(wavelength.min(), wavelength.max())
+    ax[1].set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
+    ax[1].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)",
+                          fontsize=17)
+    ax[1].legend()
+
+    plt.savefig("{}_spec_comps.png".format(rootname))
 
     return
 
 
-def plot_spectra():
+def plot_spectra(spec_files, spec_angles, outname):
     """
     Plot the spectra for the give .spec files and for the given viewing angles.
     """
-
-    print("--------------------------\n")
-
-    # Get the output name, the viewing angles and the file paths to the .spec files
-    spec_files = py_util.find_spec_files()
-    if len(spec_files) == 0:
-        print("No spec files found")
-        exit(1)
-
-    outname, spec_angles = get_outname_and_angles(spec_files)
-    if len(spec_angles) == 0:
-        print("No angles provided")
-        exit(2)
-
-    print_info(spec_files, spec_angles)
 
     print("Plotting now...\n")
 
@@ -305,8 +299,7 @@ def plot_spectra():
             allowed = py_util.check_viewing_angle(angle, spec)
             if not allowed:
                 if VERBOSE:
-                    print("Error: {}° not found in .spec file {}"
-                          .format(angle, file))
+                    print("Error: {}° not found in .spec file {}".format(angle, file))
                 continue
 
             #
@@ -359,6 +352,32 @@ def plot_spectra():
         else:
             plt.close()
 
+    return
+
+
+def main():
+    """
+    Main controlling function
+    """
+
+    print("--------------------------\n")
+
+    # Get the output name, the viewing angles and the file paths to the .spec files
+    spec_files = py_util.find_spec_files()
+    if len(spec_files) == 0:
+        print("No spec files found")
+        exit(1)
+
+    outname, spec_angles = get_script_arguments(spec_files)
+    if len(spec_angles) == 0:
+        print("No angles provided")
+        exit(2)
+
+    print_info(spec_files, spec_angles)
+
+    plot_spectra(spec_files, spec_angles, outname)
+    plot_spec_comps(spec_files)
+
     if VERBOSE:
         print("\nAll done :-)\n")
     print("--------------------------")
@@ -367,5 +386,4 @@ def plot_spectra():
 
 
 if __name__ == "__main__":
-    plot_spectra()
-    # plot_spec_comps()
+    main()

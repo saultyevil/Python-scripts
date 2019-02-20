@@ -235,7 +235,7 @@ def py_run(wd, root_name, mpi, ncores):
             break
         line = stdout_line.decode("utf-8").replace("\n", "")
         lines.append(line)
-        outf.write("{}\n\n".format(line))
+        outf.write("{}\n".format(line))
 
         #
         # This horrid bit of logic will determine from the output which
@@ -502,7 +502,9 @@ def run_choices(par_file_paths, n_sims, mpi, n_cores):
 
             python_output, python_err = py_run(pf_relative_path, root_name, mpi,
                                                n_cores)
-            f.writelines(python_output)
+
+            for line in python_output:
+                f.write("{}\n".format(line))
             if python_err:
                 f.write(python_err)
 
@@ -522,7 +524,7 @@ def run_choices(par_file_paths, n_sims, mpi, n_cores):
             else:
                 f.write("{}\n".format(ITS_A_MYSTERY))
 
-        # End of output to screen
+        # End of output to screen, don't write plot output to file
         f.write("\n--------------------------\n")
 
         if CREATE_PLOTS:
