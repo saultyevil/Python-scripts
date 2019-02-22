@@ -59,6 +59,7 @@ WMAX = None
 DATE = datetime.datetime.now()
 DRY_RUN = False
 NOT_QUIET = True
+N_CORES = 0
 
 
 CONVERGED = \
@@ -118,6 +119,8 @@ def get_run_mode():
     p.add_argument("-dry", action="store_true", help=
         "Print the simulations found and exit")
     p.add_argument("-q", action="store_true", help="Enable quiet mode")
+    p.add_argument("-n_cores", action="store", help=
+        "The number of processor cores to run Python with")
     # Plot parameters
     p.add_argument("-wmin", type=float, action="store",help=
         "The smallest wavelength to display")
@@ -138,6 +141,7 @@ def get_run_mode():
     global WMAX
     global DRY_RUN
     global NOT_QUIET
+    global N_CORES
 
     do_something = False
 
@@ -176,6 +180,8 @@ def get_run_mode():
         do_something = True
     if args.q:
         NOT_QUIET = False
+    if args.n_cores:
+        N_CORES = int(args.n_cores)
     # Set up plotting parameters
     if args.wmin:
         WMIN = args.wmin
@@ -212,14 +218,19 @@ def py_run(wd, root_name, mpi, ncores):
     Do a standard Python run using either a single process or multiple
     """
 
+    command = ""
     pf = root_name + ".pf"  # Don't actually need the .pf at the end
-    command = "cd {};".format(wd)
+    if VERSION != "py":
+        py_version = int(VERSION[2:4])
+        if py_version < 83:
+            command += "Setup_Py_Dir; "
+    command += "cd {}; ".format(wd)
     if mpi:
-        command += " mpirun -n {}".format(ncores)
-    command += " {}".format(VERSION)
+        command += "mpirun -n {} ".format(ncores)
+    command += "{} ".format(VERSION)
     if RESUME_RUN:
-        command += " -r"
-    command += " {}".format(pf)
+        command += "-r "
+    command += "{} ".format(pf)
     print("{}\n".format(command))
 
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
@@ -234,8 +245,8 @@ def py_run(wd, root_name, mpi, ncores):
         if not stdout_line:
             break
         line = stdout_line.decode("utf-8").replace("\n", "")
-        lines.append(line)
         outf.write("{}\n".format(line))
+        lines.append(line)
 
         #
         # This horrid bit of logic will determine from the output which
@@ -444,7 +455,16 @@ def get_num_cores():
     Determine the number of cores Python should be run using
     """
 
+    mpi = False
     n_cores = 1
+
+    # If the user provided the number of cores to use, use that instead
+    if N_CORES:
+        n_cores = N_CORES
+        if N_CORES > 1:
+            mpi = True
+        return mpi, n_cores
+
     mpi = check_for_mpi()
     if RUN_SIMS and mpi:
         # We will suffer for macOS since lscpu doesn't exist
