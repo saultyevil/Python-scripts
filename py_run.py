@@ -287,22 +287,22 @@ def py_run(wd, root_name, mpi, ncores):
             line = line.split()
             elapsed_time_seconds = float(line[-1])
             elapsed_time = datetime.timedelta(seconds=elapsed_time_seconds // 1)
-            if spec_cycle:
-                print("           ----------           ")
-            print("   - Elapsed time: {} hours".format(elapsed_time))
+
+            print("   - Elapsed run time {} hrs:mins:secs".format(elapsed_time))
             print("           ----------           ")
         elif line.find("PHOTON TRANSPORT COMPLETED") != -1 and NOT_QUIET:
             line = line.split()
             transport_time_seconds = float(line[4])
-            transport_time = datetime.timedelta(seconds=transport_time_seconds
-                                                        // 1)
-            print("   - Photon transport: {} hours"
+            transport_time = datetime.timedelta(seconds=transport_time_seconds // 1)
+            if spec_cycle:
+                print("           ----------           ")
+            print("   - Photon transported in {} hrs:mins:secs"
                   .format(transport_time))
         elif line.find("Completed entire program.") != -1 and NOT_QUIET:
             line = line.split()
             tot_run_time_seconds = float(line[-1])
             tot_run_time = datetime.timedelta(seconds=tot_run_time_seconds // 1)
-            print("\nSimulation completed in {} hours".format(tot_run_time))
+            print("\nSimulation completed in {} hrs:mins:secs".format(tot_run_time))
 
     print("")
 
@@ -549,7 +549,7 @@ def run_choices(par_file_paths, n_sims, mpi, n_cores):
 
         if CREATE_PLOTS:
             print("Creating plots for the simulation\n")
-            do_py_plot_output(pf_relative_path, root_name)
+            # do_py_plot_output(pf_relative_path, root_name)
             do_spec_plot(pf_relative_path, root_name)
 
     f.close()

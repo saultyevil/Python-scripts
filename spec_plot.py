@@ -35,7 +35,6 @@ Example usage:
 import py_util
 import argparse
 import numpy as np
-from socket import gethostname
 from matplotlib import pyplot as plt
 
 
@@ -115,7 +114,7 @@ def get_script_arguments(specfiles):
         Z = args.z
     if args.tde:
         TDE_PLOT = True
-        OBSERVE_DIST = 1.079987153448e+27
+        OBSERVE_DIST = 1.079987153448e+27  # 350 MPc
         Z = 0.07897
         if not WMIN:
             WMIN = 1100
@@ -136,38 +135,127 @@ def get_script_arguments(specfiles):
     return args.output_name, angles
 
 
-def load_blag_spec():
+def plot_ions(spec_file, outname):
     """
-    Load the Blagorodnova iPTF15af UV spectrum into
+    Create 2D plots of the different ions in a Python simulation
     """
 
-    blag_dir = ""
-    hostname = gethostname()
-    if hostname == "ASTRO-REX":
-        blag_dir = "/home/saultyevil/PySims/TDE/Blagorodnova_iPTF15af.dat"
-    elif hostname == "excession":
-        blag_dir = "/home/ejp1n17/PySims/TDE/Blagorodnova_iPTF15af.dat"
-    elif hostname == "REXBOOK-AIR.local":
-        blag_dir = "/Users/saultyevil/Dropbox/DiskWinds/PySims/TDE/" \
-                   "Blagorodnova_iPTF15af.dat"
-    elif hostname == "REXBUNTU":
-        blag_dir = "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/" \
-                   "Blagorodnova_iPTF15af.dat"
-    elif hostname == "REX":
-        blag_dir = "/home/saultyevil/PySims/TDE/Blagorodnova_iPTF15af.dat"
+    if len(spec_file) > 1:
+        if VERBOSE:
+            print("Can only plot ion components for one simulation at a time")
+        return
+
+    return
+
+
+def plot_wind(spec_file, outname, user_vars=None, user_shape=None, loglog=True):
+    """
+    Create 2D plots of some wind parameters in a Python simulation. I
+    essentially wrote this as I grew tired of the default py_progs plotting
+    routine and this one uses windsave2table instead of py_wind so should
+    actually be simpler.
+    """
+
+    if len(spec_file) > 1:
+        if VERBOSE:
+            print("Can only plot wind components for one simulation at a time")
+        return
+    spec_file = spec_file[0]
+
+    root, path = py_util.get_root_name_and_path(spec_file)
+    wind = py_util.get_master_data(path, root, VERBOSE)
+
+    # If no user vars or shape is provided, use the default
+    vars = default_vars = ["ne", "t_e", "t_r", "ntot"]
+    shape = default_shape = (2, 2)
+    if user_vars and user_shape:
+        vars = user_vars
+        shape = user_shape
+    # In the case where only user_vars is provided, just use the default and
+    # inform the user of their mistake
+    elif user_vars and user_shape is None:
+        print("plot_wind: as only user_vars has been provided with no shape"
+              " the default vars and shape are being used instead as"
+              " dynamic subplotting hasn't been implemented yet")
+        vars = default_vars
+        shape = default_shape
+
+    # If we use squeeze=False, then ax is always 2d :-)
+    fig, ax = plt.subplots(shape[0], shape[1], figsize=(12, 12), squeeze=False)
+
+    var_idx = 0
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            var = vars[var_idx]
+            x, z, qoi = py_util.get_wind_quantity(wind, var, VERBOSE)
+            im = ax[i, j].pcolor(x, z, np.log10(qoi))
+            # Set the scales to log if that is the wish of the user
+            if loglog:
+                ax[i, j].set_xscale("log")
+                ax[i, j].set_yscale("log")
+                # Hacky fix for weird x and y limiting when using loglog
+                ax[i, j].set_xlim(x[1, 1], x[-1, -1])
+                ax[i, j].set_ylim(z[1, 1], z[-1, -1])
+            # Add helpful labels and colourbar
+            ax[i, j].set_xlabel("x")
+            ax[i, j].set_ylabel("z")
+            ax[i, j].set_title(r"$\log_{10}$("+var+")")
+            fig.colorbar(im, ax=ax[i, j])
+
+            var_idx += 1
+
+    fig.tight_layout()
+    plt.savefig("{}_wind_plot.png".format(outname))
+
+    if SHOW_PLOT:
+        plt.show()
     else:
-        print("Unknown hostname, update script with directory for the "
-              "Blagorodnova spectrum")
-        exit(1)
+        plt.close()
 
-    if VERBOSE:
-        print("Hostname: {}".format(hostname))
-        print("Blagordnova spectra being read in from {}".format(blag_dir))
+    return
 
-    sm_blagorodnovaspec = np.loadtxt(blag_dir)
-    sm_blagorodnovaspec[:, 1] = py_util.smooth_spectra(sm_blagorodnovaspec[:, 1], SMOOTH)
 
-    return sm_blagorodnovaspec
+def plot_spec_comps(spec_file, outname):
+    """
+    Plot the different components of the spectra
+    """
+
+    if len(spec_file) > 1:
+        if VERBOSE:
+            print("Can only plot spectrum components for one spectrum at a time")
+        return
+
+    spec_file = spec_file[0]
+    headers_top = ["Created", "Emitted"]
+    headers_bottom = ["CenSrc", "Disk", "Wind", "HitSurf", "Scattered"]
+
+    fig, ax = plt.subplots(1, 2, figsize=(12, 8))
+    spec = py_util.read_spec_file(spec_file, " ")
+    wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
+
+    for i in range(len(headers_top)):
+        flux = np.array(spec[1:, spec[0, :] == headers_top[i]], dtype=float)
+        smoothflux = py_util.smooth_spectra(flux, SMOOTH, VERBOSE)
+        ax[0].plot(wavelength, smoothflux, label=headers_top[i])
+    ax[0].set_xlim(wavelength.min(), wavelength.max())
+    ax[0].set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
+    ax[0].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)",
+                          fontsize=17)
+    ax[0].legend()
+
+    for i in range(len(headers_bottom)):
+        flux = np.array(spec[1:, spec[0, :] == headers_bottom[i]], dtype=float)
+        smoothflux = py_util.smooth_spectra(flux, SMOOTH, VERBOSE)
+        ax[1].plot(wavelength, smoothflux, label=headers_bottom[i])
+    ax[1].set_xlim(wavelength.min(), wavelength.max())
+    ax[1].set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
+    ax[1].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)",
+                          fontsize=17)
+    ax[1].legend()
+
+    plt.savefig("{}_spec_comps.png".format(outname))
+
+    return
 
 
 def print_info (spec_files, angles):
@@ -196,6 +284,8 @@ def get_ylims(wlength, flux):
     wmin_flux = flux.min()
     wmax_flux = flux.max()
 
+    # As WMIN/WMAX and wlength are floats, we have to be smarter to find where
+    # WMIN and WMAX are in an array of floats
     if WMIN:
         wmin_idx = np.abs(wlength - float(WMIN)).argmin()
         if VERBOSE:
@@ -217,7 +307,7 @@ def get_ylims(wlength, flux):
     yupper *= 10
     ylower /= 10
 
-    # Revolting hack to make sure the TDE spectrum isn't cut off by the limits
+    # Revolting hack to ensure the Blag TDE spectrum isn't cut off by the lims
     if TDE_PLOT:
         if yupper < 1e-14:
             yupper = 1e-14
@@ -225,70 +315,33 @@ def get_ylims(wlength, flux):
     return yupper, ylower
 
 
-def plot_spec_comps(spec_file):
-    """
-    Plot the different components of the spectra
-    """
-
-    if len(spec_file) > 1:
-        if VERBOSE:
-            print("Can only plot spectrum components for one spectrum at a time")
-        return
-
-    spec_file = spec_file[0]
-    rootname, filepath = py_util.get_root_name_and_path(spec_file)
-    headers_top = ["Created", "Emitted"]
-    headers_bottom = ["CenSrc", "Disk", "Wind", "HitSurf", "Scattered"]
-
-    fig, ax = plt.subplots(2, 1, figsize=(15, 18))
-    spec = py_util.read_spec_file(spec_file, " ")
-    wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
-
-    for i in range(len(headers_top)):
-        flux = np.array(spec[1:, spec[0, :] == headers_top[i]], dtype=float)
-        smoothflux = py_util.smooth_spectra(flux, SMOOTH, VERBOSE)
-        ax[0].plot(wavelength, smoothflux, label=headers_top[i])
-    ax[0].set_xlim(wavelength.min(), wavelength.max())
-    ax[0].set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
-    ax[0].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)",
-                          fontsize=17)
-    ax[0].legend()
-
-    for i in range(len(headers_bottom)):
-        flux = np.array(spec[1:, spec[0, :] == headers_bottom[i]], dtype=float)
-        smoothflux = py_util.smooth_spectra(flux, SMOOTH, VERBOSE)
-        ax[1].plot(wavelength, smoothflux, label=headers_bottom[i])
-    ax[1].set_xlim(wavelength.min(), wavelength.max())
-    ax[1].set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
-    ax[1].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)",
-                          fontsize=17)
-    ax[1].legend()
-
-    plt.savefig("{}_spec_comps.png".format(rootname))
-
-    return
-
-
 def plot_spectra(spec_files, spec_angles, outname):
     """
     Plot the spectra for the give .spec files and for the given viewing angles.
     """
 
-    print("Plotting now...\n")
+    print_info(spec_files, spec_angles)
+
+    if len(spec_angles) > 1:
+        print("Plotting spectra now...\n")
+    else:
+        print("Plotting spectrum now...")
+
+    if TDE_PLOT:
+        blag_spec = py_util.get_blagordnova_spec(SMOOTH, VERBOSE)
 
     # Loop over all the possible viewing angles
     for angle in spec_angles:
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
 
         if TDE_PLOT:
-            blag_spec = load_blag_spec()
             ax.semilogy(blag_spec[:, 0], blag_spec[:, 1],
                         label="Blagorodnova et al. 2018 (in prep.)")
 
         # Loop over each possible .spec file
         for file in spec_files:
-            rootname, filepath = py_util.get_root_name_and_path(file)
-            legend = filepath + rootname
+            root, filepath = py_util.get_root_name_and_path(file)
+            legend = filepath + root
 
             if VERBOSE:
                 print("\t- {}: {}°".format(legend, angle))
@@ -299,16 +352,15 @@ def plot_spectra(spec_files, spec_angles, outname):
             allowed = py_util.check_viewing_angle(angle, spec)
             if not allowed:
                 if VERBOSE:
-                    print("Error: {}° not found in .spec file {}".format(angle, file))
+                    print("Error: {}° not found in .spec file {}"
+                          .format(angle, file))
                 continue
 
-            #
             # Read the wavelength and flux and smooth the flux
             # There is something weird happening to determine which index data
             # should be extracted from. I did this because all of the data in
             # the read in .spec file are strings
             # NOTE: this won't work super well with different phase angles
-            #
 
             idx = 0
             for i in range(spec.shape[1]):
@@ -323,7 +375,7 @@ def plot_spectra(spec_files, spec_angles, outname):
             wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
 
             # Plot and scale flux for observer distance
-            default_dist = 100 * 3.08567758128e18  #  default Python distance
+            default_dist = 100 * 3.08567758128e18  # 100 pc
             flux_dist = smoothflux * (default_dist**2 / OBSERVE_DIST**2)
             z_wav = wavelength * (Z + 1)
 
@@ -352,6 +404,11 @@ def plot_spectra(spec_files, spec_angles, outname):
         else:
             plt.close()
 
+    if len(spec_angles) > 1:
+        print("Spectra plotted...")
+    else:
+        print("Spectrum plotted...")
+
     return
 
 
@@ -373,10 +430,10 @@ def main():
         print("No angles provided")
         exit(2)
 
-    print_info(spec_files, spec_angles)
-
     plot_spectra(spec_files, spec_angles, outname)
-    plot_spec_comps(spec_files)
+    plot_spec_comps(spec_files, outname)
+    plot_wind(spec_files, outname)
+    plot_ions(spec_files, outname)
 
     if VERBOSE:
         print("\nAll done :-)\n")

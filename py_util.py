@@ -2,12 +2,15 @@
 
 """
 Various common routines which are used in scripts concerned with MCRT Python.
+Most usually used when plotting output from Python.
 """
 
 
-import sys
 import numpy as np
+import pandas as pd
 from sys import exit
+from shutil import which
+from socket import gethostname
 from subprocess import Popen, PIPE
 from scipy.signal import convolve, boxcar
 
@@ -41,6 +44,8 @@ def read_spec_file(filename, delim=" "):
     lines: ncols x nlines array of strings
         The file as a numpy array of strings for each column and line
     """
+
+    # TODO: add some input error checking
 
     try:
         with open(filename, "r") as f:
@@ -85,8 +90,7 @@ def find_spec_files():
     """
 
     find = "find . -name '*.spec'"
-    stdout, stderr = Popen(find, stdout=PIPE, stderr=PIPE, shell=True)\
-        .communicate()
+    stdout, stderr = Popen(find, stdout=PIPE, stderr=PIPE, shell=True).communicate()
     spec_files = stdout.decode("utf-8").split()
     err = stderr.decode("utf-8")
     spec_files = sorted(spec_files, key=str.lower)
@@ -100,7 +104,7 @@ def find_spec_files():
 
     if len(spec_files) == 0:
         print("py_util.find_spec_files: No .spec files found")
-        exit(2)
+        exit(1)
 
     return spec_files
 
@@ -120,7 +124,7 @@ def find_pf(ignore_out_pf):
         print("ERROR: py_util.find_pf: find returned something to stderr...")
         print("Captured from stderr:")
         print(err)
-        sys.exit(1)
+        exit(1)
 
     if ignore_out_pf:
         for i, dir in enumerate(pfs):
@@ -130,7 +134,9 @@ def find_pf(ignore_out_pf):
     if len(pfs) == 0:
         print("py_util.find_pf: no Python parameter files found\n")
         print("--------------------------")
-        sys.exit(0)
+        exit(0)
+
+    pfs = sorted(pfs, )
 
     return pfs
 
@@ -153,6 +159,8 @@ def get_spec_viewing_angles(specfiles, delim=" "):
     vangles: list of ints
         All of the unique viewing angles found in the provided .spec files
     """
+
+    # TODO: add some input error checking
 
     vangles = []
     # Find the viewing angles in each .spec file
@@ -191,6 +199,8 @@ def check_viewing_angle(angle, spec):
         illegal angle.
     """
 
+    # TODO: add some input error checking
+
     allowed = False
     headers = spec[0, :]
     for i in range(len(headers)):
@@ -205,6 +215,8 @@ def get_root_name_and_path(pf_path):
     """
     Split the path name into a directory and root name of the Python simulation
 
+    TODO: the loop could probably be replaced by a str.find() instead
+
     Parameters
     ----------
     pf_path: str
@@ -217,6 +229,11 @@ def get_root_name_and_path(pf_path):
     sim: str
         The absolute directory containing the provided .pf file.
     """
+
+    if type(pf_path) != str:
+        print("ERROR: py_util.get_root_name_and_path: Provided a {} when "
+              "expecting a string".format(type(pf_path)))
+        exit(1)
 
     dot = 0
     slash = 0
@@ -256,7 +273,7 @@ def check_convergence(wd, root):
         with open(diag_path, "r") as file:
             diag = file.readlines()
     except IOError:
-        print("ERROR: py_util.read_convergence: Couldn't open ready only copy "
+        print("ERROR: py_util.read_convergence: Couldn't open read only copy "
               "of {}. Does the diag file exist?".format(diag_path))
         return -1
 
@@ -335,6 +352,212 @@ def smooth_spectra(flux, smooth, verbose=False):
     smooth_flux = convolve(flux, boxcar(smooth) / float(smooth), mode="same")
 
     return smooth_flux
+
+
+def get_blagordnova_spec(smooth, verbose=False):
+    """
+    Load the Blagorodnova iPTF15af UV spectrum into
+
+    Parameters
+    ----------
+    smooth: int
+        The amount of smoothing to be used by the boxcar smoother
+    verbose: bool
+        Enable verbose printing
+
+    Returns
+    -------
+    blagorodnova_spec: numpy array of floats
+        The UV spectrum of iPTF15af from N. Blagorodnova et al. 2018.
+        ArXiv e-prints, arXiv:1809.07446v1 [astro-ph.HE].
+            Column 0: Wavelength in Angstroms
+            Column 1: Flux per unit wavelength in erg s^-1 cm^-2 A^-1
+    """
+
+    try:
+        smooth = int(smooth)
+    except:
+        print("ERROR: py_util.get_blagordnvoa_spec: Unable to convert smooth "
+              "into an integer")
+        exit(1)
+
+    blag_dir = ""
+    hostname = gethostname()
+    if hostname == "ASTRO-REX":
+        blag_dir = "/home/saultyevil/PySims/TDE/Blagorodnova_iPTF15af.dat"
+    elif hostname == "excession":
+        blag_dir = "/home/ejp1n17/PySims/TDE/Blagorodnova_iPTF15af.dat"
+    elif hostname == "REXBOOK-AIR.local":
+        blag_dir = "/Users/saultyevil/Dropbox/DiskWinds/PySims/TDE/" \
+                   "Blagorodnova_iPTF15af.dat"
+    elif hostname == "REXBUNTU":
+        blag_dir = "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/" \
+                   "Blagorodnova_iPTF15af.dat"
+    elif hostname == "REX":
+        blag_dir = "/home/saultyevil/PySims/TDE/Blagorodnova_iPTF15af.dat"
+    else:
+        print("Unknown hostname, update py_util with directory for the "
+              "Blagordnova spectrum")
+        exit(1)
+
+    if verbose:
+        print("Hostname: {}".format(hostname))
+        print("Blagordnova spectra being read in from {}".format(blag_dir))
+
+    try:
+        blagorodnova_spec = np.loadtxt(blag_dir)
+    except IOError:
+        print("ERROR: py_util.get_blagordnova_spec: Unable to open the "
+              "Blagordnova spectrum from the following path {}".format(blag_dir))
+        print("ERROR: py_util.get_blagordnova_spec: check the directories "
+              "provided in the script")
+        exit(1)
+
+    blagorodnova_spec[:, 1] = smooth_spectra(blagorodnova_spec[:, 1], smooth)
+
+    return blagorodnova_spec
+
+
+def run_windsave2table(path, root):
+    """
+    Use windsave2table to get the details of the wind
+
+    Parameters
+    ----------
+    root: str
+        The rootname of the Python simulation.
+
+    verbose: bool
+        If True, enable verbose output
+
+    Returns
+    -------
+
+    """
+
+    path = which("windsave2table")
+    if not path:
+        print("ERROR: py_util.get_wind_details: windsave2table not in $PATH")
+        return False
+
+    command = "cd {}; windsave2table {}".format(path, root)
+    cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
+    stdout, stderr = cmd.communicate()
+    output = stdout.decode("utf-8")
+    err = stderr.decode("utf-8")
+
+    if err:
+        print("py_util.get_wind_details: the following was sent to stderr:")
+        print(err)
+
+    return True
+
+
+def get_ion_data(path, root, ion, verbose=False):
+    """
+    Get data for a certain ion from a Python simulation using windsave2table
+    """
+
+    worked = run_windsave2table(path, root)
+    if not worked:
+        print("ERROR: py_util.get_ion_data: could not use windsave2table")
+        return
+
+    return
+
+
+def get_master_data(path, root, verbose=False):
+    """
+    Get the "important" information for windsave2table
+
+    Reads in root.0.master.txt and root.0.heat.txt and puts them into one
+    numpy array
+    """
+
+    if type(root) is not str:
+        print("ERROR: py_util.get_master_data: the root name provided is not a"
+              " string :-(")
+        return
+
+    worked = run_windsave2table(path, root)
+    if not worked:
+        print("ERROR: py_util.get_master_data: could not use windsave2table")
+        return
+
+    heat_file = "{}.0.heat.txt".format(root)
+    master_file = "{}.0.master.txt".format(root)
+
+    try:
+        heat = pd.read_table(heat_file, delim_whitespace=True)
+        master = pd.read_table(master_file, delim_whitespace=True)
+        # master = master.drop(columns=["xcen", "zcen"])
+    except IOError:
+        return
+
+    # Completely hideous way of appending columns, but join, merge and concat
+    # were doing bad things and this worked so whatever
+    append = heat.columns.values[14:]
+    for i, col in enumerate(append):
+        master[col] = pd.Series(heat[col])
+
+    if verbose:
+        print("Headers for data read in:")
+        print(master.columns.values)
+        print("")
+
+    master.to_csv("{}.ep.complete".format(root))
+
+    return master
+
+
+def get_wind_quantity(wind, quantity, verbose):
+    """
+    Get and return x, z coordinates and a quantity of interest which is a wind
+    quantity from a Python simulation. This assumes that wind is a Pandas
+    data frame gotten from something like py_util.get_master_data or
+    py_util.get_ion_data
+
+    Parameters
+    ----------
+    wind: pandas dataframe
+        An pandas dataframe of the wind quantities from windsave2table
+    quantity: str
+        The quantity wanting to be masked in question
+    verbose: bool
+        If True, enable verbose logging
+
+    Returns
+    -------
+
+
+    """
+
+    if type(quantity) is not str:
+        print("ERROR: py_util.get_wind_quantity: the quantity desired needs to"
+              " be given as a string")
+
+    # Figure out the number of cells in the x and z directions of the simulation
+    xi = wind["i"]
+    zj = wind["j"]
+    nx_cells = int(np.max(xi) + 1)
+    nz_cells = int(np.max(zj) + 1)
+
+    # Read in the quantity of interest, qoi, and x and z values
+    try:
+        qoi = wind[quantity].values.reshape(nx_cells, nz_cells)
+    except KeyError:
+        print("Quantity {} not found in table, try again!".format(quantity))
+        return
+
+    x = wind["x"].values.reshape(nx_cells, nz_cells)
+    z = wind["z"].values.reshape(nx_cells, nz_cells)
+    inwind = wind["inwind"].values.reshape(nx_cells, nz_cells)
+
+    # Create a masked array where only the quantities in the wind are returned
+    mask = (inwind < 0)
+    qoi_mask = np.ma.masked_where(mask, qoi)
+
+    return x, z, qoi_mask
 
 
 if __name__ == "__main__":
