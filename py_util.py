@@ -418,7 +418,7 @@ def get_blagordnova_spec(smooth, verbose=False):
     return blagorodnova_spec
 
 
-def run_windsave2table(path, root):
+def run_windsave2table(path, root, verbose=False):
     """
     Use windsave2table to get the details of the wind
 
@@ -435,8 +435,8 @@ def run_windsave2table(path, root):
 
     """
 
-    path = which("windsave2table")
-    if not path:
+    check = which("windsave2table")
+    if not check:
         print("ERROR: py_util.get_wind_details: windsave2table not in $PATH")
         return False
 
@@ -445,6 +445,9 @@ def run_windsave2table(path, root):
     stdout, stderr = cmd.communicate()
     output = stdout.decode("utf-8")
     err = stderr.decode("utf-8")
+
+    if verbose:
+        print(output)
 
     if err:
         print("py_util.get_wind_details: the following was sent to stderr:")
@@ -458,12 +461,45 @@ def get_ion_data(path, root, ion, verbose=False):
     Get data for a certain ion from a Python simulation using windsave2table
     """
 
-    worked = run_windsave2table(path, root)
+    worked = run_windsave2table(path, root, verbose)
     if not worked:
         print("ERROR: py_util.get_ion_data: could not use windsave2table")
         return
 
-    return
+    ele_idx = ion.find("_")
+    element = ion[:ele_idx]
+    ion_level = ion[ele_idx+1:]
+    ion_file = "{}.0.{}.txt".format(root, element)
+
+    try:
+        ions = pd.read_table(ion_file, delim_whitespace=True)
+    except IOError:
+        print("ERROR: py_util.get_ion_data: Could not find file for element {}"
+              .format(element))
+        return
+
+    # Figure out the number of cells in the x and z directions of the simulation
+    xi = ions["i"]
+    zj = ions["j"]
+    nx_cells = int(np.max(xi) + 1)
+    nz_cells = int(np.max(zj) + 1)
+
+    try:
+        ion_wanted = ions[ion_level].values.reshape(nx_cells, nz_cells)
+    except KeyError:
+        print("ERROR: py_util.get_ion_data: Could not find ion {} for element "
+              "{}".format(ion_level, element))
+        return
+
+    x = ions["x"].values.reshape(nx_cells, nz_cells)
+    z = ions["z"].values.reshape(nx_cells, nz_cells)
+    inwind = ions["inwind"].values.reshape(nx_cells, nz_cells)
+
+    # Create a masked array where only the quantities in the wind are returned
+    mask = (inwind < 0)
+    ion_mask = np.ma.masked_where(mask, ion_wanted)
+
+    return x, z, ion_mask
 
 
 def get_master_data(path, root, verbose=False):
@@ -479,7 +515,7 @@ def get_master_data(path, root, verbose=False):
               " string :-(")
         return
 
-    worked = run_windsave2table(path, root)
+    worked = run_windsave2table(path, root, verbose)
     if not worked:
         print("ERROR: py_util.get_master_data: could not use windsave2table")
         return
@@ -492,6 +528,8 @@ def get_master_data(path, root, verbose=False):
         master = pd.read_table(master_file, delim_whitespace=True)
         # master = master.drop(columns=["xcen", "zcen"])
     except IOError:
+        print("ERROR: py_uilt.get_master_data: Could not find master or heat "
+              "file from windsave2table")
         return
 
     # Completely hideous way of appending columns, but join, merge and concat

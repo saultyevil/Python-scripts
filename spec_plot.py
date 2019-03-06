@@ -135,7 +135,7 @@ def get_script_arguments(specfiles):
     return args.output_name, angles
 
 
-def plot_ions(spec_file, outname):
+def plot_ions(spec_file, outname, user_ions=None, user_shape=None, loglog=True):
     """
     Create 2D plots of the different ions in a Python simulation
     """
@@ -144,6 +144,43 @@ def plot_ions(spec_file, outname):
         if VERBOSE:
             print("Can only plot ion components for one simulation at a time")
         return
+    spec_file = spec_file[0]
+
+    root, path = py_util.get_root_name_and_path(spec_file)
+
+    ions = default_ions = ["H_i01", "H_i02", "C_i03", "C_i04", "C_i05",
+                           "Si_i04", "N_i05", "O_i06"]
+    shape = default_shape = (4, 2)  # 4 rows, 2 cols
+
+    fig, ax = plt.subplots(shape[0], shape[1], figsize=(12, 16), squeeze=False)
+
+    var_idx = 0
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            var = ions[var_idx]
+            x, z, ion = py_util.get_ion_data(path, root, var, VERBOSE)
+            im = ax[i, j].pcolor(x, z, np.log10(ion), vmin=-5, vmax=0)
+            # Set the scales to log if that is the wish of the user
+            if loglog:
+                ax[i, j].set_xscale("log")
+                ax[i, j].set_yscale("log")
+                # Hacky fix for weird x and y limiting when using loglog
+                ax[i, j].set_xlim(x[1, 1], x[-1, -1])
+                ax[i, j].set_ylim(z[1, 1], z[-1, -1])
+            # Add helpful labels and colourbar
+            ax[i, j].set_xlabel("x")
+            ax[i, j].set_ylabel("z")
+            ax[i, j].set_title(r"$\log_{10}$("+var+")")
+            fig.colorbar(im, ax=ax[i, j])
+            var_idx += 1
+
+    fig.tight_layout()
+    plt.savefig("{}_ions_plot.png".format(outname))
+
+    if SHOW_PLOT:
+        plt.show()
+    else:
+        plt.close()
 
     return
 
@@ -167,7 +204,7 @@ def plot_wind(spec_file, outname, user_vars=None, user_shape=None, loglog=True):
 
     # If no user vars or shape is provided, use the default
     vars = default_vars = ["ne", "t_e", "t_r", "ntot"]
-    shape = default_shape = (2, 2)
+    shape = default_shape = (2, 2)  # 2 rows, 2 columns
     if user_vars and user_shape:
         vars = user_vars
         shape = user_shape
@@ -254,6 +291,11 @@ def plot_spec_comps(spec_file, outname):
     ax[1].legend()
 
     plt.savefig("{}_spec_comps.png".format(outname))
+
+    if SHOW_PLOT:
+        plt.show()
+    else:
+        plt.close()
 
     return
 
