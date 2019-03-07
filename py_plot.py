@@ -114,7 +114,7 @@ def get_script_arguments(specfiles):
     return args.output_name, angles
 
 
-def plot_ions(spec_file, outname, user_ions=None, user_shape=None, loglog=True):
+def plot_python_ions(spec_file, outname, user_ions=None, user_shape=None, loglog=True):
     """
     Create 2D plots of wind ions for a Python simulation. Note that your
     own ions and shape can be provided instead of the default ones. Note
@@ -154,7 +154,6 @@ def plot_ions(spec_file, outname, user_ions=None, user_shape=None, loglog=True):
     print("\nPlotting the following wind ions...")
     print("\n\t- {}\n".format(ions))
 
-
     var_idx = 0
     fig, ax = plt.subplots(shape[0], shape[1], figsize=(12, 16), squeeze=False)
     for i in range(shape[0]):
@@ -163,7 +162,8 @@ def plot_ions(spec_file, outname, user_ions=None, user_shape=None, loglog=True):
             x, z, ion = py_util.get_ion_data(path, root, var, VERBOSE)
             if VERBOSE:
                 print("np.mean({}) = {}".format(var, np.mean(ion)))
-            im = ax[i, j].pcolor(x, z, np.log10(ion), vmin=-5, vmax=0)
+            with np.errstate(divide="ignore"):
+                im = ax[i, j].pcolor(x, z, np.log10(ion), vmin=-5, vmax=0)
             fig.colorbar(im, ax=ax[i, j])
             ax[i, j].set_xlabel("x")
             ax[i, j].set_ylabel("z")
@@ -183,12 +183,12 @@ def plot_ions(spec_file, outname, user_ions=None, user_shape=None, loglog=True):
     else:
         plt.close()
 
-    print("\nWind ions plotted...")
+    print("Wind ions plotted...")
 
     return
 
 
-def plot_wind(spec_file, outname, user_vars=None, user_shape=None, loglog=True):
+def plot_python_complete(spec_file, outname, user_vars=None, user_shape=None, loglog=True):
     """
     Create 2D plots of wind parameters for a Python simulation. Note that your
     own quantities and shape can be provided instead of the default ones. Note
@@ -208,8 +208,8 @@ def plot_wind(spec_file, outname, user_vars=None, user_shape=None, loglog=True):
     wind = py_util.get_master_data(path, root, VERBOSE)
 
     # Default wind quantities to plot and the shape for the resulting figure
-    vars = default_vars = ["ne", "t_e", "t_r", "ntot"]
-    shape = default_shape = (2, 2)  # 2 rows, 2 columns
+    vars = default_vars = ["t_e", "t_r", "ne", "v_x", "v_y", "v_z", "ip", "c4"]
+    shape = default_shape = (4, 2)  # 2 rows, 2 columns
 
     # If user quantities and figure shape is provided, then use those instead.
     # However, if only quantaties are provided, then just use the default values
@@ -229,14 +229,15 @@ def plot_wind(spec_file, outname, user_vars=None, user_shape=None, loglog=True):
     print("\n\t- {}\n".format(vars))
 
     var_idx = 0
-    fig, ax = plt.subplots(shape[0], shape[1], figsize=(12, 12), squeeze=False)
+    fig, ax = plt.subplots(shape[0], shape[1], figsize=(12, 16), squeeze=False)
     for i in range(shape[0]):
         for j in range(shape[1]):
             var = vars[var_idx]
             x, z, qoi = py_util.get_wind_quantity(wind, var, VERBOSE)
             if VERBOSE:
                 print("np.mean({}) = {}".format(var, np.mean(qoi)))
-            im = ax[i, j].pcolor(x, z, np.log10(qoi))
+            with np.errstate(divide="ignore"):
+                im = ax[i, j].pcolor(x, z, np.log10(qoi))
             fig.colorbar(im, ax=ax[i, j])
             ax[i, j].set_xlabel("x")
             ax[i, j].set_ylabel("z")
@@ -256,7 +257,7 @@ def plot_wind(spec_file, outname, user_vars=None, user_shape=None, loglog=True):
     else:
         plt.close()
 
-    print("\nWind quantities plotted...")
+    print("Wind quantities plotted...")
 
     return
 
@@ -352,28 +353,14 @@ def get_ylims(wlength, flux):
     return yupper, ylower
 
 
-def print_spectra_info(spec_files, angles):
-    """
-    Print extra information to the screen
-    """
-
-    print("Creating spectra for the following .spec files:\n")
-    for i in range(len(spec_files)):
-        print("\t- {}".format(spec_files[i]))
-
-    print("\nSpectra will be created for the following inclinations:\n")
-    print("\t- {}".format(angles))
-    print("")
-
-    return
-
-
 def plot_spectra(spec_files, spec_angles, outname):
     """
     Plot the spectra for the give .spec files and for the given viewing angles.
     """
 
-    print_spectra_info(spec_files, spec_angles)
+    print("\nSpectra will be created for the following inclinations:\n")
+    print("\t- {}".format(spec_angles))
+    print("")
 
     if len(spec_angles) > 1:
         print("Plotting spectra now...\n")
@@ -477,6 +464,9 @@ def main():
     if len(spec_files) == 0:
         print("No spec files found")
         exit(1)
+    print("Creating plots for the following simulations:\n")
+    for i in range(len(spec_files)):
+        print("\t- {}".format(spec_files[i]))
 
     # Angles aren't actually supplied via the command line anymore - but I couldn't
     # be bothered to refactor this bit of the code so I have left it like this
@@ -487,12 +477,10 @@ def main():
 
     plot_spectra(spec_files, spec_angles, outname)
     plot_spec_comps(spec_files, outname)
-    plot_wind(spec_files, outname)
-    plot_ions(spec_files, outname)
+    plot_python_complete(spec_files, outname)
+    plot_python_ions(spec_files, outname)
 
-    if VERBOSE:
-        print("\nAll done :-)\n")
-    print("--------------------------")
+    print("\n--------------------------")
 
     return
 
