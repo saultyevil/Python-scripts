@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import spec_plot
+import py_plot
 import numpy as np
 from astropy import constants as const
 from astropy.modeling import blackbody
@@ -15,7 +15,7 @@ def B_lamda(T_kelvin, lamda_cm):
 
     return B1 * B2
 
-blagspec = spec_plot.load_blag_spec()
+blagspec = py_plot.load_blag_spec()
 plt.semilogy(blagspec[:, 0], blagspec[:, 1], label="Blagorodnova et al. 2018")
 
 # bbflux = B_lamda(T, lambda_range * 1e-8)*(4*np.pi*tde_dist**2)

@@ -6,6 +6,7 @@ Most usually used when plotting output from Python.
 """
 
 
+import os
 import numpy as np
 import pandas as pd
 from sys import exit
@@ -23,7 +24,71 @@ def tests():
 
     print("This script is not designed to be run. Instead, import it using "
           "import py_util.")
+    get_python_version(verbose=True)
+
     return
+
+
+def get_python_version(py="py", verbose=False):
+    """
+    Get the Python version and commit hash for the provided Python binary. This
+    should also work with windsave2table.
+
+    Parameters
+    ----------
+    py: str
+        The name of the Python executable in $PATH whose version will be
+        queried
+    verbose: bool
+        If True, enable more verbose output
+
+    Returns:
+    --------
+    version: str
+        The version of the Python executable
+    commit_hash: str
+        The commit hash of the Python executable
+    """
+
+    version = ""
+    commit_hash = ""
+
+    path = which(py)
+    if not path:
+        print("ERROR: py_util.get_python_version: {} is not in $PATH".format(py))
+        exit(1)
+
+    command = "{} --version".format(py)
+    cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
+    stdout, stderr = cmd.communicate()
+    out = stdout.decode("utf-8").split()
+    err = stderr.decode("utf-8")
+
+    if err:
+        print("py_util.get_python_version: captured from stderr")
+        print(stderr)
+
+    for i in range(len(out)):
+        if out[i] == "Version":
+            version = out[i+1]
+        if out[i] == "hash":
+            commit_hash = out[i+1]
+
+    if version == "":
+        print("ERROR: py_util.get_python_version: couldn't find Python version "
+              "for {}".format(py))
+        exit(1)
+    if commit_hash == "":
+        print("ERROR: py_util.get_python_version: couldn't find commit hash for"
+              " {}".format(py))
+        exit(1)
+
+    if verbose:
+        print("Python Version      {}".format(version))
+        print("Git commit hash     {}".format(commit_hash))
+        print("Short commit hash   {}".format(commit_hash[:7]))
+
+    return version, commit_hash
 
 
 def read_spec_file(filename, delim=" "):
@@ -435,6 +500,26 @@ def run_windsave2table(path, root, verbose=False):
 
     """
 
+    # Look for a version file in the directory to see if windsave2table is the
+    # on the correct git hash to read the wind_save file
+    try:
+        with open("version", "r") as f:
+            lines = f.readlines()
+        run_version = lines[0]
+        run_hash = lines[1]
+        wind_version, wind_hash = get_python_version("windsave2table", verbose)
+        if verbose:
+            print("wind_save: version {} hash {}".format(run_version, run_hash))
+            print("windsave2table: version {} hash {}".format(wind_version, wind_hash))
+        if run_version != wind_version and run_hash != wind_hash:
+            print("py_util.run_windsave2table: windsave2table git hash "
+                  "and the git hash of the wind_save file are different")
+            return True
+    except IOError:
+        if verbose:
+            print("py_util.run_windsave2table: no version file assuming "
+                  "everything will be a-ok")
+
     check = which("windsave2table")
     if not check:
         print("ERROR: py_util.get_wind_details: windsave2table not in $PATH")
@@ -461,15 +546,29 @@ def get_ion_data(path, root, ion, verbose=False):
     Get data for a certain ion from a Python simulation using windsave2table
     """
 
-    worked = run_windsave2table(path, root, verbose)
-    if not worked:
-        print("ERROR: py_util.get_ion_data: could not use windsave2table")
+    if type(root) is not str:
+        print("ERROR: py_util.get_ion_data: the root name provided is not a"
+              " string :-(")
         return
 
     ele_idx = ion.find("_")
     element = ion[:ele_idx]
     ion_level = ion[ele_idx+1:]
     ion_file = "{}.0.{}.txt".format(root, element)
+
+    # Add check to avoid situations where we re-create data with the wrong commit
+    file_exists = os.path.isfile(ion_file)
+
+    if not file_exists:
+        if verbose:
+            print("py_util.get_ion_data: running windsave2table")
+        worked = run_windsave2table(path, root, verbose)
+        if not worked:
+            print("ERROR: py_util.get_ion_data: could not use windsave2table")
+            return
+    elif verbose:
+        print("py_util.get_ion_data: required files already exist hence"
+              " windsave2table will not be run")
 
     try:
         ions = pd.read_table(ion_file, delim_whitespace=True)
@@ -515,13 +614,24 @@ def get_master_data(path, root, verbose=False):
               " string :-(")
         return
 
-    worked = run_windsave2table(path, root, verbose)
-    if not worked:
-        print("ERROR: py_util.get_master_data: could not use windsave2table")
-        return
-
     heat_file = "{}.0.heat.txt".format(root)
     master_file = "{}.0.master.txt".format(root)
+
+    # Add check to avoid situations where we re-create data with the wrong commit
+    heat_exists = os.path.isfile(heat_file)
+    master_exists = os.path.isfile(master_file)
+
+    if not heat_exists and not master_exists:
+        if verbose:
+            print("py_util.get_master_data: running windsave2table")
+        worked = run_windsave2table(path, root, verbose)
+        if not worked:
+            print("ERROR: py_util.get_master_data: could not use windsave2table")
+            return
+    elif verbose:
+        print("py_util.get_master_data: required files already exist hence"
+              " windsave2table will not be run")
+
 
     try:
         heat = pd.read_table(heat_file, delim_whitespace=True)

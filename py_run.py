@@ -30,7 +30,7 @@ Example usage:
     python py_run.py -d -tde -WMIN 200 -WMAX 5000 -o
 
 TODO: be able to run simulations from file input
-TODO: flexible flag choices for spec_plot.py
+TODO: flexible flag choices for py_plot.py
 TODO: specify the number of MPI processes
 """
 
@@ -99,34 +99,23 @@ def get_run_mode():
     """
 
     p = argparse.ArgumentParser(description="Enable or disable features")
-
     # Different run modes
     p.add_argument("-d", action="store_true", help="Run with -r -c -p")
     p.add_argument("-r", action="store_true", help="Run simulations")
-    p.add_argument("-resume", action="store_true", help=
-        "Restart a previous run")
-    p.add_argument("-c", action="store_true", help=
-        "Check the convergence of runs - calls convergence.py")
+    p.add_argument("-resume", action="store_true", help="Restart a previous run")
+    p.add_argument("-c", action="store_true", help="Check the convergence of runs - calls convergence.py")
     p.add_argument("-p", action="store_true", help="Run plotting scripts")
-    p.add_argument("-tde", action="store_true", help=
-        "Enable TDE plotting")
+    p.add_argument("-tde", action="store_true", help="Enable TDE plotting")
     # Script parameters
-    p.add_argument("-py_ver", type=str, action="store", help=
-        "Name of the Python executable")
-    p.add_argument("-clim", type=float, action="store", help=
-        "The convergence limit: c_value < 1")
+    p.add_argument("-py_ver", type=str, action="store", help="Name of the Python executable")
+    p.add_argument("-clim", type=float, action="store", help="The convergence limit: c_value < 1")
     p.add_argument("-o", action="store_true", help="Verbose outputting")
-    p.add_argument("-dry", action="store_true", help=
-        "Print the simulations found and exit")
+    p.add_argument("-dry", action="store_true", help="Print the simulations found and exit")
     p.add_argument("-q", action="store_true", help="Enable quiet mode")
-    p.add_argument("-n_cores", action="store", help=
-        "The number of processor cores to run Python with")
+    p.add_argument("-n_cores", action="store", help="The number of processor cores to run Python with")
     # Plot parameters
-    p.add_argument("-wmin", type=float, action="store",help=
-        "The smallest wavelength to display")
-    p.add_argument("-wmax", type=float, action="store", help=
-        "The largest wavelength to display")
-
+    p.add_argument("-wmin", type=float, action="store", help="The smallest wavelength to display")
+    p.add_argument("-wmax", type=float, action="store", help="The largest wavelength to display")
     args = p.parse_args()
 
     global SHOW_OUTPUT
@@ -328,6 +317,13 @@ def py_run(wd, root_name, mpi, ncores):
     if rc:
         raise CalledProcessError(rc, command)
 
+    # Append a file containing the Python version and commit hash to avoid
+    # situations where windsave2table will make garbage results due to the
+    # wind_save file not loading properly
+    version, hash = py_util.get_python_version(VERSION, SHOW_OUTPUT)
+    with open("version", "w") as f:
+        f.write("{}\n{}".format(version, hash))
+
     return lines, err
 
 
@@ -356,42 +352,17 @@ def get_convergence(wd, root_name):
     return convergence_fraction
 
 
-def do_py_plot_output(wd, root_name):
-    """
-    Execute the standard py_plot_output routine located in py_progs
-    """
-
-    path = which("py_plot_output.py")
-    if not path:
-        print("py_plot_output.py not in $PATH and executable")
-        return
-
-    commands = "cd {}; py_plot_output.py {} all".format(wd, root_name)
-    print(commands)
-
-    cmd = Popen(commands, stdout=PIPE, stderr=PIPE, shell=True)
-    stdout, stderr = cmd.communicate()
-    output = stdout.decode("utf-8")
-
-    if SHOW_OUTPUT:
-        print(output)
-
-    print("")
-
-    return
-
-
-def do_spec_plot(wd, root_name):
+def do_py_plot(wd, root_name):
     """
     Execute my standard spec_plot script to plot spectra
     """
 
-    path = which("spec_plot.py")
+    path = which("py_plot.py")
     if not path:
-        print("spec_plot.py not in $PATH and executable")
+        print("py_plot.py not in $PATH and executable")
         return
 
-    commands = "cd {}; spec_plot.py {} all".format(wd, root_name)
+    commands = "cd {}; py_plot.py {}".format(wd, root_name)
     if TDE_PLOT:
         commands += " -tde"
     if WMIN:
@@ -549,8 +520,7 @@ def run_choices(par_file_paths, n_sims, mpi, n_cores):
 
         if CREATE_PLOTS:
             print("Creating plots for the simulation\n")
-            # do_py_plot_output(pf_relative_path, root_name)
-            do_spec_plot(pf_relative_path, root_name)
+            do_py_plot(pf_relative_path, root_name)
 
     f.close()
 
