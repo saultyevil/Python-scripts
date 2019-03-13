@@ -22,8 +22,7 @@ def tests():
     TODO: add unit tests
     """
 
-    print("This script is not designed to be run. Instead, import it using "
-          "import py_util.")
+    print("This script is not designed to be run. Instead, import it using import py_util.")
     get_python_version(verbose=True)
 
     return
@@ -75,18 +74,16 @@ def get_python_version(py="py", verbose=False):
             commit_hash = out[i+1]
 
     if version == "":
-        print("ERROR: py_util.get_python_version: couldn't find Python version "
-              "for {}".format(py))
+        print("ERROR: py_util.get_python_version: couldn't find Python version for {}".format(py))
         exit(1)
     if commit_hash == "":
-        print("ERROR: py_util.get_python_version: couldn't find commit hash for"
-              " {}".format(py))
+        print("ERROR: py_util.get_python_version: couldn't find commit hash for {}".format(py))
         exit(1)
 
     if verbose:
-        print("Python Version      {}".format(version))
-        print("Git commit hash     {}".format(commit_hash))
-        print("Short commit hash   {}".format(commit_hash[:7]))
+        print("Python Version ...... {}".format(version))
+        print("Git commit hash ..... {}".format(commit_hash))
+        print("Short commit hash ... {}".format(commit_hash[:7]))
 
     return version, commit_hash
 
@@ -161,15 +158,10 @@ def find_spec_files():
     spec_files = sorted(spec_files, key=str.lower)
 
     if err:
-        print("ERROR: py_util.find_spec_files: find returning something to "
-              "stderr...")
+        print("ERROR: py_util.find_spec_files: find returning something to stderr...")
         print("Captured from stderr:")
         print(err)
         return []
-
-    if len(spec_files) == 0:
-        print("py_util.find_spec_files: No .spec files found")
-        exit(1)
 
     return spec_files
 
@@ -182,7 +174,7 @@ def find_pf(ignore_out_pf):
     command = "find . -type f -name '*.pf'"
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
-    pfs = stdout.decode("utf-8").split()
+    out = stdout.decode("utf-8").split()
     err = stderr.decode("utf-8")
 
     if err:
@@ -191,17 +183,18 @@ def find_pf(ignore_out_pf):
         print(err)
         exit(1)
 
-    if ignore_out_pf:
-        for i, dir in enumerate(pfs):
-            if dir.find(".out.pf") != -1:
-                del(pfs[i])
+    pfs = []
+    if ignore_out_pf is True:
+        for file in out:
+            if file.find(".out.pf") == -1:
+                pfs.append(file)
 
-    if len(pfs) == 0:
-        print("py_util.find_pf: no Python parameter files found\n")
-        print("--------------------------")
-        exit(0)
+    # if len(pfs) == 0:
+    #     print("py_util.find_pf: no Python parameter files found\n")
+    #     print("--------------------------")
+    #     exit(0)
 
-    pfs = sorted(pfs, )
+    pfs = sorted(pfs, key=str.lower)
 
     return pfs
 
@@ -226,6 +219,7 @@ def get_spec_viewing_angles(specfiles, delim=" "):
     """
 
     # TODO: add some input error checking
+    # TODO: why did I write it like this? It's hideous
 
     vangles = []
     # Find the viewing angles in each .spec file
@@ -265,6 +259,7 @@ def check_viewing_angle(angle, spec):
     """
 
     # TODO: add some input error checking
+    # TODO: ?????
 
     allowed = False
     headers = spec[0, :]
@@ -296,8 +291,7 @@ def get_root_name_and_path(pf_path):
     """
 
     if type(pf_path) != str:
-        print("ERROR: py_util.get_root_name_and_path: Provided a {} when "
-              "expecting a string".format(type(pf_path)))
+        print("ERROR: py_util.get_root_name_and_path: Provided a {} when expecting a string".format(type(pf_path)))
         exit(1)
 
     dot = 0
@@ -338,8 +332,8 @@ def check_convergence(wd, root):
         with open(diag_path, "r") as file:
             diag = file.readlines()
     except IOError:
-        print("ERROR: py_util.read_convergence: Couldn't open read only copy "
-              "of {}. Does the diag file exist?".format(diag_path))
+        print("ERROR: py_util.read_convergence: Couldn't open read only copy of {}. Does the diag file exist?"
+              .format(diag_path))
         return -1
 
     converge_fraction = None
@@ -349,18 +343,61 @@ def check_convergence(wd, root):
             converge_fraction = float(c_string)
 
     if converge_fraction is None:
-        print("ERROR: py_util.read_convergence: unable to parse convergence "
-              "fraction from diag file {}".format(diag_path))
+        print("ERROR: py_util.read_convergence: unable to parse convergence fraction from diag file {}"
+              .format(diag_path))
         return -1
 
     if 0 > converge_fraction > 1:
-        print("ERROR: py_util.read_convergence: the convergence in the "
-              "simulation is negative or more than one")
-        print("ERROR: py_util.read_convergence: convergence_fraction = {}"
-              .format(converge_fraction))
+        print("ERROR: py_util.read_convergence: the convergence in the simulation is negative or more than one")
+        print("ERROR: py_util.read_convergence: convergence_fraction = {}".format(converge_fraction))
         return -1
 
     return converge_fraction
+
+
+# TODO: finish this :-)
+def get_ylims(wlength, flux):
+    """
+    Figure out the ylims given a wavelength range
+    """
+
+    WMIN = None
+    WMAX = None
+    VERBOSE = None
+    TDE_PLOT = None
+
+    wmin_flux = flux.min()
+    wmax_flux = flux.max()
+
+    # As WMIN/WMAX and wlength are floats, we have to be smarter to find where
+    # WMIN and WMAX are in an array of floats
+    if WMIN:
+        wmin_idx = np.abs(wlength - float(WMIN)).argmin()
+        if VERBOSE:
+            print("wmin_idx: {}".format(wmin_idx))
+        wmin_flux = flux[wmin_idx]
+    if WMAX:
+        wmax_idx = np.abs(wlength - float(WMAX)).argmin()
+        if VERBOSE:
+            print("wmax_idx: {}".format(wmax_idx))
+        wmax_flux = flux[wmax_idx]
+
+    if wmin_flux > wmax_flux:
+        yupper = wmin_flux
+        ylower = wmax_flux
+    else:
+        yupper = wmax_flux
+        ylower = wmin_flux
+
+    yupper *= 10
+    ylower /= 10
+
+    # Revolting hack to ensure the Blag TDE spectrum isn't cut off by the lims
+    if TDE_PLOT:
+        if yupper < 1e-14:
+            yupper = 1e-14
+
+    return yupper, ylower
 
 
 def smooth_spectra(flux, smooth, verbose=False):
@@ -386,21 +423,18 @@ def smooth_spectra(flux, smooth, verbose=False):
         print("pu_util.smooth_spectra: type(flux) = {}".format(type(flux)))
 
     if type(flux) is not list and type(flux) is not np.ndarray:
-        print("ERROR: py_util.smooth_spectra: data to be smoothed is not a "
-              "Python list or numpy ndarray")
-        print("ERROR: py_util.smooth_spectra: type(flux) = {}"
-              .format(type(flux)))
+        print("ERROR: py_util.smooth_spectra: data to be smoothed is not a Python list or numpy ndarray")
+        print("ERROR: py_util.smooth_spectra: type(flux) = {}".format(type(flux)))
         return flux
 
     if type(flux) is list:
         if verbose:
-            print("py_util.smooth_spectra: Converting Python list to numpy "
-                  "ndarray")
+            print("py_util.smooth_spectra: Converting Python list to numpy ndarray")
         flux = np.array(flux, dtype=float)
 
     if len(flux.shape) > 2:
-        print("ERROR: py_util.smooth_spectra: The data to be smoothed should"
-              " be one dimensional and not of dimension {}".format(flux.shape))
+        print("ERROR: py_util.smooth_spectra: The data to be smoothed should be one dimensional and not of dimension "
+              "{}".format(flux.shape))
         return flux
 
     if type(smooth) is not int:
@@ -409,8 +443,7 @@ def smooth_spectra(flux, smooth, verbose=False):
                 print("py_util.smooth_spectra: Converting smooth to an int")
             smooth = int(smooth)
         except ValueError:
-            print("ERROR: py_util.smooth_spectra: could not convert smooth {} "
-                  "into an integer".format(smooth))
+            print("ERROR: py_util.smooth_spectra: could not convert smooth {} into an integer".format(smooth))
             return flux
 
     flux = np.reshape(flux, (len(flux), ))
@@ -442,8 +475,7 @@ def get_blagordnova_spec(smooth, verbose=False):
     try:
         smooth = int(smooth)
     except:
-        print("ERROR: py_util.get_blagordnvoa_spec: Unable to convert smooth "
-              "into an integer")
+        print("ERROR: py_util.get_blagordnvoa_spec: Unable to convert smooth into an integer")
         exit(1)
 
     blag_dir = ""
@@ -453,16 +485,13 @@ def get_blagordnova_spec(smooth, verbose=False):
     elif hostname == "excession":
         blag_dir = "/home/ejp1n17/PySims/TDE/Blagorodnova_iPTF15af.dat"
     elif hostname == "REXBOOK-AIR.local":
-        blag_dir = "/Users/saultyevil/Dropbox/DiskWinds/PySims/TDE/" \
-                   "Blagorodnova_iPTF15af.dat"
+        blag_dir = "/Users/saultyevil/Dropbox/DiskWinds/PySims/TDE/Blagorodnova_iPTF15af.dat"
     elif hostname == "REXBUNTU":
-        blag_dir = "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/" \
-                   "Blagorodnova_iPTF15af.dat"
+        blag_dir = "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/Blagorodnova_iPTF15af.dat"
     elif hostname == "REX":
         blag_dir = "/home/saultyevil/PySims/TDE/Blagorodnova_iPTF15af.dat"
     else:
-        print("Unknown hostname, update py_util with directory for the "
-              "Blagordnova spectrum")
+        print("Unknown hostname, update py_util with directory for the Blagordnova spectrum")
         exit(1)
 
     if verbose:
@@ -472,15 +501,73 @@ def get_blagordnova_spec(smooth, verbose=False):
     try:
         blagorodnova_spec = np.loadtxt(blag_dir)
     except IOError:
-        print("ERROR: py_util.get_blagordnova_spec: Unable to open the "
-              "Blagordnova spectrum from the following path {}".format(blag_dir))
-        print("ERROR: py_util.get_blagordnova_spec: check the directories "
-              "provided in the script")
+        print("ERROR: py_util.get_blagordnova_spec: Unable to open the Blagordnova spectrum from the following path {}"
+              .format(blag_dir))
+        print("ERROR: py_util.get_blagordnova_spec: check the directories provided in the script")
         exit(1)
 
     blagorodnova_spec[:, 1] = smooth_spectra(blagorodnova_spec[:, 1], smooth)
 
     return blagorodnova_spec
+
+
+def get_cenko_spec(smooth, verbose=False):
+    """
+    Load the Cenko ASASSN-14li UV spectrum into
+
+    Parameters
+    ----------
+    smooth: int
+        The amount of smoothing to be used by the boxcar smoother
+    verbose: bool
+        Enable verbose printing
+
+    Returns
+    -------
+    cenk_spec: numpy array of floats
+        The UV spectrum of ASASSN-14li from Cenko et al. 2016.
+            Column 0: Wavelength in Angstroms
+            Column 1: Flux per unit wavelength in erg s^-1 cm^-2 A^-1
+            Column 2: Error in flux
+    """
+
+    try:
+        smooth = int(smooth)
+    except:
+        print("ERROR: py_util.get_cenko_spec: Unable to convert smooth into an integer")
+        exit(1)
+
+    cenk_dir = ""
+    hostname = gethostname()
+    if hostname == "ASTRO-REX":
+        cenk_dir = "/home/saultyevil/PySims/TDE/ASASSN-14li_spec_Cenko.dat"
+    elif hostname == "excession":
+        cenk_dir = "/home/ejp1n17/PySims/TDE/ASASSN-14li_spec_Cenko.dat"
+    elif hostname == "REXBOOK-AIR.local":
+        cenk_dir = "/Users/saultyevil/Dropbox/DiskWinds/PySims/TDE/ASASSN-14li_spec_Cenko.dat"
+    elif hostname == "REXBUNTU":
+        cenk_dir = "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/ASASSN-14li_spec_Cenko.dat"
+    elif hostname == "REX":
+        cenk_dir = "/home/saultyevil/PySims/TDE/ASASSN-14li_spec_Cenko.dat"
+    else:
+        print("Unknown hostname, update py_util with directory for the Cenko spectrum")
+        exit(1)
+
+    if verbose:
+        print("Hostname: {}".format(hostname))
+        print("Cenko spectra being read in from {}".format(cenk_dir))
+
+    try:
+        cenk_spec = np.loadtxt(cenk_dir)
+    except IOError:
+        print("ERROR: py_util.get_cenko_spec: Unable to open the Blagordnova spectrum from the following path {}"
+              .format(cenk_dir))
+        print("ERROR: py_util.get_cenko_spec: check the directories provided in the script")
+        exit(1)
+
+    cenk_spec[:, 1] = smooth_spectra(cenk_spec[:, 1], smooth)
+
+    return cenk_spec
 
 
 def run_windsave2table(path, root, verbose=False):
@@ -512,13 +599,12 @@ def run_windsave2table(path, root, verbose=False):
             print("wind_save: version {} hash {}".format(run_version, run_hash))
             print("windsave2table: version {} hash {}".format(wind_version, wind_hash))
         if run_version != wind_version and run_hash != wind_hash:
-            print("py_util.run_windsave2table: windsave2table git hash "
-                  "and the git hash of the wind_save file are different")
+            print("py_util.run_windsave2table: windsave2table git hash and the git hash of the wind_save file are "
+                  "different")
             return True
     except IOError:
         if verbose:
-            print("py_util.run_windsave2table: no version file assuming "
-                  "everything will be a-ok")
+            print("py_util.run_windsave2table: no version file assuming everything will be a-ok")
 
     check = which("windsave2table")
     if not check:
@@ -547,8 +633,7 @@ def get_ion_data(path, root, ion, verbose=False):
     """
 
     if type(root) is not str:
-        print("ERROR: py_util.get_ion_data: the root name provided is not a"
-              " string :-(")
+        print("ERROR: py_util.get_ion_data: the root name provided is not a string :-(")
         return
 
     ele_idx = ion.find("_")
@@ -567,8 +652,7 @@ def get_ion_data(path, root, ion, verbose=False):
             print("ERROR: py_util.get_ion_data: could not use windsave2table")
             return
     elif verbose:
-        print("py_util.get_ion_data: required files already exist hence"
-              " windsave2table will not be run")
+        print("py_util.get_ion_data: required files already exist hence windsave2table will not be run")
 
     try:
         ions = pd.read_table(ion_file, delim_whitespace=True)
@@ -586,8 +670,7 @@ def get_ion_data(path, root, ion, verbose=False):
     try:
         ion_wanted = ions[ion_level].values.reshape(nx_cells, nz_cells)
     except KeyError:
-        print("ERROR: py_util.get_ion_data: Could not find ion {} for element "
-              "{}".format(ion_level, element))
+        print("ERROR: py_util.get_ion_data: Could not find ion {} for element {}".format(ion_level, element))
         return
 
     x = ions["x"].values.reshape(nx_cells, nz_cells)
@@ -610,8 +693,7 @@ def get_master_data(path, root, verbose=False):
     """
 
     if type(root) is not str:
-        print("ERROR: py_util.get_master_data: the root name provided is not a"
-              " string :-(")
+        print("ERROR: py_util.get_master_data: the root name provided is not a string :-(")
         return
 
     heat_file = "{}.0.heat.txt".format(root)
@@ -629,8 +711,7 @@ def get_master_data(path, root, verbose=False):
             print("ERROR: py_util.get_master_data: could not use windsave2table")
             return
     elif verbose:
-        print("py_util.get_master_data: required files already exist hence"
-              " windsave2table will not be run")
+        print("py_util.get_master_data: required files already exist hence windsave2table will not be run")
 
 
     try:
@@ -638,8 +719,7 @@ def get_master_data(path, root, verbose=False):
         master = pd.read_table(master_file, delim_whitespace=True)
         # master = master.drop(columns=["xcen", "zcen"])
     except IOError:
-        print("ERROR: py_uilt.get_master_data: Could not find master or heat "
-              "file from windsave2table")
+        print("ERROR: py_uilt.get_master_data: Could not find master or heat file from windsave2table")
         return
 
     # Completely hideous way of appending columns, but join, merge and concat
@@ -681,8 +761,7 @@ def get_wind_quantity(wind, quantity, verbose):
     """
 
     if type(quantity) is not str:
-        print("ERROR: py_util.get_wind_quantity: the quantity desired needs to"
-              " be given as a string")
+        print("ERROR: py_util.get_wind_quantity: the quantity desired needs to be given as a string")
 
     # Figure out the number of cells in the x and z directions of the simulation
     xi = wind["i"]

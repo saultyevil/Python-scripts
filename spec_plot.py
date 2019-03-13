@@ -25,11 +25,8 @@ single simulation or by plotting multiple simulations at once on the same plot
 for comparison purposes.
 
 Example usage:
-    python py_plot.py qDNe_test -wmin 1250 -wmax 3000 -v
-
-TODO: the wind and ion plotting are basically the same - make a better plotting function for these
+    python spec_plot.py qDNe_test -wmin 1250 -wmax 3000 -v
 """
-
 
 import py_util
 import argparse
@@ -47,7 +44,6 @@ FILETYPE = "png"               # The file type of the output spectra
 SMOOTH = 11                    # The amount of smoothing for the spectra
 OBSERVE_DIST = 100 * 3.086e18  # 100 pc in cm - the default Python distance
 Z = 0                          # Redshift
-
 
 def get_script_arguments(specfiles):
     """
@@ -101,8 +97,10 @@ def get_script_arguments(specfiles):
         Z = args.z
     if args.tde:
         TDE_PLOT = True
-        OBSERVE_DIST = 1.079987153448e+27  # 350 Mpc
-        Z = 0.07897
+        # OBSERVE_DIST = 1.079987153448e+27  # 350 MPc
+        OBSERVE_DIST = 2.777109823152e+26  # 90 Mpc
+        # Z = 0.07897
+        Z = 0.02058
         if not WMIN:
             WMIN = 1100
         if not WMAX:
@@ -112,153 +110,6 @@ def get_script_arguments(specfiles):
     angles = py_util.get_spec_viewing_angles(specfiles)
 
     return args.output_name, angles
-
-
-def plot_python_ions(spec_file, outname, user_ions=None, user_shape=None, loglog=True):
-    """
-    Create 2D plots of wind ions for a Python simulation. Note that your
-    own ions and shape can be provided instead of the default ones. Note
-    that both must be provided otherwise the default ones will  be used.
-
-    NOTE: this uses windsave2table which must have been compiled from the same
-    git commit otherwise odd things can happen
-    """
-
-    if len(spec_file) > 1:
-        if VERBOSE:
-            print("Can only plot win ions for one simulation at a time")
-        return
-    spec_file = spec_file[0]
-
-    root, path = py_util.get_root_name_and_path(spec_file)
-
-    # Default ions to plot and the shape for the resulting figure
-    ions = default_ions = ["H_i01", "H_i02", "C_i03", "C_i04", "C_i05", "Si_i04", "N_i05", "O_i06"]
-    shape = default_shape = (4, 2)  # 4 rows, 2 cols
-
-    # If user quantities and figure shape is provided, then use those instead.
-    # However, if only quantaties are provided, then just use the default values
-    # until I implement smarter subplotting
-    # TODO: improve subplotting
-    if user_ions and user_shape:
-        ions = user_ions
-        shape = user_shape
-    elif user_ions and user_shape is None:
-        print("plot_wind: as only user_ions has been provided with no shape"
-              " the default vars and shape are being used instead as"
-              " dynamic subplotting hasn't been implemented yet")
-        ions = default_ions
-        shape = default_shape
-
-    print("\nPlotting the following wind ions...")
-    print("\n\t- {}\n".format(ions))
-
-    var_idx = 0
-    fig, ax = plt.subplots(shape[0], shape[1], figsize=(12, 16), squeeze=False)
-    for i in range(shape[0]):
-        for j in range(shape[1]):
-            var = ions[var_idx]
-            x, z, ion = py_util.get_ion_data(path, root, var, VERBOSE)
-            if VERBOSE:
-                print("np.mean({}) = {}".format(var, np.mean(ion)))
-            with np.errstate(divide="ignore"):
-                im = ax[i, j].pcolor(x, z, np.log10(ion), vmin=-5, vmax=0)
-            fig.colorbar(im, ax=ax[i, j])
-            ax[i, j].set_xlabel("x")
-            ax[i, j].set_ylabel("z")
-            ax[i, j].set_title(r"$\log_{10}$("+var+")")
-            if loglog:
-                ax[i, j].set_xscale("log")
-                ax[i, j].set_yscale("log")
-                ax[i, j].set_xlim(x[1, 1], x[-1, -1])
-                ax[i, j].set_ylim(z[1, 1], z[-1, -1])
-            var_idx += 1
-
-    fig.tight_layout()
-    plt.savefig("{}_ions_plot.png".format(outname))
-
-    if SHOW_PLOT:
-        plt.show()
-    else:
-        plt.close()
-
-    print("Wind ions plotted...")
-
-    return
-
-
-def plot_python_complete(spec_file, outname, user_vars=None, user_shape=None, loglog=True):
-    """
-    Create 2D plots of wind parameters for a Python simulation. Note that your
-    own quantities and shape can be provided instead of the default ones. Note
-    that both must be provided otherwise the default ones will  be used.
-
-    NOTE: this uses windsave2table which must have been compiled from the same
-    git commit otherwise odd things can happen
-    """
-
-    if len(spec_file) > 1:
-        if VERBOSE:
-            print("Can only plot wind quantities for one simulation at a time")
-        return
-    spec_file = spec_file[0]
-
-    root, path = py_util.get_root_name_and_path(spec_file)
-    wind = py_util.get_master_data(path, root, VERBOSE)
-
-    # Default wind quantities to plot and the shape for the resulting figure
-    vars = default_vars = ["t_e", "t_r", "ne", "v_x", "v_y", "v_z", "ip", "c4"]
-    shape = default_shape = (4, 2)  # 2 rows, 2 columns
-
-    # If user quantities and figure shape is provided, then use those instead.
-    # However, if only quantaties are provided, then just use the default values
-    # until I implement smarter subplotting
-    # TODO: improve subplotting
-    if user_vars and user_shape:
-        vars = user_vars
-        shape = user_shape
-    elif user_vars and user_shape is None:
-        print("plot_wind: as only user_vars has been provided with no shape"
-              " the default vars and shape are being used instead as"
-              " dynamic subplotting hasn't been implemented yet")
-        vars = default_vars
-        shape = default_shape
-
-    print("\nPlotting the following wind quantities...")
-    print("\n\t- {}\n".format(vars))
-
-    var_idx = 0
-    fig, ax = plt.subplots(shape[0], shape[1], figsize=(12, 16), squeeze=False)
-    for i in range(shape[0]):
-        for j in range(shape[1]):
-            var = vars[var_idx]
-            x, z, qoi = py_util.get_wind_quantity(wind, var, VERBOSE)
-            if VERBOSE:
-                print("np.mean({}) = {}".format(var, np.mean(qoi)))
-            with np.errstate(divide="ignore"):
-                im = ax[i, j].pcolor(x, z, np.log10(qoi))
-            fig.colorbar(im, ax=ax[i, j])
-            ax[i, j].set_xlabel("x")
-            ax[i, j].set_ylabel("z")
-            ax[i, j].set_title(r"$\log_{10}$("+var+")")
-            if loglog:
-                ax[i, j].set_xscale("log")
-                ax[i, j].set_yscale("log")
-                ax[i, j].set_xlim(x[1, 1], x[-1, -1])
-                ax[i, j].set_ylim(z[1, 1], z[-1, -1])
-            var_idx += 1
-
-    fig.tight_layout()
-    plt.savefig("{}_wind_plot.png".format(outname))
-
-    if SHOW_PLOT:
-        plt.show()
-    else:
-        plt.close()
-
-    print("Wind quantities plotted...")
-
-    return
 
 
 def plot_spec_comps(spec_file, outname):
@@ -374,13 +225,14 @@ def plot_spectra(spec_files, spec_angles, outname):
 
     if TDE_PLOT:
         blag_spec = py_util.get_blagordnova_spec(SMOOTH, VERBOSE)
+        cenko_spec = py_util.get_cenko_spec(SMOOTH, VERBOSE)
 
     # Loop over all the possible viewing angles
     for angle in spec_angles:
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
 
         if TDE_PLOT:
-            ax.semilogy(blag_spec[:, 0] / (Z + 1), blag_spec[:, 1], label="iPTF15af: Blagorodnova et al. (2019)")
+            ax.semilogy(cenko_spec[:, 0] / (Z + 1), cenko_spec[:, 1], label="ASASSN-14li: Cenko et al. (2016)")
 
         # Loop over each possible .spec file
         for file in spec_files:
@@ -478,9 +330,6 @@ def main():
         exit(2)
 
     plot_spectra(spec_files, spec_angles, outname)
-    plot_spec_comps(spec_files, outname)
-    plot_python_complete(spec_files, outname)
-    plot_python_ions(spec_files, outname)
 
     print("\n--------------------------")
 

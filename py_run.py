@@ -31,7 +31,6 @@ Example usage:
 
 TODO: be able to run simulations from file input
 TODO: flexible flag choices for py_plot.py
-TODO: specify the number of MPI processes
 """
 
 
@@ -98,6 +97,20 @@ def get_run_mode():
     Read command line flags to determine the mode of operation
     """
 
+    global SHOW_OUTPUT
+    global RUN_SIMS
+    global RESUME_RUN
+    global SHOW_CONVERGENCE
+    global CREATE_PLOTS
+    global CLIM
+    global TDE_PLOT
+    global VERSION
+    global WMIN
+    global WMAX
+    global DRY_RUN
+    global NOT_QUIET
+    global N_CORES
+
     p = argparse.ArgumentParser(description="Enable or disable features")
     # Different run modes
     p.add_argument("-d", action="store_true", help="Run with -r -c -p")
@@ -117,20 +130,6 @@ def get_run_mode():
     p.add_argument("-wmin", type=float, action="store", help="The smallest wavelength to display")
     p.add_argument("-wmax", type=float, action="store", help="The largest wavelength to display")
     args = p.parse_args()
-
-    global SHOW_OUTPUT
-    global RUN_SIMS
-    global RESUME_RUN
-    global SHOW_CONVERGENCE
-    global CREATE_PLOTS
-    global CLIM
-    global TDE_PLOT
-    global VERSION
-    global WMIN
-    global WMAX
-    global DRY_RUN
-    global NOT_QUIET
-    global N_CORES
 
     do_something = False
 
@@ -224,8 +223,7 @@ def py_run(wd, root_name, mpi, ncores):
 
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
 
-    outfname = "{}/{}_{}{}{}.txt"\
-        .format(wd, root_name, DATE.year, DATE.month, DATE.day)
+    outfname = "{}/{}_{}{}{}.txt".format(wd, root_name, DATE.year, DATE.month, DATE.day)
     outf = open(outfname, "w")
 
     lines = []
@@ -340,8 +338,7 @@ def get_convergence(wd, root_name):
     if convergence_fraction < CLIM:
         print(NOT_CONVERGED)
         with open("not_converged.txt", "a") as f:
-            f.write("{}\t{}.pf\t{}\n".format(wd, root_name,
-                                             convergence_fraction))
+            f.write("{}\t{}.pf\t{}\n".format(wd, root_name, convergence_fraction))
     elif convergence_fraction >= CLIM:
         print(CONVERGED)
     else:
@@ -412,8 +409,7 @@ def find_number_of_physical_cores_lscpu():
     if ncores == "":
         return 0
     ncores = int(ncores.decode("utf-8").replace("\n", "").split()[-1])
-    nsockets, stderr = Popen(nsockets_cmd, stdout=PIPE, stderr=PIPE,
-                             shell=True).communicate()
+    nsockets, stderr = Popen(nsockets_cmd, stdout=PIPE, stderr=PIPE, shell=True).communicate()
     if nsockets == "":
         return 0
     nsockets = int(nsockets.decode("utf-8").replace("\n", "").split()[-1])
@@ -445,8 +441,7 @@ def get_num_cores():
             n_cores = find_number_of_physical_cores_lscpu()
             if n_cores == 0:
                 n_cores = cpu_count()
-        print("The following simulations will be run using {} cores:\n"
-              .format(n_cores))
+        print("The following simulations will be run using {} cores:\n".format(n_cores))
     elif RUN_SIMS and not mpi:
         print("The follow simulations will be run in single threaded mode:\n")
     else:
@@ -466,8 +461,7 @@ def run_choices(par_file_paths, n_sims, mpi, n_cores):
         open("not_converged.txt", "w").close()
 
     # Open up an output file
-    outfname = "run_{}{}{}.txt".format(DATE.year, DATE.month, DATE.day,
-                                       DATE.hour, DATE.minute)
+    outfname = "run_{}{}{}.txt".format(DATE.year, DATE.month, DATE.day, DATE.hour, DATE.minute)
     f = open(outfname, "w")
 
     # Iterate over the possible simulations
@@ -491,8 +485,7 @@ def run_choices(par_file_paths, n_sims, mpi, n_cores):
             else:
                 print("Running the simulation: {}\n".format(root_name))
 
-            python_output, python_err = py_run(pf_relative_path, root_name, mpi,
-                                               n_cores)
+            python_output, python_err = py_run(pf_relative_path, root_name, mpi, n_cores)
 
             for line in python_output:
                 f.write("{}\n".format(line))
@@ -506,12 +499,10 @@ def run_choices(par_file_paths, n_sims, mpi, n_cores):
 
             if convergence_fraction < CLIM:
                 f.write("{}\n".format(NOT_CONVERGED))
-                f.write("cvalue {} < clim {}\n".format(convergence_fraction,
-                                                       CLIM))
+                f.write("cvalue {} < clim {}\n".format(convergence_fraction, CLIM))
             elif convergence_fraction >= CLIM:
                 f.write("{}\n".format(CONVERGED))
-                f.write("cvalue {} >= clim {}\n".format(convergence_fraction,
-                                                        CLIM))
+                f.write("cvalue {} >= clim {}\n".format(convergence_fraction, CLIM))
             else:
                 f.write("{}\n".format(ITS_A_MYSTERY))
 
@@ -535,6 +526,10 @@ def main():
     # Determine which routines to run for each simulation
     get_run_mode()
     all_par_file_paths = py_util.find_pf(ignore_out_pf=True)
+    if len(all_par_file_paths) == 0:
+        print("No parameter files found, nothing to do!\n")
+        print("--------------------------")
+        exit(0)
     mpi, n_cores = get_num_cores()
 
     # Remove any py_wind parameter files which might be lurking about
