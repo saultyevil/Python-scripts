@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 """
 Automatically run Python simulations, plot and check convergence by searching
@@ -277,7 +278,7 @@ def py_run(wd, root_name, mpi, ncores):
 
             print("   - Elapsed run time {} hrs:mins:secs".format(elapsed_time))
             print("           ----------           ")
-        elif line.find("PHOTON TRANSPORT COMPLETED") != -1 and NOT_QUIET:
+        elif line.find("photon transport completed in") != -1 and NOT_QUIET:
             line = line.split()
             transport_time_seconds = float(line[4])
             transport_time = datetime.timedelta(seconds=transport_time_seconds // 1)

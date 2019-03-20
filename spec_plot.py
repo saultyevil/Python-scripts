@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 """
 Create spectra from the .spec files from a MCRT Python simulation.
@@ -97,8 +98,8 @@ def get_script_arguments(specfiles):
         Z = args.z
     if args.tde:
         TDE_PLOT = True
-        # OBSERVE_DIST = 1.079987153448e+27  # 350 MPc
-        OBSERVE_DIST = 2.777109823152e+26  # 90 Mpc
+        OBSERVE_DIST = 1.079987153448e+27  # 350 MPc
+        # OBSERVE_DIST = 2.777109823152e+26  # 90 Mpc
         # Z = 0.07897
         Z = 0.02058
         if not WMIN:
@@ -225,14 +226,15 @@ def plot_spectra(spec_files, spec_angles, outname):
 
     if TDE_PLOT:
         blag_spec = py_util.get_blagordnova_spec(SMOOTH, VERBOSE)
-        cenko_spec = py_util.get_cenko_spec(SMOOTH, VERBOSE)
+        # cenko_spec = py_util.get_cenko_spec(SMOOTH, VERBOSE)
 
     # Loop over all the possible viewing angles
     for angle in spec_angles:
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
 
         if TDE_PLOT:
-            ax.semilogy(cenko_spec[:, 0] / (Z + 1), cenko_spec[:, 1], label="ASASSN-14li: Cenko et al. (2016)")
+            # ax.semilogy(cenko_spec[:, 0] / (Z + 1), cenko_spec[:, 1], label="ASASSN-14li: Cenko et al. (2016)")
+            ax.semilogy(blag_spec[:, 0] / (Z + 1), blag_spec[:, 1], label="iPTF15af: Blagorodnova et al. (2019)")
 
         # Loop over each possible .spec file
         for file in spec_files:
@@ -330,6 +332,7 @@ def main():
         exit(2)
 
     plot_spectra(spec_files, spec_angles, outname)
+    plot_spec_comps(spec_files, outname)
 
     print("\n--------------------------")
 

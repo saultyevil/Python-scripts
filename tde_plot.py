@@ -12,7 +12,7 @@ DEFAULT_DIST = 100 * 3.08567758128e18  # 100 pc
 fig, ax = plt.subplots(1, 1, figsize=(12, 8))
 
 # Read in and normalise the observed spectra
-cenkspec = np.loadtxt("/home/saultyevil/PySims/TDE/ASASSN-14li_spec_Cenko.dat")
+cenkspec = py_util.get_cenko_spec(SMOOTH, VERBOSE)
 blag_spec = py_util.get_blagordnova_spec(SMOOTH, VERBOSE)
 cenk_max = cenkspec[:, 1].max()
 cenk_norm = cenkspec[:, 1] / cenk_max
@@ -24,7 +24,9 @@ ax.semilogy(blag_spec[:, 0] / (0.07897 + 1), blag_norm, label="iPTF15af: Blagord
 ax.semilogy(cenkspec[:, 0] / (0.02058 + 1), cenk_norm * 20, label="ASASSN-14li: Cenko et al. (2016)")
 
 # Load in the Python model - assume this is being called in the model directory
-spec_file = "/home/saultyevil/PySims/TDE/Star_model/macro_models/sim11/tde.spec"
+# spec_file = "/home/saultyevil/PySims/TDE/Star_model/macro_models/sim11/tde.spec"
+spec_file = py_util.find_spec_files()[0]
+print(spec_file)
 spec = py_util.read_spec_file(spec_file, " ")
 
 # Horrid hacky code for easier indexing :^) please ignore

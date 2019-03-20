@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 """
 Various common routines which are used in scripts concerned with MCRT Python.
@@ -353,51 +354,6 @@ def check_convergence(wd, root):
         return -1
 
     return converge_fraction
-
-
-# TODO: finish this :-)
-def get_ylims(wlength, flux):
-    """
-    Figure out the ylims given a wavelength range
-    """
-
-    WMIN = None
-    WMAX = None
-    VERBOSE = None
-    TDE_PLOT = None
-
-    wmin_flux = flux.min()
-    wmax_flux = flux.max()
-
-    # As WMIN/WMAX and wlength are floats, we have to be smarter to find where
-    # WMIN and WMAX are in an array of floats
-    if WMIN:
-        wmin_idx = np.abs(wlength - float(WMIN)).argmin()
-        if VERBOSE:
-            print("wmin_idx: {}".format(wmin_idx))
-        wmin_flux = flux[wmin_idx]
-    if WMAX:
-        wmax_idx = np.abs(wlength - float(WMAX)).argmin()
-        if VERBOSE:
-            print("wmax_idx: {}".format(wmax_idx))
-        wmax_flux = flux[wmax_idx]
-
-    if wmin_flux > wmax_flux:
-        yupper = wmin_flux
-        ylower = wmax_flux
-    else:
-        yupper = wmax_flux
-        ylower = wmin_flux
-
-    yupper *= 10
-    ylower /= 10
-
-    # Revolting hack to ensure the Blag TDE spectrum isn't cut off by the lims
-    if TDE_PLOT:
-        if yupper < 1e-14:
-            yupper = 1e-14
-
-    return yupper, ylower
 
 
 def smooth_spectra(flux, smooth, verbose=False):
