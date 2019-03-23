@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import py_util
+import py_plot_util
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -12,8 +12,8 @@ DEFAULT_DIST = 100 * 3.08567758128e18  # 100 pc
 fig, ax = plt.subplots(1, 1, figsize=(12, 8))
 
 # Read in and normalise the observed spectra
-cenkspec = py_util.get_cenko_spec(SMOOTH, VERBOSE)
-blag_spec = py_util.get_blagordnova_spec(SMOOTH, VERBOSE)
+cenkspec = py_plot_util.get_ASSASN_14li_spec(SMOOTH, VERBOSE)
+blag_spec = py_plot_util.get_iPTF15af_spec(SMOOTH, VERBOSE)
 cenk_max = cenkspec[:, 1].max()
 cenk_norm = cenkspec[:, 1] / cenk_max
 blag_max = blag_spec[:, 1].max()
@@ -25,9 +25,9 @@ ax.semilogy(cenkspec[:, 0] / (0.02058 + 1), cenk_norm * 20, label="ASASSN-14li: 
 
 # Load in the Python model - assume this is being called in the model directory
 # spec_file = "/home/saultyevil/PySims/TDE/Star_model/macro_models/sim11/tde.spec"
-spec_file = py_util.find_spec_files()[0]
+spec_file = py_plot_util.find_spec_files()[0]
 print(spec_file)
-spec = py_util.read_spec_file(spec_file, " ")
+spec = py_plot_util.read_spec_file(spec_file, " ")
 
 # Horrid hacky code for easier indexing :^) please ignore
 angles = [28, 45, 62, 80]
@@ -44,7 +44,7 @@ offset = [0.1, 1, 10, 25]
 for i in range(len(angles)):
     wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
     flux = np.array(spec[1:, idxs[i]], dtype=float)
-    smoothflux = py_util.smooth_spectra(flux, SMOOTH, VERBOSE)
+    smoothflux = py_plot_util.smooth_flux(flux, SMOOTH, VERBOSE)
     flux_dist = smoothflux * (DEFAULT_DIST ** 2 / OBSERVE_DIST ** 2)  # + 6e-16 *offset[i])
     flux_max = flux_dist.max()
     flux_norm = flux_dist / flux_max

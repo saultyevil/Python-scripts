@@ -8,8 +8,8 @@ Provided by Nick Higginbottom
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-import v_hydro_sub as vhs
-import lin_plot_cont as lpc
+import pluto_v_hydro_sub as vhs
+import pluto_lin_plot_cont as lpc
 import pickle
 from astropy import constants as ac
 import pyPLUTO as pp

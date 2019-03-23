@@ -8,7 +8,7 @@ Most of the code was provided by the wonderful Nick Higginbottom, who can be fou
 
 import sys
 import numpy as np
-import hdf_utils
+import pluto_hdf_utils
 from astropy import constants as c
 
 
@@ -28,7 +28,7 @@ except:
 	sys.exit(1)
 
 # Read in data using pyhdf
-data=hdf_utils.get_hdf_data(fname)
+data=pluto_hdf_utils.get_hdf_data(fname)
 
 if len(sys.argv) > 3:
 	itheta_disk=int(sys.argv[3])

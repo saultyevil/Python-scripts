@@ -36,7 +36,7 @@ TODO: flexible flag choices for py_plot.py
 
 
 import time
-import py_util
+import py_plot_util
 import argparse
 import datetime
 from sys import exit
@@ -319,7 +319,7 @@ def py_run(wd, root_name, mpi, ncores):
     # Append a file containing the Python version and commit hash to avoid
     # situations where windsave2table will make garbage results due to the
     # wind_save file not loading properly
-    version, hash = py_util.get_python_version(VERSION, SHOW_OUTPUT)
+    version, hash = py_plot_util.get_python_version(VERSION, SHOW_OUTPUT)
     with open("version", "w") as f:
         f.write("{}\n{}".format(version, hash))
 
@@ -331,7 +331,7 @@ def get_convergence(wd, root_name):
     Write to the screen if the simulation has or hasn't converged
     """
 
-    convergence_fraction = py_util.check_convergence(wd, root_name)
+    convergence_fraction = py_plot_util.check_convergence(wd, root_name)
 
     print("clim ............ {}".format(CLIM))
     print("convergence ..... {}\n".format(convergence_fraction))
@@ -467,7 +467,7 @@ def run_choices(par_file_paths, n_sims, mpi, n_cores):
 
     # Iterate over the possible simulations
     for i, path in enumerate(par_file_paths):
-        root_name, pf_relative_path = py_util.get_root_name_and_path(path)
+        root_name, pf_relative_path = py_plot_util.get_root_name_and_path(path)
 
         # Print some details to screen
         print("--------------------------\n")
@@ -526,7 +526,7 @@ def main():
 
     # Determine which routines to run for each simulation
     get_run_mode()
-    all_par_file_paths = py_util.find_pf(ignore_out_pf=True)
+    all_par_file_paths = py_plot_util.find_pf(ignore_out_pf=True)
     if len(all_par_file_paths) == 0:
         print("No parameter files found, nothing to do!\n")
         print("--------------------------")

@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
-import py_util
+import py_plot_util
 import numpy as np
 from matplotlib import  pyplot as plt
 
 
 SMOOTH = 11
 VERBOSE = False
-spec_files = py_util.find_spec_files()
-blag_spec = py_util.get_blagordnova_spec(SMOOTH, VERBOSE)
+spec_files = py_plot_util.find_spec_files()
+blag_spec = py_plot_util.get_iPTF15af_spec(SMOOTH, VERBOSE)
 
 fig, ax = plt.subplots(1, 1, figsize=(12,8))
 Z = 0.07897
@@ -16,7 +16,7 @@ ax.semilogy(blag_spec[:, 0] / (Z + 1), blag_spec[:, 1], label="iPTF15af: Blagoro
 labels = ["AGN Style Wind at 75° inclination", "CV Style Wind at 62° inclination"]
 j = 0
 for file in spec_files:
-    spec = py_util.read_spec_file(file, " ")
+    spec = py_plot_util.read_spec_file(file, " ")
 
     idx = 0
     for i in range(spec.shape[1]):
@@ -29,7 +29,7 @@ for file in spec_files:
             idx = i
             break
     flux = np.array(spec[1:, idx], dtype=float)
-    smoothflux = py_util.smooth_spectra(flux, SMOOTH, VERBOSE)
+    smoothflux = py_plot_util.smooth_flux(flux, SMOOTH, VERBOSE)
     wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
     OBSERVE_DIST = 1.079987153448e+27
     default_dist = 100 * 3.08567758128e18  # 100 pc

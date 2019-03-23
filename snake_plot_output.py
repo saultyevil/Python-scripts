@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import py_util
+import py_plot_util
 import numpy as np
 from os import mkdir, path
 from matplotlib import pyplot as plt
@@ -32,7 +32,7 @@ def read_and_reshape_data(filename):
             col 6: cell temperature
     """
 
-    sgrid = np.array(py_util.read_spec_file(filename), dtype=float)
+    sgrid = np.array(py_plot_util.read_spec_file(filename), dtype=float)
 
     # Figure out the number of cells, cycles and cols from the dimensions
     ncells = int(sgrid[:, 0].max()) + 1

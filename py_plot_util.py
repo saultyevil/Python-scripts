@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Various common routines which are used in scripts concerned with MCRT Python.
-Most usually used when plotting output from Python.
+Various functions used throughout plotting the output from Python. This script should be imported into other scripts
+rather than being itself run.
 """
 
 
@@ -55,8 +55,8 @@ def get_python_version(py="py", verbose=False):
 
     path = which(py)
     if not path:
-        print("ERROR: py_util.get_python_version: {} is not in $PATH".format(py))
-        exit(1)
+        print("py_util.get_python_version: {} is not in $PATH".format(py))
+        return version, commit_hash
 
     command = "{} --version".format(py)
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
@@ -74,17 +74,15 @@ def get_python_version(py="py", verbose=False):
         if out[i] == "hash":
             commit_hash = out[i+1]
 
-    if version == "":
-        print("ERROR: py_util.get_python_version: couldn't find Python version for {}".format(py))
-        exit(1)
-    if commit_hash == "":
-        print("ERROR: py_util.get_python_version: couldn't find commit hash for {}".format(py))
-        exit(1)
+    if version == "" and verbose:
+        print("py_util.get_python_version: couldn't find version for {}".format(py))
+    if commit_hash == "" and verbose:
+        print("py_util.get_python_version: couldn't find commit hash for {}".format(py))
 
-    if verbose:
-        print("Python Version ...... {}".format(version))
-        print("Git commit hash ..... {}".format(commit_hash))
-        print("Short commit hash ... {}".format(commit_hash[:7]))
+    if verbose and version and commit_hash:
+        print("{} version {}".format(py, version))
+        print("Git commit hash    {}".format(commit_hash))
+        print("Short commit hash  {}".format(commit_hash[:7]))
 
     return version, commit_hash
 
@@ -159,7 +157,7 @@ def find_spec_files():
     spec_files = sorted(spec_files, key=str.lower)
 
     if err:
-        print("ERROR: py_util.find_spec_files: find returning something to stderr...")
+        print("py_util.find_spec_files: find returning something to stderr...")
         print("Captured from stderr:")
         print(err)
         return []
@@ -179,7 +177,7 @@ def find_pf(ignore_out_pf):
     err = stderr.decode("utf-8")
 
     if err:
-        print("ERROR: py_util.find_pf: find returned something to stderr...")
+        print("py_util.find_pf: find returned something to stderr...")
         print("Captured from stderr:")
         print(err)
         exit(1)
@@ -292,7 +290,7 @@ def get_root_name_and_path(pf_path):
     """
 
     if type(pf_path) != str:
-        print("ERROR: py_util.get_root_name_and_path: Provided a {} when expecting a string".format(type(pf_path)))
+        print("py_util.get_root_name_and_path: Provided a {} when expecting a string".format(type(pf_path)))
         exit(1)
 
     dot = 0
@@ -333,7 +331,7 @@ def check_convergence(wd, root):
         with open(diag_path, "r") as file:
             diag = file.readlines()
     except IOError:
-        print("ERROR: py_util.read_convergence: Couldn't open read only copy of {}. Does the diag file exist?"
+        print("py_util.read_convergence: Couldn't open read only copy of {}. Does the diag file exist?"
               .format(diag_path))
         return -1
 
@@ -344,19 +342,19 @@ def check_convergence(wd, root):
             converge_fraction = float(c_string)
 
     if converge_fraction is None:
-        print("ERROR: py_util.read_convergence: unable to parse convergence fraction from diag file {}"
+        print("py_util.read_convergence: unable to parse convergence fraction from diag file {}"
               .format(diag_path))
         return -1
 
     if 0 > converge_fraction > 1:
-        print("ERROR: py_util.read_convergence: the convergence in the simulation is negative or more than one")
-        print("ERROR: py_util.read_convergence: convergence_fraction = {}".format(converge_fraction))
+        print("py_util.read_convergence: the convergence in the simulation is negative or more than one")
+        print("py_util.read_convergence: convergence_fraction = {}".format(converge_fraction))
         return -1
 
     return converge_fraction
 
 
-def smooth_spectra(flux, smooth, verbose=False):
+def smooth_flux(flux, smooth, verbose=False):
     """
     Smooth the data flux using a Boxcar averaging algorithm.
 
@@ -379,8 +377,8 @@ def smooth_spectra(flux, smooth, verbose=False):
         print("pu_util.smooth_spectra: type(flux) = {}".format(type(flux)))
 
     if type(flux) is not list and type(flux) is not np.ndarray:
-        print("ERROR: py_util.smooth_spectra: data to be smoothed is not a Python list or numpy ndarray")
-        print("ERROR: py_util.smooth_spectra: type(flux) = {}".format(type(flux)))
+        print("py_util.smooth_spectra: data to be smoothed is not a Python list or numpy ndarray")
+        print("py_util.smooth_spectra: type(flux) = {}".format(type(flux)))
         return flux
 
     if type(flux) is list:
@@ -389,7 +387,7 @@ def smooth_spectra(flux, smooth, verbose=False):
         flux = np.array(flux, dtype=float)
 
     if len(flux.shape) > 2:
-        print("ERROR: py_util.smooth_spectra: The data to be smoothed should be one dimensional and not of dimension "
+        print("py_util.smooth_spectra: The data to be smoothed should be one dimensional and not of dimension "
               "{}".format(flux.shape))
         return flux
 
@@ -399,7 +397,7 @@ def smooth_spectra(flux, smooth, verbose=False):
                 print("py_util.smooth_spectra: Converting smooth to an int")
             smooth = int(smooth)
         except ValueError:
-            print("ERROR: py_util.smooth_spectra: could not convert smooth {} into an integer".format(smooth))
+            print("py_util.smooth_spectra: could not convert smooth {} into an integer".format(smooth))
             return flux
 
     flux = np.reshape(flux, (len(flux), ))
@@ -408,7 +406,43 @@ def smooth_spectra(flux, smooth, verbose=False):
     return smooth_flux
 
 
-def get_blagordnova_spec(smooth, verbose=False):
+def get_ylims(wavelength, flux, wmin=None, wmax=None, iPTF15af=False, verbose=False):
+    """
+    """
+
+    wmin_flux = flux.min()
+    wmax_flux = flux.max()
+
+    if wmin:
+        wmin_idx = np.abs(wavelength - float(wmin)).argmin()
+        if verbose:
+            print("wmin_idx: {}".format(wmin_idx))
+        wmin_flux = flux[wmin_idx]
+    if wmax:
+        wmax_idx = np.abs(wavelength - float(wmax)).argmin()
+        if verbose:
+            print("wmax_idx: {}".format(wmax_idx))
+        wmax_flux = flux[wmax_idx]
+
+    if wmin_flux > wmax_flux:
+        yupper = wmin_flux
+        ylower = wmax_flux
+    else:
+        yupper = wmax_flux
+        ylower = wmin_flux
+
+    yupper *= 10
+    ylower /= 10
+
+    # Revolting hack to ensure the Blag TDE spectrum isn't cut off by the lims
+    if iPTF15af:
+        if yupper < 1e-14:
+            yupper = 1e-14
+
+    return yupper, ylower
+
+
+def get_iPTF15af_spec(smooth, verbose=False):
     """
     Load the Blagorodnova iPTF15af UV spectrum into
 
@@ -431,43 +465,42 @@ def get_blagordnova_spec(smooth, verbose=False):
     try:
         smooth = int(smooth)
     except:
-        print("ERROR: py_util.get_blagordnvoa_spec: Unable to convert smooth into an integer")
+        print("py_util.get_iPTF15af_spec: Unable to convert smooth into an integer")
         exit(1)
 
-    blag_dir = ""
+    spec_dir = ""
     hostname = gethostname()
     if hostname == "ASTRO-REX":
-        blag_dir = "/home/saultyevil/PySims/TDE/Blagorodnova_iPTF15af.dat"
+        spec_dir = "/home/saultyevil/PySims/TDE/Blagorodnova_iPTF15af.dat"
     elif hostname == "excession":
-        blag_dir = "/home/ejp1n17/PySims/TDE/Blagorodnova_iPTF15af.dat"
+        spec_dir = "/home/ejp1n17/PySims/TDE/Blagorodnova_iPTF15af.dat"
     elif hostname == "REXBOOK-AIR.local":
-        blag_dir = "/Users/saultyevil/Dropbox/DiskWinds/PySims/TDE/Blagorodnova_iPTF15af.dat"
+        spec_dir = "/Users/saultyevil/Dropbox/DiskWinds/PySims/TDE/Blagorodnova_iPTF15af.dat"
     elif hostname == "REXBUNTU":
-        blag_dir = "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/Blagorodnova_iPTF15af.dat"
+        spec_dir = "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/Blagorodnova_iPTF15af.dat"
     elif hostname == "REX":
-        blag_dir = "/home/saultyevil/PySims/TDE/Blagorodnova_iPTF15af.dat"
+        spec_dir = "/home/saultyevil/PySims/TDE/Blagorodnova_iPTF15af.dat"
     else:
         print("Unknown hostname, update py_util with directory for the Blagordnova spectrum")
         exit(1)
 
     if verbose:
         print("Hostname: {}".format(hostname))
-        print("Blagordnova spectra being read in from {}".format(blag_dir))
+        print("iPTF15af spectra being read in from {}".format(spec_dir))
 
     try:
-        blagorodnova_spec = np.loadtxt(blag_dir)
+        iPTF15af_spec = np.loadtxt(spec_dir)
     except IOError:
-        print("ERROR: py_util.get_blagordnova_spec: Unable to open the Blagordnova spectrum from the following path {}"
-              .format(blag_dir))
-        print("ERROR: py_util.get_blagordnova_spec: check the directories provided in the script")
+        print("py_util.get_iPTF15af_spec: Unable to open the iPTF15af UV spectrum from the following path {}. "
+              "Update the directories in the script".format(spec_dir))
         exit(1)
 
-    blagorodnova_spec[:, 1] = smooth_spectra(blagorodnova_spec[:, 1], smooth)
+    iPTF15af_spec[:, 1] = smooth_flux(iPTF15af_spec[:, 1], smooth)
 
-    return blagorodnova_spec
+    return iPTF15af_spec
 
 
-def get_cenko_spec(smooth, verbose=False):
+def get_ASSASN_14li_spec(smooth, verbose=False):
     """
     Load the Cenko ASASSN-14li UV spectrum into
 
@@ -490,7 +523,7 @@ def get_cenko_spec(smooth, verbose=False):
     try:
         smooth = int(smooth)
     except:
-        print("ERROR: py_util.get_cenko_spec: Unable to convert smooth into an integer")
+        print("py_util.get_ASSASN_14li_spec: Unable to convert smooth into an integer")
         exit(1)
 
     cenk_dir = ""
@@ -514,60 +547,59 @@ def get_cenko_spec(smooth, verbose=False):
         print("Cenko spectra being read in from {}".format(cenk_dir))
 
     try:
-        cenk_spec = np.loadtxt(cenk_dir)
+        ASSASN_14li_spec = np.loadtxt(cenk_dir)
     except IOError:
-        print("ERROR: py_util.get_cenko_spec: Unable to open the Blagordnova spectrum from the following path {}"
-              .format(cenk_dir))
-        print("ERROR: py_util.get_cenko_spec: check the directories provided in the script")
+        print("py_util.get_ASSASN_14li_spec: Unable to open the ASSASSN_14li spectrum from the following path {}. "
+              "Update the directories in the script".format(cenk_dir))
         exit(1)
 
-    cenk_spec[:, 1] = smooth_spectra(cenk_spec[:, 1], smooth)
+    ASSASN_14li_spec[:, 1] = smooth_flux(ASSASN_14li_spec[:, 1], smooth)
 
-    return cenk_spec
+    return ASSASN_14li_spec
 
 
 def run_windsave2table(path, root, verbose=False):
     """
-    Use windsave2table to get the details of the wind
+    Use windsave2table to generate data files for the different quantities in the
+    wind. This function will also create a *.ep.complete file which the function
+    get_wind_data can use to retrieve data.
 
     Parameters
     ----------
+    path: str
+        The directory of the Python simulation where windsave2table will be run.
     root: str
-        The rootname of the Python simulation.
-
+        The root name of the Python simulation.
     verbose: bool
         If True, enable verbose output
-
-    Returns
-    -------
-
     """
 
     # Look for a version file in the directory to see if windsave2table is the
     # on the correct git hash to read the wind_save file
     try:
+        wind_version, wind_hash = get_python_version("windsave2table", verbose)
         with open("version", "r") as f:
             lines = f.readlines()
         run_version = lines[0]
         run_hash = lines[1]
-        wind_version, wind_hash = get_python_version("windsave2table", verbose)
         if verbose:
             print("wind_save: version {} hash {}".format(run_version, run_hash))
             print("windsave2table: version {} hash {}".format(wind_version, wind_hash))
         if run_version != wind_version and run_hash != wind_hash:
-            print("py_util.run_windsave2table: windsave2table git hash and the git hash of the wind_save file are "
-                  "different")
-            return True
+            print("py_util.run_windsave2table: windsave2table version and the wind_save version file are different. "
+                  "Results may be garbage!")
     except IOError:
         if verbose:
             print("py_util.run_windsave2table: no version file assuming everything will be a-ok")
 
-    check = which("windsave2table")
-    if not check:
-        print("ERROR: py_util.get_wind_details: windsave2table not in $PATH")
-        return False
+    # Check that windsave2table can be used
+    in_path = which("windsave2table")
+    if not in_path:
+        print("py_util.run_windsave2table: windsave2table not in $PATH and executable")
+        return 1
 
-    command = "cd {}; windsave2table {}".format(path, root)
+    # Run windsave2table
+    command = "cd {}; Setup_Py_Dir; windsave2table {}".format(path, root)
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
     output = stdout.decode("utf-8")
@@ -580,163 +612,106 @@ def run_windsave2table(path, root, verbose=False):
         print("py_util.get_wind_details: the following was sent to stderr:")
         print(err)
 
-    return True
-
-
-def get_ion_data(path, root, ion, verbose=False):
-    """
-    Get data for a certain ion from a Python simulation using windsave2table
-    """
-
-    if type(root) is not str:
-        print("ERROR: py_util.get_ion_data: the root name provided is not a string :-(")
-        return
-
-    ele_idx = ion.find("_")
-    element = ion[:ele_idx]
-    ion_level = ion[ele_idx+1:]
-    ion_file = "{}.0.{}.txt".format(root, element)
-
-    # Add check to avoid situations where we re-create data with the wrong commit
-    file_exists = os.path.isfile(ion_file)
-
-    if not file_exists:
-        if verbose:
-            print("py_util.get_ion_data: running windsave2table")
-        worked = run_windsave2table(path, root, verbose)
-        if not worked:
-            print("ERROR: py_util.get_ion_data: could not use windsave2table")
-            return
-    elif verbose:
-        print("py_util.get_ion_data: required files already exist hence windsave2table will not be run")
-
-    try:
-        ions = pd.read_table(ion_file, delim_whitespace=True)
-    except IOError:
-        print("ERROR: py_util.get_ion_data: Could not find file for element {}"
-              .format(element))
-        return
-
-    # Figure out the number of cells in the x and z directions of the simulation
-    xi = ions["i"]
-    zj = ions["j"]
-    nx_cells = int(np.max(xi) + 1)
-    nz_cells = int(np.max(zj) + 1)
-
-    try:
-        ion_wanted = ions[ion_level].values.reshape(nx_cells, nz_cells)
-    except KeyError:
-        print("ERROR: py_util.get_ion_data: Could not find ion {} for element {}".format(ion_level, element))
-        return
-
-    x = ions["x"].values.reshape(nx_cells, nz_cells)
-    z = ions["z"].values.reshape(nx_cells, nz_cells)
-    inwind = ions["inwind"].values.reshape(nx_cells, nz_cells)
-
-    # Create a masked array where only the quantities in the wind are returned
-    mask = (inwind < 0)
-    ion_mask = np.ma.masked_where(mask, ion_wanted)
-
-    return x, z, ion_mask
-
-
-def get_master_data(path, root, verbose=False):
-    """
-    Get the "important" information for windsave2table
-
-    Reads in root.0.master.txt and root.0.heat.txt and puts them into one
-    numpy array
-    """
-
-    if type(root) is not str:
-        print("ERROR: py_util.get_master_data: the root name provided is not a string :-(")
-        return
-
+    # Now create a "complete" file which is the master and heat put together into one csv
     heat_file = "{}.0.heat.txt".format(root)
     master_file = "{}.0.master.txt".format(root)
-
-    # Add check to avoid situations where we re-create data with the wrong commit
-    heat_exists = os.path.isfile(heat_file)
-    master_exists = os.path.isfile(master_file)
-
-    if not heat_exists and not master_exists:
-        if verbose:
-            print("py_util.get_master_data: running windsave2table")
-        worked = run_windsave2table(path, root, verbose)
-        if not worked:
-            print("ERROR: py_util.get_master_data: could not use windsave2table")
-            return
-    elif verbose:
-        print("py_util.get_master_data: required files already exist hence windsave2table will not be run")
-
 
     try:
         heat = pd.read_table(heat_file, delim_whitespace=True)
         master = pd.read_table(master_file, delim_whitespace=True)
-        # master = master.drop(columns=["xcen", "zcen"])
     except IOError:
-        print("ERROR: py_uilt.get_master_data: Could not find master or heat file from windsave2table")
-        return
+        print("py_util.run_windsave2table: Could not find master or heat file for Python simulation")
+        return 1
 
-    # Completely hideous way of appending columns, but join, merge and concat
-    # were doing bad things and this worked so whatever
+    # Terrible hack to append the columns I want to the end of the table :-)
     append = heat.columns.values[14:]
     for i, col in enumerate(append):
         master[col] = pd.Series(heat[col])
 
-    if verbose:
-        print("Headers for data read in:")
-        print(master.columns.values)
-        print("")
+    master.to_csv("{}/{}.ep.complete".format(path, root), sep=" ")
 
-    master.to_csv("{}.ep.complete".format(root))
-
-    return master
+    return
 
 
-def get_wind_quantity(wind, quantity, verbose):
+def get_wind_data(root_name, var, var_type, path="./"):
     """
-    Get and return x, z coordinates and a quantity of interest which is a wind
-    quantity from a Python simulation. This assumes that wind is a Pandas
-    data frame gotten from something like py_util.get_master_data or
-    py_util.get_ion_data
 
     Parameters
     ----------
-    wind: pandas dataframe
-        An pandas dataframe of the wind quantities from windsave2table
-    quantity: str
-        The quantity wanting to be masked in question
-    verbose: bool
-        If True, enable verbose logging
+    root_name: str
+        The root name of the Python simulation
+    var: str
+        The name of the quantity from the Python simulation
+    var_type: str
+        The type of quantity, this can be wind or ion
 
     Returns
     -------
-
-
+    x: array of floats
+        The x coordinates of the wind in the Python simulation
+    z: array of floats
+        The z coordinates of the wind in the Python simulation
+    qoi_mask: masked array
+        A numpy masked array for the quantity defined in var
     """
 
-    if type(quantity) is not str:
-        print("ERROR: py_util.get_wind_quantity: the quantity desired needs to be given as a string")
+    if type(root_name) is not str:
+        print("py_util.get_wind_data: the root name provided is not a string")
+        exit(1)
+    if type(var_type) is not str:
+        print("py_util.get_wind_data: the type of data is not a string")
+        exit(1)
+    if type(var) is not str:
+        print("py_util.get_wind_data: the type of var is not a string")
+        exit(1)
 
-    # Figure out the number of cells in the x and z directions of the simulation
-    xi = wind["i"]
-    zj = wind["j"]
-    nx_cells = int(np.max(xi) + 1)
-    nz_cells = int(np.max(zj) + 1)
+    # Construct the name of the data file
+    if var_type.lower() == "ion":
+        ele_idx = var.find("_")
+        element = var[:ele_idx]
+        ion_level = var[ele_idx + 1:]
+        file = "{}/{}.0.{}.txt".format(path, root_name, element)
+    elif var_type.lower() == "wind":
+        file = "{}/{}.ep.complete".format(path, root_name)
+    else:
+        print("py_util.get_wind_data: type {} not recognised for var {}".format(var_type, var))
+        exit(1)
 
-    # Read in the quantity of interest, qoi, and x and z values
+    # Check if the file already exists -- to avoid using windsave2table on wind_saves from different versions
+    file_exists = os.path.isfile(file)
+    if not file_exists:
+        print("py_util.get_wind_data: file {} doesn't exist for var {}".format(file, var))
+        rc = np.zeros((10, 10))
+        return rc, rc, rc
+
+    # Try to open the data file
     try:
-        qoi = wind[quantity].values.reshape(nx_cells, nz_cells)
+        data = pd.read_table(file, delim_whitespace=True)
+    except IOError:
+        print("py_util.get_wind_data: could not open file {} for var {}".format(file, var))
+        exit(1)
+
+    # Read the wind data out of the file
+    try:
+        xi = data["i"]
+        zj = data["j"]
+        nx_cells = int(np.max(xi) + 1)
+        nz_cells = int(np.max(zj) + 1)
+        x = data["x"].values.reshape(nx_cells, nz_cells)
+        z = data["z"].values.reshape(nx_cells, nz_cells)
+        if var_type.lower() == "ion":
+            qoi = data[ion_level].values.reshape(nx_cells, nz_cells)
+        elif var_type.lower() == "wind":
+            qoi = data[var].values.reshape(nx_cells, nz_cells)
+        else:  # for safety, I guess?
+            print("py_util.get_wind_data: type {} not recognised".format(var_type))
+            exit(1)
     except KeyError:
-        print("Quantity {} not found in table, try again!".format(quantity))
-        return
+        print("py_util.get_wind_data: could not find var {} or another key".format(var))
+        exit(1)
 
-    x = wind["x"].values.reshape(nx_cells, nz_cells)
-    z = wind["z"].values.reshape(nx_cells, nz_cells)
-    inwind = wind["inwind"].values.reshape(nx_cells, nz_cells)
-
-    # Create a masked array where only the quantities in the wind are returned
+    # construct mask for data wanted
+    inwind = data["inwind"].values.reshape(nx_cells, nz_cells)
     mask = (inwind < 0)
     qoi_mask = np.ma.masked_where(mask, qoi)
 

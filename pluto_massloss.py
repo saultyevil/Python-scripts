@@ -5,7 +5,7 @@ import numpy as np
 from astropy import constants as c
 from matplotlib import pyplot as plt
 import pyPLUTO as pp
-import v_hydro_sub as vhs
+import pluto_v_hydro_sub as vhs
 import subprocess
 
 
@@ -151,7 +151,7 @@ for ii in range(istart,ifile+1):
         massloss.append(cum_outer_mass_loss[itheta_disk])
 
 fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-ax.plot(time, massloss)
+ax.plot(time, massloss/4e17)
 ax.set_ylabel("Mass loss rate", fontsize=14)
 ax.set_xlabel("Time (s)", fontsize=14)
 plt.savefig("masslss_time.png")
