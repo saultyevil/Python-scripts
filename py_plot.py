@@ -298,6 +298,9 @@ def main():
 
     """
 
+    # Parse the running options from the command line
+    outname = get_script_arguments()
+
     print("--------------------------\n")
 
     # Get the output name, the viewing angles and the file paths to the .spec files
@@ -312,9 +315,6 @@ def main():
         print("\t- {}".format(spec_files[i]))
 
     print("\n--------------------------")
-
-    # Parse the running options from the command line
-    outname = get_script_arguments()
 
     # Plot spectra
     print("\nPlotting spectra".format(spec_files))

@@ -2,65 +2,53 @@
 # -*- coding: utf-8 -*-
 
 """
-Automatically run Python simulations, plot and check convergence by searching
-for .pf files recursively from the calling directory
+Run a batch of Python simulations. Currently, the script will search recursively for Python pfs (disregarding anything
+which is py_wind.pf or .out.pf files) and execute a number of commands depending on what is requested by the user.
 
-There are no required arguments to provide the script. However, if no "run time"
-parameters are provided, then the script will exit as there is nothing to do.
+Currently, the script is able to:
+    - Run simulations with -r
+    - Resume simulations with -resume
+    - Check the convergence of simulations with -c
+    - Plot output of simulations with -p
+    - Default action -d which is -r -c and -p
 
-The switches which can be used are as follows:
+The script can also be run in a directory containing only one Python pf.
 
-  -h, --help      show this help message and exit
-  -d              Run with -r -c -p
-  -r              Run simulations
-  -c              Check the convergence of runs - calls convergence.py
-  -p              Run plotting scripts
-  -tde            Enable TDE plotting
-  -py_ver PY_VER  Name of the Python executable
-  -clim CLIM      The convergence limit: c_value < 1
-  -o              Verbose outputting
-  -dry            Print the simulations found and exit
-  -wmin WMIN      The smallest wavelength to display
-  -wmax WMAX      The largest wavelength to display
+usage: py_run.py [-h] [-d] [-r] [-resume] [-c] [-p] [-tde] [-py_ver PY_VER]
+                 [-clim CLIM] [-o] [-dry] [-q] [-n_cores N_CORES] [-wmin WMIN]
+                 [-wmax WMAX]
 
+Enable or disable features
 
-Note that -d, -p, -c, -dry or -r are required for the script to do something.
-
-Example usage:
-    python py_run.py -r -p -tde
-    python py_run.py -d -tde -WMIN 200 -WMAX 5000 -o
+optional arguments:
+  -h, --help        show this help message and exit
+  -d                Run with -r -c -p
+  -r                Run simulations
+  -resume           Restart a previous run
+  -c                Check the convergence of runs - calls convergence.py
+  -p                Run plotting scripts
+  -tde              Enable TDE plotting
+  -py_ver PY_VER    Name of the Python executable
+  -clim CLIM        The convergence limit: c_value < 1
+  -o                Verbose outputting
+  -dry              Print the simulations found and exit
+  -q                Enable quiet mode
+  -n_cores N_CORES  The number of processor cores to run Python with
+  -wmin WMIN        The smallest wavelength to display
+  -wmax WMAX        The largest wavelength to display
 
 TODO: be able to run simulations from file input
-TODO: flexible flag choices for py_plot.py
+TODO: flexible flag choices for py_plot.py - input option for the script
 """
 
-
-import time
-import py_plot_util
 import argparse
 import datetime
+import py_run_util
+import py_plot_util
 from sys import exit
 from shutil import which
-from platform import system
-from multiprocessing import cpu_count
+from typing import Tuple, Union, List
 from subprocess import Popen, PIPE, CalledProcessError
-
-
-CLIM = 0.85
-VERSION = "py"
-SHOW_OUTPUT = False
-RUN_SIMS = False
-RESUME_RUN = False
-SHOW_CONVERGENCE = False
-CREATE_PLOTS = False
-TDE_PLOT = False
-WMIN = None
-WMAX = None
-DATE = datetime.datetime.now()
-DRY_RUN = False
-NOT_QUIET = True
-N_CORES = 0
-
 
 CONVERGED = \
 """
@@ -92,10 +80,34 @@ ITS_A_MYSTERY = \
                                  |___/                  |___/
 """
 
+DATE = datetime.datetime.now()     # The current data and time at launch of the script
+VERSION = "py"                     # The name of the Python executable to use
+N_CORES = 0                        # The number of processor cores to run Python over
+RUN_SIMS = False                   # Flag for running a simulation
+RESUME_RUN = False                 # Flag for resuming Python simulations
+DRY_RUN = False                    # Flag for printing run information and then exiting
+SHOW_OUTPUT = False                # If set to True, all stdout output will be shown
+NOT_QUIET = True                   # If set to False, most output will not be shown
+SHOW_CONVERGENCE = False           # Flag for checking the convergence of Python simulations
+CLIM = 0.90                        # The limit at which a simulation is considered converged
+CREATE_PLOTS = False               # Flag for running py_plot at the end of a simulation
+TDE_PLOT = False                   # Flag for enabling overplotting of iPTF15af
+WMIN = None                        # Smallest wavelength to plot
+WMAX = None                        # Largest wavelength to plot
 
-def get_run_mode():
+
+def get_run_mode() -> None:
     """
-    Read command line flags to determine the mode of operation
+    Parse the different run modes for the script from the command line. The run options are returned via global
+    variables, because why not? :^)
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
     """
 
     global SHOW_OUTPUT
@@ -202,31 +214,55 @@ def get_run_mode():
     return
 
 
-def py_run(wd, root_name, mpi, ncores):
+def py_run(root_name:str, work_dir:str, use_mpi:bool, n_cores:int, py:str="py", resume:bool=False,
+           not_quiet:bool=False, show_all:bool=False) -> Tuple[list, list]:
     """
-    Do a standard Python run using either a single process or multiple
+    Function to control running and logging a Python simulation.
+
+    Parameters
+    ----------
+    root_name: str
+        The root name of the Python simulation
+    work_dir: str
+        The directory of the Python simulation.
+    use_mpi: bool
+        If set to True, MPI will be used to parallelise Python.
+    n_cores: int
+        The number of cores to parallelise Python over.
+    py: str, optional
+        The name of the Python executable to use.
+    resume: bool, optional
+        If set to True, Python will resume rather than start a run from scratch
+    not_quiet: bool, optional
+        If set to True, there will be less information printed to screen
+    show_all: bool, optional
+        If set to True, the Python output will be printed to screen
+
+    Returns
+    -------
+    lines: list of strings
+        The Python output which is sent to stdout.
+    err: list of strings
+        The Python output which is sent to stderr.
     """
 
+    outf_name = "{}/{}_{}{}{}.txt".format(work_dir, root_name, DATE.year, DATE.month, DATE.day)
+    outf = open(outf_name, "w")
+
+    # Construct shell command to run Python and use subprocess to run
     command = ""
-    pf = root_name + ".pf"  # Don't actually need the .pf at the end
-    if VERSION != "py":
-        py_version = int(VERSION[2:4])
-        if py_version < 83:
-            command += "Setup_Py_Dir; "
-    command += "cd {}; ".format(wd)
-    if mpi:
-        command += "mpirun -n {} ".format(ncores)
-    command += "{} ".format(VERSION)
-    if RESUME_RUN:
+    pf = root_name + ".pf"
+    command += "cd {}; Setup_Py_Dir; ".format(work_dir)
+    if use_mpi:
+        command += "mpirun -n {} ".format(n_cores)
+    command += "{} ".format(py)
+    if resume:
         command += "-r "
     command += "{} ".format(pf)
+    cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
     print("{}\n".format(command))
 
-    cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
-
-    outfname = "{}/{}_{}{}{}.txt".format(wd, root_name, DATE.year, DATE.month, DATE.day)
-    outf = open(outfname, "w")
-
+    # Real time output of Python
     lines = []
     spec_cycle = False
     for stdout_line in iter(cmd.stdout.readline, ""):
@@ -235,124 +271,98 @@ def py_run(wd, root_name, mpi, ncores):
         line = stdout_line.decode("utf-8").replace("\n", "")
         outf.write("{}\n".format(line))
         lines.append(line)
-
-        #
-        # This horrid bit of logic will determine from the output which
-        # ionisation and wind cycle is currently being done and print out to
-        # the screen. If SHOW_OUTPUT is True, then all lines will be printed
-        # to the screen instead.
-        #
-
-        if SHOW_OUTPUT:
-            print(line)
-        elif line.find("for defining wind") != -1 and NOT_QUIET:
-            line = line.split()
-            cycle = int(line[3])  # + 1
-            ncycles = line[5]
-            current_time = time.strftime("%H:%M")
-            print("{} : Ionisation Cycle ....... {}/{}".format(current_time,
-                                                               cycle, ncycles))
-        elif line.find("to calculate a detailed spectrum") != -1 and NOT_QUIET:
-            line = line.split()
-            spec_cycle = True
-            cycle = int(line[1])  # + 1
-            ncycles = line[3]
-            current_time = time.strftime("%H:%M")
-            print("{} : Spectrum Cycle ......... {}/{}".format(current_time,
-                                                               cycle, ncycles))
-        elif line.find("per cent") != -1 and line.find("Photon") != -1 and NOT_QUIET:
-            line = line.split()
-            print("   - {}% of {} photons transported".format(line[-3],
-                                                              line[-5]))
-        elif line.find("!!Check_converging:") != -1 and NOT_QUIET:
-            line = line.split()
-            nconverged = int(line[1])
-            fconverged = line[2]
-            print("           ----------           ")
-            print("   - {} cells converged {}".format(nconverged, fconverged))
-        elif (line.find("Completed ionization cycle") != -1 or
-                line.find("Completed spectrum cycle") != -1) and NOT_QUIET:
-            line = line.split()
-            elapsed_time_seconds = float(line[-1])
-            elapsed_time = datetime.timedelta(seconds=elapsed_time_seconds // 1)
-
-            print("   - Elapsed run time {} hrs:mins:secs".format(elapsed_time))
-            print("           ----------           ")
-        elif line.find("photon transport completed in") != -1 and NOT_QUIET:
-            line = line.split()
-            transport_time_seconds = float(line[4])
-            transport_time = datetime.timedelta(seconds=transport_time_seconds // 1)
-            if spec_cycle:
-                print("           ----------           ")
-            print("   - Photon transported in {} hrs:mins:secs"
-                  .format(transport_time))
-        elif line.find("Completed entire program.") != -1 and NOT_QUIET:
-            line = line.split()
-            tot_run_time_seconds = float(line[-1])
-            tot_run_time = datetime.timedelta(seconds=tot_run_time_seconds // 1)
-            print("\nSimulation completed in {} hrs:mins:secs".format(tot_run_time))
-
+        spec_cycle = py_run_util.process_line_output(line, spec_cycle, not_quiet, show_all)
     print("")
-
     outf.close()
 
-    #
-    # When the stdout or stderr buffer becomes too large (>4KB), cmd.wait()
-    # deadlocks. We can get around this by using cmd.communicate instead, I
-    # think... it seems to be working...
-    #
-
+    # Have to do this in case the buffer is too large and causes a deadlock
     pystdout, pystderr = cmd.communicate()
-
     err = pystderr.decode("utf-8")
     if err:
         print("Captured from stderr:")
         print(err)
         errfname = "{}/err_{}{}{}.out"\
-            .format(wd, root_name, DATE.year, DATE.month, DATE.day)
+            .format(work_dir, root_name, DATE.year, DATE.month, DATE.day)
         with open(errfname, "w") as f:
             f.writelines(err)
     rc = cmd.returncode
     if rc:
         raise CalledProcessError(rc, command)
 
-    # Append a file containing the Python version and commit hash to avoid
-    # situations where windsave2table will make garbage results due to the
-    # wind_save file not loading properly
-    version, hash = py_plot_util.get_python_version(VERSION, SHOW_OUTPUT)
+    # Append a file containing the Python version and commit hash
+    version, hash = py_plot_util.get_python_version(py, show_all)
     with open("version", "w") as f:
         f.write("{}\n{}".format(version, hash))
 
     return lines, err
 
 
-def get_convergence(wd, root_name):
+def check_python_convergence(root_name:str, work_dir:str, convergence_limit:float) -> Union[float, int]:
     """
-    Write to the screen if the simulation has or hasn't converged
+    Check the convergence of a Python simulation by reading the diag file.
+
+    Parameters
+    ----------
+    root_name: str
+        The root name of the Python simulation.
+    work_dir: str
+        The directory containing the Python simulation
+    convergence_limit: float
+        The limit at which a Python simulation is considered considered converged.
+
+    Returns
+    -------
+    convergence_fraction: float or int
+        The fraction of converged cells in the Python simulation. If this is -1, this indicates an error.
     """
 
-    convergence_fraction = py_plot_util.check_convergence(wd, root_name)
+    if 0 > convergence_limit > 1:
+        print("py_run.check_python_convergence: convergence_limit ({}) should be between 0 and 1".
+              format(convergence_limit))
+        return -1
 
-    print("clim ............ {}".format(CLIM))
-    print("convergence ..... {}\n".format(convergence_fraction))
+    convergence_fraction = py_run_util.check_convergence(root_name, work_dir)
+    print("convergence limit ............ {}".format(convergence_limit))
+    print("actual convergence ........... {}\n".format(convergence_fraction))
 
-    if convergence_fraction < CLIM:
+    if convergence_fraction < convergence_limit:
         print(NOT_CONVERGED)
         with open("not_converged.txt", "a") as f:
-            f.write("{}\t{}.pf\t{}\n".format(wd, root_name, convergence_fraction))
-    elif convergence_fraction >= CLIM:
+            f.write("{}\t{}.pf\t{}\n".format(work_dir, root_name, convergence_fraction))
+    elif convergence_fraction >= convergence_limit:
         print(CONVERGED)
     else:
         print(ITS_A_MYSTERY)
-
     print("")
 
     return convergence_fraction
 
 
-def do_py_plot(wd, root_name):
+def plot_python_output(root_name:str, work_dir:str, show_output:bool=False, plot_tde:bool=False,
+                       extra_commands:str=None, wmin:Union[float, int]=None, wmax:Union[float, int]=None) -> None:
     """
-    Execute my standard spec_plot script to plot spectra
+    Call py_plot.py and plot the output from a Python simulation.
+
+    Parameters
+    ----------
+    root_name: str
+        The root name of the Python simulation
+    work_dir: str
+        The directory containing the Python simulation
+    show_output: bool, optional
+        If set to True, output from the plotting script will be shown
+    plot_tde: bool, optional
+        If set to True, the iPTF15af UV spectrum will be overplotted
+    extra_commands: str, optional
+        Provide extra commands to the plotting script
+    wmin: float or int, optional
+        The smallest wavelength to plot
+    wmax: float or int, optional
+        The largest wavelength to plot
+
+    Returns
+    -------
+    None
     """
 
     path = which("py_plot.py")
@@ -360,13 +370,15 @@ def do_py_plot(wd, root_name):
         print("py_plot.py not in $PATH and executable")
         return
 
-    commands = "cd {}; py_plot.py {}".format(wd, root_name)
-    if TDE_PLOT:
+    commands = "cd {}; py_plot.py {}".format(work_dir, root_name)
+    if plot_tde:
         commands += " -tde"
-    if WMIN:
+    if wmin:
         commands += " -wmin {}".format(WMIN)
-    if WMAX:
+    if wmax:
         commands += " -wmax {}".format(WMAX)
+    if extra_commands:
+        commands += "{}".format(extra_commands)
     print(commands)
 
     cmd = Popen(commands, stdout=PIPE, stderr=PIPE, shell=True)
@@ -374,7 +386,7 @@ def do_py_plot(wd, root_name):
     output = stdout.decode("utf-8")
     err = stderr.decode("utf-8")
 
-    if SHOW_OUTPUT:
+    if show_output:
         print(output)
     if err:
         print("Captured from stderr:")
@@ -384,161 +396,133 @@ def do_py_plot(wd, root_name):
     return
 
 
-def check_for_mpi():
+def run_python_etc(pf_paths: List[str], n_sims: int, use_mpi: bool, n_cores: int, run_sims: bool = False,
+                   resume_runs: bool = False, show_convergence: bool = False, clim: float = 0.90,
+                   create_plots: bool = False, wmin: float = None, wmax: float = None, tde_plot: bool = False,
+                   not_quiet: bool = True, show_output: bool = False) -> None:
     """
-    Check that mpirun exists on the system
-    """
+    Execute all of the different commands...
 
-    path = which("mpirun")
-    if not path:
-        return False
+    Parameters
+    ----------
+    pf_paths: list of strings
+        The directories of the Python simulations
+    n_sims: int
+        The number of simulations to be run
+    use_mpi: bool
+        If True, MPI will be used to parallelise Python
+    n_cores: int
+        The number of cores to run Python with
+    clim: float
+        The fraction of cells required to be converged for a Python simulation to be considered converged
+    run_sims: bool, optional
+        If True, Python will be called to run the simulation
+    resume_runs: bool, optional
+        If True, Python will resume runs rather than starting from scratch
+    show_output: bool, optional
+        If True, all of the output from the various commands will be printed to screen
+    show_convergence: bool, optional
+        If True, the convergence of the simulation will be checked
+    create_plots: bool, optional
+        If True, plots of the Python simulations will be created
+    tde_plot: bool, optional
+        If True, the iPTF15af UV spectrum will be overplotted on plotted spectra
+    not_quiet: bool, optional
+        If False, no command output will be printed to screen
+    wmin: float, optional
+        The smallest wavelength to plot
+    wmax: float, optional
+        The largest wavelength to plot
 
-    return True
-
-
-def find_number_of_physical_cores_lscpu():
-    """
-    Created due to multiprocessing.cpu_count() returning physical and logical
-    core count. Pathetic. (I don't want to use hyperthreads as this often can
-    lead to slow down for a range of HPC problems)
-    """
-
-    ncores_cmd = "lscpu | grep 'Core(s) per socket'"
-    nsockets_cmd = "lscpu | grep 'Socket(s):'"
-    ncores, stderr = Popen(ncores_cmd, stdout=PIPE, stderr=PIPE,
-                           shell=True).communicate()
-    if ncores == "":
-        return 0
-    ncores = int(ncores.decode("utf-8").replace("\n", "").split()[-1])
-    nsockets, stderr = Popen(nsockets_cmd, stdout=PIPE, stderr=PIPE, shell=True).communicate()
-    if nsockets == "":
-        return 0
-    nsockets = int(nsockets.decode("utf-8").replace("\n", "").split()[-1])
-
-    return ncores * nsockets
-
-
-def get_num_cores():
-    """
-    Determine the number of cores Python should be run using
-    """
-
-    mpi = False
-    n_cores = 1
-
-    # If the user provided the number of cores to use, use that instead
-    if N_CORES:
-        n_cores = N_CORES
-        if N_CORES > 1:
-            mpi = True
-        return mpi, n_cores
-
-    mpi = check_for_mpi()
-    if RUN_SIMS and mpi:
-        # We will suffer for macOS since lscpu doesn't exist
-        if system() == "Darwin":
-            n_cores = cpu_count()
-        else:
-            n_cores = find_number_of_physical_cores_lscpu()
-            if n_cores == 0:
-                n_cores = cpu_count()
-        print("The following simulations will be run using {} cores:\n".format(n_cores))
-    elif RUN_SIMS and not mpi:
-        print("The follow simulations will be run in single threaded mode:\n")
-    else:
-        print("Processing the following runs:\n")
-
-    return mpi, n_cores
-
-
-def run_choices(par_file_paths, n_sims, mpi, n_cores):
-    """
-    Controls the general flow of the simulation running, plotting etc. I did
-    this to make the main function more readable.
+    Returns
+    -------
+    None
     """
 
-    # If the not_converged file exists, delete the contents :-)
-    if SHOW_CONVERGENCE:
+    if show_convergence:
         open("not_converged.txt", "w").close()
 
     # Open up an output file
-    outfname = "run_{}{}{}.txt".format(DATE.year, DATE.month, DATE.day, DATE.hour, DATE.minute)
+    outfname = "py_run_{}{}{}.txt".format(DATE.year, DATE.month, DATE.day)
     f = open(outfname, "w")
 
-    # Iterate over the possible simulations
-    for i, path in enumerate(par_file_paths):
+    for i, path in enumerate(pf_paths):
         root_name, pf_relative_path = py_plot_util.get_root_name_and_path(path)
 
         # Print some details to screen
         print("--------------------------\n")
         print("Simulation {}/{}".format(i+1, n_sims))
-        print("Working dir ........ {}".format(pf_relative_path))
-        print("Root name .......... {}\n".format(root_name))
+        print("\n--------------------------\n")
+        print("Working directory ......... {}".format(pf_relative_path))
+        print("Python root name .......... {}\n".format(root_name))
+
         # Print some details to the output file
         f.write("--------------------------\n")
         f.write("Simulation {}/{}\n".format(i+1, n_sims))
-        f.write("Working dir ........ {}\n".format(pf_relative_path))
-        f.write("Root name .......... {}\n".format(root_name))
+        f.write("--------------------------\n")
+        f.write("Working directory ......... {}\n".format(pf_relative_path))
+        f.write("Python root name .......... {}\n".format(root_name))
 
-        if RUN_SIMS:
-            if RESUME_RUN:
-                print("Resuming the simulation: {}\n".format(root_name))
-            else:
-                print("Running the simulation: {}\n".format(root_name))
-
-            python_output, python_err = py_run(pf_relative_path, root_name, mpi, n_cores)
-
+        if run_sims:
+            print("Running the simulation: {}\n".format(root_name))
+            python_output, python_err = py_run(root_name, pf_relative_path, use_mpi, n_cores, resume=resume_runs,
+                                               not_quiet=not_quiet, show_all=show_output)
+            # Write the Python output to file
             for line in python_output:
                 f.write("{}\n".format(line))
             if python_err:
                 f.write(python_err)
 
-        if SHOW_CONVERGENCE:
+        if show_convergence:
             print("Checking the convergence of the simulation:\n")
+            convergence_fraction = check_python_convergence(root_name, pf_relative_path, clim)
 
-            convergence_fraction = get_convergence(pf_relative_path, root_name)
-
-            if convergence_fraction < CLIM:
+            # Write convergence information to file
+            if convergence_fraction < clim:
                 f.write("{}\n".format(NOT_CONVERGED))
-                f.write("cvalue {} < clim {}\n".format(convergence_fraction, CLIM))
-            elif convergence_fraction >= CLIM:
+                f.write("cvalue {} < clim {}\n".format(convergence_fraction, clim))
+            elif convergence_fraction >= clim:
                 f.write("{}\n".format(CONVERGED))
-                f.write("cvalue {} >= clim {}\n".format(convergence_fraction, CLIM))
+                f.write("cvalue {} >= clim {}\n".format(convergence_fraction, clim))
             else:
                 f.write("{}\n".format(ITS_A_MYSTERY))
 
         # End of output to screen, don't write plot output to file
         f.write("\n--------------------------\n")
 
-        if CREATE_PLOTS:
+        if create_plots:
             print("Creating plots for the simulation\n")
-            do_py_plot(pf_relative_path, root_name)
+            plot_python_output(root_name, pf_relative_path, show_output, tde_plot, wmin=wmin, wmax=wmax)
 
     f.close()
 
     return
 
 
-def main():
+def main() -> None:
     """
-    Main control function
+    Main control function of the script
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
     """
 
     # Determine which routines to run for each simulation
     get_run_mode()
-    all_par_file_paths = py_plot_util.find_pf(ignore_out_pf=True)
-    if len(all_par_file_paths) == 0:
+    pf_paths = py_plot_util.find_pf(ignore_out_pf=True)
+    n_sims = len(pf_paths)
+    if not n_sims:
         print("No parameter files found, nothing to do!\n")
         print("--------------------------")
         exit(0)
-    mpi, n_cores = get_num_cores()
 
-    # Remove any py_wind parameter files which might be lurking about
-    par_file_paths = []
-    for i, path in enumerate(all_par_file_paths):
-        if path.find("py_wind.pf") == -1:
-            par_file_paths.append(path)
-            print("- {}".format(path))
+    use_mpi, n_procs = py_run_util.get_num_procs(N_CORES)
+
     print("")
 
     if DRY_RUN:
@@ -546,8 +530,8 @@ def main():
         return
 
     # Now run Python, plotting and convergence procedures
-    n_sims = len(par_file_paths)
-    run_choices(par_file_paths, n_sims, mpi, n_cores)
+    run_python_etc(pf_paths, n_sims, use_mpi, n_procs, RUN_SIMS, RESUME_RUN, SHOW_CONVERGENCE, CLIM, CREATE_PLOTS, WMIN,
+                   WMAX, TDE_PLOT, NOT_QUIET, SHOW_OUTPUT)
 
     print("--------------------------")
 

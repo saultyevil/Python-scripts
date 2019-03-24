@@ -185,13 +185,8 @@ def find_pf(ignore_out_pf):
     pfs = []
     if ignore_out_pf is True:
         for file in out:
-            if file.find(".out.pf") == -1:
+            if file.find(".out.pf") == -1 and file is not "py_wind.pf":
                 pfs.append(file)
-
-    # if len(pfs) == 0:
-    #     print("py_util.find_pf: no Python parameter files found\n")
-    #     print("--------------------------")
-    #     exit(0)
 
     pfs = sorted(pfs, key=str.lower)
 
@@ -304,54 +299,6 @@ def get_root_name_and_path(pf_path):
     sim = pf_path[:slash]
 
     return root_name, sim
-
-
-def check_convergence(wd, root):
-    """
-    Determine the convergence of a Python simulation
-
-    Parameters
-    ----------
-    wd: str
-        The directory of the Python simulation
-    root: str
-        The root name of the Python simulation
-
-    Returns
-    -------
-    converge_fraction: float
-        The fraction of cells which are converged, between 0 and 1. A value of 0
-        means that no cells have converged, whereas a value of 1 means all cells
-        have converged.
-    """
-
-    diag_path = "{}/diag_{}/{}_0.diag".format(wd, root, root)
-
-    try:
-        with open(diag_path, "r") as file:
-            diag = file.readlines()
-    except IOError:
-        print("py_util.read_convergence: Couldn't open read only copy of {}. Does the diag file exist?"
-              .format(diag_path))
-        return -1
-
-    converge_fraction = None
-    for line in diag:
-        if line.find("!!Check_converging") != -1:
-            c_string = line.split()[2].replace("(", "").replace(")","")
-            converge_fraction = float(c_string)
-
-    if converge_fraction is None:
-        print("py_util.read_convergence: unable to parse convergence fraction from diag file {}"
-              .format(diag_path))
-        return -1
-
-    if 0 > converge_fraction > 1:
-        print("py_util.read_convergence: the convergence in the simulation is negative or more than one")
-        print("py_util.read_convergence: convergence_fraction = {}".format(converge_fraction))
-        return -1
-
-    return converge_fraction
 
 
 def smooth_flux(flux, smooth, verbose=False):
