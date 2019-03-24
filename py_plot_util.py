@@ -14,6 +14,7 @@ from sys import exit
 from shutil import which
 from socket import gethostname
 from subprocess import Popen, PIPE
+from typing import Tuple, List, Union
 from scipy.signal import convolve, boxcar
 
 
@@ -29,10 +30,9 @@ def tests():
     return
 
 
-def get_python_version(py="py", verbose=False):
+def get_python_version(py:str="py", verbose:bool=False) -> Tuple[str, str]:
     """
-    Get the Python version and commit hash for the provided Python binary. This
-    should also work with windsave2table.
+    Get the Python version and commit hash for the provided Python binary. This should also work with windsave2table.
 
     Parameters
     ----------
@@ -87,7 +87,7 @@ def get_python_version(py="py", verbose=False):
     return version, commit_hash
 
 
-def read_spec_file(filename, delim=" "):
+def read_spec_file(filename:str, delim:str=" ") -> np.array:
     """
     Read in data from an external file, line by line whilst ignoring comments.
         - Comments begin with #
@@ -105,8 +105,6 @@ def read_spec_file(filename, delim=" "):
     lines: ncols x nlines array of strings
         The file as a numpy array of strings for each column and line
     """
-
-    # TODO: add some input error checking
 
     try:
         with open(filename, "r") as f:
@@ -135,7 +133,7 @@ def read_spec_file(filename, delim=" "):
     return np.array(lines)
 
 
-def find_spec_files():
+def find_spec_files() -> List[str]:
     """
     Use the unix find command to find spec files in the current working
     directory and in directories below
@@ -193,7 +191,7 @@ def find_pf(ignore_out_pf):
     return pfs
 
 
-def get_spec_viewing_angles(specfiles, delim=" "):
+def get_spec_viewing_angles(specfiles:List[str], delim:str=" ") -> np.array:
     """
     Get all of the unique viewing angles for a set of .spec files.
 
@@ -208,7 +206,7 @@ def get_spec_viewing_angles(specfiles, delim=" "):
 
     Returns
     -------
-    vangles: list of ints
+    vangles: array of ints
         All of the unique viewing angles found in the provided .spec files
     """
 
@@ -234,7 +232,7 @@ def get_spec_viewing_angles(specfiles, delim=" "):
     return np.array(vangles)
 
 
-def check_viewing_angle(angle, spec):
+def check_viewing_angle(angle:int, spec:np.array) -> bool:
     """
     Check that a viewing angle is legal
 
@@ -265,7 +263,7 @@ def check_viewing_angle(angle, spec):
     return allowed
 
 
-def get_root_name_and_path(pf_path):
+def get_root_name_and_path(pf_path:str) -> Tuple[str, str]:
     """
     Split the path name into a directory and root name of the Python simulation
 
@@ -301,7 +299,7 @@ def get_root_name_and_path(pf_path):
     return root_name, sim
 
 
-def smooth_flux(flux, smooth, verbose=False):
+def smooth_flux(flux:np.array, smooth:Union[int, float], verbose:bool=False) -> np.array:
     """
     Smooth the data flux using a Boxcar averaging algorithm.
 
@@ -353,8 +351,33 @@ def smooth_flux(flux, smooth, verbose=False):
     return smooth_flux
 
 
-def get_ylims(wavelength, flux, wmin=None, wmax=None, iPTF15af=False, verbose=False):
+def get_ylims(wavelength:np.array, flux:np.array, wmin:float=None, wmax:float=None, iPTF15af:bool=False,
+              verbose:bool=False) -> Tuple[float, float]:
     """
+    Find the appropriate y limits to use when the wavelength range has been limited. Returns limits which are an order
+    of magnitude larger and smaller than the maximum flux and minimum flux respectively.
+
+    Parameters
+    ----------
+    wavelength: array of floats
+        An array containing all of the wavelength points.
+    flux: array of floats
+        An array containing the flux for each wavelength point.
+    wmin: float, optional
+        The smallest wavelength which is being plotted
+    wmax: float, optional
+        The largest wavelength which is being plotted
+    iPTF15af: bool, optional
+        If True, the limits are modified to ensure the iPTF15af spectrum is within the newly calculated flux limits
+    verbose: bool, optional
+        If True, some extra information is pritned to screen
+
+    Returns
+    -------
+    yupper: float
+        The upper flux limit to use when plotting.
+    ylower: float
+        The lower flux limit to use when plotting
     """
 
     wmin_flux = flux.min()
@@ -389,7 +412,7 @@ def get_ylims(wavelength, flux, wmin=None, wmax=None, iPTF15af=False, verbose=Fa
     return yupper, ylower
 
 
-def get_iPTF15af_spec(smooth, verbose=False):
+def get_iPTF15af_spec(smooth:Union[float, int], verbose:bool=False) -> np.array:
     """
     Load the Blagorodnova iPTF15af UV spectrum into
 
@@ -447,7 +470,7 @@ def get_iPTF15af_spec(smooth, verbose=False):
     return iPTF15af_spec
 
 
-def get_ASSASN_14li_spec(smooth, verbose=False):
+def get_ASSASN_14li_spec(smooth:Union[float, int], verbose:bool=False) -> np.array:
     """
     Load the Cenko ASASSN-14li UV spectrum into
 
@@ -505,11 +528,10 @@ def get_ASSASN_14li_spec(smooth, verbose=False):
     return ASSASN_14li_spec
 
 
-def run_windsave2table(path, root, verbose=False):
+def run_windsave2table(path:str, root:str, verbose:bool=False) -> Union[int, None]:
     """
-    Use windsave2table to generate data files for the different quantities in the
-    wind. This function will also create a *.ep.complete file which the function
-    get_wind_data can use to retrieve data.
+    Use windsave2table to generate data files for the different quantities in the wind. This function will also create
+    a *.ep.complete file which the function get_wind_data can use to retrieve data.
 
     Parameters
     ----------
@@ -519,6 +541,10 @@ def run_windsave2table(path, root, verbose=False):
         The root name of the Python simulation.
     verbose: bool
         If True, enable verbose output
+
+    Returns
+    -------
+    If something is returned, than an error has occured!
     """
 
     # Look for a version file in the directory to see if windsave2table is the
@@ -580,8 +606,10 @@ def run_windsave2table(path, root, verbose=False):
     return
 
 
-def get_wind_data(root_name, var, var_type, path="./"):
+def get_wind_data(root_name:str, var:List[str], var_type:List[str], path:str="./") -> Tuple[np.array, np.array, np.array]:
     """
+    Get the variables given in var from the output data of windsave2table. Note that windsave2table will have to be run
+    before this function can be used or that the files must already exist.
 
     Parameters
     ----------

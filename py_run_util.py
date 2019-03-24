@@ -58,7 +58,6 @@ def process_line_output(line:str, spec_cycle:bool, not_quiet:bool=True, show_all
         line = line.split()
         nconverged = int(line[1])
         fconverged = line[2]
-        print("           ----------           ")
         print("   - {} cells converged {}".format(nconverged, fconverged))
     elif (line.find("Completed ionization cycle") != -1 or line.find("Completed spectrum cycle") != -1) and not_quiet:
         line = line.split()

@@ -32,12 +32,15 @@ optional arguments:
   -z Z                The redshift of the object
   -tde                Overplot iPTF15af UV spectrum and scale flux appropriately
   -loglog             Enable log log axes
+
+TODO: add check to see if wind files already exist to avoid issues with windsave2table
 """
 
 
-import py_plot_util
 import argparse
 import numpy as np
+import py_plot_util
+from typing import List, Tuple
 from matplotlib import pyplot as plt
 
 
@@ -53,9 +56,18 @@ OBSERVE_DIST = 100 * 3.086e18  # 100 pc in cm - the default Python distance
 Z = 0                          # Redshift
 
 
-def get_script_arguments():
+def get_script_arguments() -> str:
     """
     Parse the various global parameters from the command line.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    str:
+        The output base name of the created plots.
     """
 
     global VERBOSE
@@ -115,15 +127,26 @@ def get_script_arguments():
     return args.output_name
 
 
-def plot_python_wind(root_name, output_name, path="./", vars=None, types=None, shape=None, title=None, loglog=True,
-                     filetype="png", plot_show=False, verbose=False):
+def plot_python_wind(root_name:str, output_name:str, path:str="./", vars:List[str]=None, types:List[str]=None,
+                     shape:Tuple[int, int]=None, title:str=None, loglog:bool=True, filetype:str="png",
+                     plot_show:bool=False, verbose:bool=False, ndims:str="2d") -> None:
+    """
+    Create a 2D wind plot of the wind variables given in vars.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    None
     """
 
-    """
 
-    if type(root_name) != str:
-        print("py_plot.plot_python_wind: root_name is not a string")
-        return
+    if ndims == "1d":
+        print("py_plot.plot_python_wind: 1d Python runs are not supported yet")
+        exit(0)
+    elif ndims != "2d":
+        print("py_plot.plot_python_wind: only understand ndims = 1d or ndims = 2d")
 
     if vars is None:
         vars = ["t_e", "t_r", "ne", "v_x", "v_y", "v_z", "ip", "c4"]
@@ -176,9 +199,17 @@ def plot_python_wind(root_name, output_name, path="./", vars=None, types=None, s
     return
 
 
-def plot_spec_comps(spec_file, outname, loglog=False, smooth=15, verbose=False, filetype="png", plot_show=False):
+def plot_spec_comps(spec_file:str, outname:str, loglog:bool=False, smooth:int=15, verbose:bool=False,
+                    filetype:str="png", plot_show:bool=False) -> None:
     """
+    Plot the components which makes the integrated flux of a Python Simulation
 
+    Parameters
+    ----------
+
+    Returns
+    -------
+    None
     """
 
     if type(spec_file) is not str:
@@ -227,9 +258,17 @@ def plot_spec_comps(spec_file, outname, loglog=False, smooth=15, verbose=False, 
     return
 
 
-def plot_spectra(spec_files, spec_angles, outname, wmin=None, wmax=None, plot_iPTF15af=False, smooth=15,
-                 plot_show=False, verbose=False):
+def plot_spectra(spec_files:str, spec_angles:List[int], outname:str, wmin:float=None, wmax:float=None,
+                 plot_iPTF15af:bool=False, smooth:int=15, plot_show:bool=False, verbose:bool=False) -> None:
     """
+    Plot the spectrum of each viewing angle of a Python simulation.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    None
     """
 
     if plot_iPTF15af:
@@ -293,9 +332,17 @@ def plot_spectra(spec_files, spec_angles, outname, wmin=None, wmax=None, plot_iP
     return
 
 
-def main():
+def main() -> None:
     """
+    The main controlling function of the script.
 
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
     """
 
     # Parse the running options from the command line
