@@ -40,8 +40,8 @@ TODO: add check to see if wind files already exist to avoid issues with windsave
 import argparse
 import numpy as np
 import py_plot_util
-from typing import List, Tuple
 from matplotlib import pyplot as plt
+from typing import List, Tuple, Union
 
 
 VERBOSE = False                # More info will be printed to screen if True
@@ -135,12 +135,35 @@ def plot_python_wind(root_name:str, output_name:str, path:str="./", vars:List[st
 
     Parameters
     ----------
+    root_name: str
+        The root name of the Python simulation
+    output_name: str
+        The base name for the output plot
+    path: str, optional
+        The directory containing the Python simulation
+    vars: list of str, optional
+        The variables to be plotted. If none are provided, default ones are used instead
+    types: list of str, optional
+        The type of the variables to be plotted. Allowed values are wind or ion. One is required for each variable
+    shape: tuple of two ints, optional
+        The number of subplots panels to create, given as (n_rows, n_cols)
+    title: str, optional
+        The title of the plot, placed at the very top
+    loglog: bool, optional
+        If True, log log scaling will be used for the x and y axes
+    filtype: str, optional
+        The file type of the image to create, by default this is png
+    plot_show: bool, optional
+        If True, the plot will be show before saved
+    verbose: bool, optional
+        If True, more verbose output will be shown
+    ndims: str, optional
+        The number of dimensions of the Python simulation. Currently only 2d is supported
 
     Returns
     -------
     None
     """
-
 
     if ndims == "1d":
         print("py_plot.plot_python_wind: 1d Python runs are not supported yet")
@@ -157,6 +180,11 @@ def plot_python_wind(root_name:str, output_name:str, path:str="./", vars:List[st
 
     if shape[0] * shape[1] < len(vars):
         print("py_plot.plot_python_wind: not enough panels to plot all the provided vars!")
+        return
+
+    if len(vars) != len(types):
+        print("py_plot.plot_python_wind: vars and types should be of the same length")
+        return
 
     idx = 0
     fig, ax = plt.subplots(shape[0], shape[1], figsize=(8, 15), squeeze=False)
@@ -206,6 +234,20 @@ def plot_spec_comps(spec_file:str, outname:str, loglog:bool=False, smooth:int=15
 
     Parameters
     ----------
+    spec_file: str
+        The spec file of the Python simulation to plot. Include the full path.
+    outname: str
+        The base name of the output plot
+    loglog: bool, optional
+        If True, log log scales will be used instead of semilogy
+    smooth: int, optional
+        The number of sample points to use in the boxcar smoother
+    verbose: bool, optional
+        If True, more verbose output will be shown
+    filetype: str, optional
+        The file type of the output image. By default, this is png
+    plot_show: bool, optional
+        If True, show the created plot before saving it
 
     Returns
     -------
@@ -258,13 +300,34 @@ def plot_spec_comps(spec_file:str, outname:str, loglog:bool=False, smooth:int=15
     return
 
 
-def plot_spectra(spec_files:str, spec_angles:List[int], outname:str, wmin:float=None, wmax:float=None,
-                 plot_iPTF15af:bool=False, smooth:int=15, plot_show:bool=False, verbose:bool=False) -> None:
+def plot_spectra(spec_files:List[str], spec_angles:Union[List, np.array], outname:str, wmin:float=None, wmax:float=None,
+                 plot_iPTF15af:bool=False, smooth:int=15, plot_show:bool=False, filetype:str="png",
+                 verbose:bool=False) -> None:
     """
     Plot the spectrum of each viewing angle of a Python simulation.
 
     Parameters
     ----------
+    spec_file: str
+        The spec file of the Python simulation to plot. Include the full path.
+    spec_angles: list of ints
+        The spectrum viewing angles which will be plotted
+    outname: str
+        The base name of the output plot
+    wmin: float, optional
+        The smallest wavelength to show
+    wmax: float, optional
+        The longest wavelength to show
+    plot_iPTF15af: bool, optional
+        If True, then the iPTF15af UV spectrum will be overplotted
+    smooth: int, optional
+        The number of sample points to use in the boxcar smoother
+    plot_show: bool, optional
+        If True, show the created plot before saving it
+    verbose: bool, optional
+        If True, more verbose output will be shown
+    filetype: str, optional
+        The file type of the output image. By default, this is png
 
     Returns
     -------
@@ -322,7 +385,7 @@ def plot_spectra(spec_files:str, spec_angles:List[int], outname:str, wmin:float=
         ax.set_title("{} {}".format(root, angle) + "$^{\circ}$", fontsize=20)
 
         fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-        plt.savefig("{}_{}.{}".format(outname, angle, FILETYPE))
+        plt.savefig("{}_{}.{}".format(outname, angle, filetype))
 
         if plot_show:
             plt.show()
@@ -367,7 +430,7 @@ def main() -> None:
     print("\nPlotting spectra".format(spec_files))
     spec_angles = py_plot_util.get_spec_viewing_angles(spec_files)
     plot_spectra(spec_files, spec_angles, outname, wmin=WMIN, wmax=WMAX, plot_iPTF15af=TDE_PLOT, smooth=SMOOTH,
-                 verbose=VERBOSE, plot_show=SHOW_PLOT)
+                 verbose=VERBOSE, plot_show=SHOW_PLOT, filetype=FILETYPE)
 
     # If this is being run in an individual folder, then we can plot the spectrum components and wind parameters
     if len(spec_files) == 1:
