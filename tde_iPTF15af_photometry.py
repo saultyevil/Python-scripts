@@ -4,8 +4,8 @@
 Extinction along the line of sight, AV = 0.093 mag
 """
 
-import py_plot_util
 import numpy as np
+import py_plot_util
 from matplotlib import pyplot as plt
 
 def mag2flux(mag, zero):

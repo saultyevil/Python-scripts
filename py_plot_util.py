@@ -87,7 +87,7 @@ def get_python_version(py:str="py", verbose:bool=False) -> Tuple[str, str]:
     return version, commit_hash
 
 
-def read_spec_file(filename:str, delim:str=" ") -> np.array:
+def read_spec_file(filename:str, delim:str=" ", pandas_table:bool=False) -> Union[np.array, pd.DataFrame]:
     """
     Read in data from an external file, line by line whilst ignoring comments.
         - Comments begin with #
@@ -97,12 +97,14 @@ def read_spec_file(filename:str, delim:str=" ") -> np.array:
     ----------
     filename: str
         The path to the file to be read
-    delim: str
+    delim: str, optional
         The delimiter between values in the file. By default, space is assumed
+    pandas_table: bool, optional
+        Rreturn the spectrum as a Pandas DataFrame instead of a Numpy array
 
     Returns
     -------
-    lines: ncols x nlines array of strings
+    lines: ncols x nlines Numpy array of strings or a Pandas DataFrame
         The file as a numpy array of strings for each column and line
     """
 
@@ -130,7 +132,10 @@ def read_spec_file(filename:str, delim:str=" ") -> np.array:
             if line[0][0] != "#":  # Don't add lines which are comments
                 lines.append(line)
 
-    return np.array(lines)
+    if pandas_table:
+        return  pd.DataFrame(lines[1:], columns=lines[0])
+    else:
+        return np.array(lines)
 
 
 def find_spec_files() -> List[str]:
