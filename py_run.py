@@ -41,6 +41,7 @@ TODO: be able to run simulations from file input
 TODO: flexible flag choices for py_plot.py - input option for the script
 """
 
+
 import argparse
 import datetime
 import py_run_util
@@ -49,6 +50,7 @@ from sys import exit
 from shutil import which
 from typing import Tuple, Union, List
 from subprocess import Popen, PIPE, CalledProcessError
+
 
 CONVERGED = \
 """
@@ -96,7 +98,7 @@ WMIN = None                        # Smallest wavelength to plot
 WMAX = None                        # Largest wavelength to plot
 
 
-def get_run_mode() -> None:
+def get_run_mode()->None:
     """
     Parse the different run modes for the script from the command line. The run options are returned via global
     variables, because why not? :^)
@@ -214,8 +216,8 @@ def get_run_mode() -> None:
     return
 
 
-def py_run(root_name:str, work_dir:str, use_mpi:bool, n_cores:int, py:str="py", resume:bool=False,
-           not_quiet:bool=False, show_all:bool=False) -> Tuple[list, list]:
+def py_run(root_name: str, work_dir: str, use_mpi: bool, n_cores: int, py: str = "py", resume: bool = False,
+           not_quiet: bool = False, show_all: bool = False) ->Tuple[list, list]:
     """
     Function to control running and logging a Python simulation.
 
@@ -297,7 +299,7 @@ def py_run(root_name:str, work_dir:str, use_mpi:bool, n_cores:int, py:str="py", 
     return lines, err
 
 
-def check_python_convergence(root_name:str, work_dir:str, convergence_limit:float) -> Union[float, int]:
+def check_python_convergence(root_name:str, work_dir:str, convergence_limit:float)->Union[float, int]:
     """
     Check the convergence of a Python simulation by reading the diag file.
 
@@ -338,8 +340,8 @@ def check_python_convergence(root_name:str, work_dir:str, convergence_limit:floa
     return convergence_fraction
 
 
-def plot_python_output(root_name:str, work_dir:str, show_output:bool=False, plot_tde:bool=False,
-                       extra_commands:str=None, wmin:Union[float, int]=None, wmax:Union[float, int]=None) -> None:
+def plot_python_output(root_name: str, work_dir: str, extra_commands: str = None, plot_tde: bool = False,
+                       wmin: Union[float, int] = None, wmax: Union[float, int] = None, show_output: bool = False)->None:
     """
     Call py_plot.py and plot the output from a Python simulation.
 
@@ -398,8 +400,8 @@ def plot_python_output(root_name:str, work_dir:str, show_output:bool=False, plot
 
 def run_python_etc(pf_paths: List[str], n_sims: int, use_mpi: bool, n_cores: int, run_sims: bool = False,
                    resume_runs: bool = False, show_convergence: bool = False, clim: float = 0.90,
-                   create_plots: bool = False, wmin: float = None, wmax: float = None, tde_plot: bool = False,
-                   not_quiet: bool = True, show_output: bool = False) -> None:
+                   create_plots: bool = False, tde_plot: bool = False, wmin: float = None, wmax: float = None,
+                   not_quiet: bool = True, show_output: bool = False) ->None:
     """
     Execute all of the different commands...
 
@@ -492,14 +494,14 @@ def run_python_etc(pf_paths: List[str], n_sims: int, use_mpi: bool, n_cores: int
 
         if create_plots:
             print("Creating plots for the simulation\n")
-            plot_python_output(root_name, pf_relative_path, show_output, tde_plot, wmin=wmin, wmax=wmax)
+            plot_python_output(root_name, pf_relative_path, tde_plot, wmin=wmin, wmax=wmax, show_output=show_output)
 
     f.close()
 
     return
 
 
-def main() -> None:
+def main()->None:
     """
     Main control function of the script
 
@@ -530,8 +532,8 @@ def main() -> None:
         return
 
     # Now run Python, plotting and convergence procedures
-    run_python_etc(pf_paths, n_sims, use_mpi, n_procs, RUN_SIMS, RESUME_RUN, SHOW_CONVERGENCE, CLIM, CREATE_PLOTS, WMIN,
-                   WMAX, TDE_PLOT, NOT_QUIET, SHOW_OUTPUT)
+    run_python_etc(pf_paths, n_sims, use_mpi, n_procs, RUN_SIMS, RESUME_RUN, SHOW_CONVERGENCE, CLIM, CREATE_PLOTS,
+                   TDE_PLOT, WMIN, WMAX, NOT_QUIET, SHOW_OUTPUT)
 
     print("--------------------------")
 

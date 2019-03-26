@@ -50,6 +50,7 @@ def plot_3_inclinations(files, titles, suptitle, inds, labels, ncols, nrows, out
             flux1 = py_plot_util.smooth_flux(flux1, SMOOTH, VERBOSE)
             fmax = np.max(flux1)
             flux1 /= fmax
+            flux1 *= 10000
             # inclination angle 2
             flux2 = np.array(spec[1:, inds[1]], dtype=float)
             flux2 = py_plot_util.smooth_flux(flux2, SMOOTH, VERBOSE)
@@ -61,7 +62,7 @@ def plot_3_inclinations(files, titles, suptitle, inds, labels, ncols, nrows, out
             flux3 = py_plot_util.smooth_flux(flux3, SMOOTH, VERBOSE)
             fmax = np.max(flux3)
             flux3 /= fmax
-            flux3 *= 10000  # move up axis MORE
+            flux3 /= 1  # move up axis MORE
 
             # Finally plot...
             ax[i, j].semilogy(wavelength, flux1, label=labels[0])
@@ -71,13 +72,14 @@ def plot_3_inclinations(files, titles, suptitle, inds, labels, ncols, nrows, out
             ax[i, j].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)")
 
             # This may need changing...
-            ax[i, j].set_ylim(1e-3, 1e5)
+            ax[i, j].set_ylim(1e-2, 1e5)
             
             # Set ylims due to inconsistency with spectrum cycles
-            if ylims == "cv_macro":
-                ax[i, j].set_xlim(500, 3000)
+            # if ylims == "cv_macro":
+            #     ax[i, j].set_xlim(500, 3000)
+            ax[i, j].set_xlim(800, 3000)
 
-            ax[i, j].set_title(titles[file])
+            ax[i, j].set_title(titles[file], fontsize=10)
             ax[i, j].legend(loc="lower right")
             file += 1
 
@@ -116,12 +118,12 @@ def plot_agn_grid_1_30():
     #
 
     files = [
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_0/mratio_1/1-30R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_0/mratio_1/1-30R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_2/mratio_1/1-30R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_2/mratio_1/1-30R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_-3/m_ratio1/1-30R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_-2/m_ratio1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_0/mratio_1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_0/mratio_1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_2/mratio_1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_2/mratio_1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_-3/m_ratio1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_-2/m_ratio1/1-30R/tde.spec",
     ]
 
     titles = [
@@ -142,18 +144,19 @@ def plot_agn_grid_1_30():
     #
 
     files = [
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_0/mratio_0.1/1-30R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_0/mratio_0.1/1-30R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_2/mratio_0.1/1-30R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_2/mratio_0.1/1-30R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_-2/mratio_0.1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_0/mratio_0.1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_0/mratio_0.1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_2/mratio_0.1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_2/mratio_0.1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_-2/mratio_0.1/1-30R/tde.spec",
     ]
 
     titles = [
-        "Mdot_acc = 2e-3 mdot_exp = 0",
+
         "Mdot_acc = 2e-1 mdot_exp = 0",
-        "Mdot_acc = 2e-3 mdot_exp = 2",
+        "Mdot_acc = 2e-3 mdot_exp = 0",
         "Mdot_acc = 2e-1 mdot_exp = 2",
+        "Mdot_acc = 2e-3 mdot_exp = 2",
         "Mdot_acc = 2e-3 mdot_exp = -2",
     ]
 
@@ -168,9 +171,9 @@ def plot_agn_grid_1_30():
     #
 
     files = [
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/mdot_2e-2_bigger_disk/mratio_0.1/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/mdot_2e-2_bigger_disk/mratio_0.5/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/mdot_2e-2_bigger_disk/mratio_1/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/mdot_2e-2_bigger_disk/mratio_0.1/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/mdot_2e-2_bigger_disk/mratio_0.5/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/mdot_2e-2_bigger_disk/mratio_1/tde.spec",
     ]
 
     titles = [
@@ -193,15 +196,15 @@ def plot_agn_grid_1_20():
     """
 
     inds = [
-        12,  # 70 degrees
+        11,  # 70 degrees
         13,  # 75 degrees
-        14   # 80 degrees
+        15   # 80 degrees
     ]
 
     legend = [
-        "70 deg",
+        "60 deg",
         "75 deg",
-        "80 deg"
+        "85 deg"
     ]
 
     #
@@ -209,12 +212,12 @@ def plot_agn_grid_1_20():
     #
 
     files = [
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_0/mratio_1/1-20R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_0/mratio_1/1-20R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_2/mratio_1/1-20R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_2/mratio_1/1-20R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_-3/m_ratio1/1-20R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_-2/m_ratio1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_0/mratio_1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_0/mratio_1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_2/mratio_1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_2/mratio_1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_-3/m_ratio1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_-2/m_ratio1/1-20R/tde.spec",
     ]
 
     titles = [
@@ -235,11 +238,11 @@ def plot_agn_grid_1_20():
     #
 
     files = [
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_0/mratio_0.1/1-20R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_0/mratio_0.1/1-20R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_2/mratio_0.1/1-20R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_2/mratio_0.1/1-20R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_-2/mratio_0.1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_0/mratio_0.1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_0/mratio_0.1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_2/mratio_0.1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_2/mratio_0.1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_-2/mratio_0.1/1-20R/tde.spec",
     ]
 
     titles = [
@@ -258,19 +261,55 @@ def plot_agn_grid_1_20():
     return
 
 
+def plot_agn_grid_runs():
+    files = [
+        "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/agn_grid/1-20Rwind/tde.spec",
+        "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/agn_grid/1-30Rwind/tde.spec",
+        "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/agn_grid/1-40Rwind/tde.spec",
+        "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/agn_grid/1-20Rwind_wind_1e16/tde.spec",
+        "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/agn_grid/1-40R_mdot_acc_2e-3/tde.spec",
+    ]
+
+    titles = [
+        "1-20Rwind: mdot_acc 2e-1 mrat 0.1 wind radmax 1e17",
+        "1-30Rwind: mdot_acc 2e-1 mrat 0.1",
+        "1-40Rwind: mdot_acc 2e-1 mrat 0.1",
+        "1-20Rwind_wind_1e16: mdot_acc 2e-1 mrat 0.1 wind radmax 1e16",
+        "1-40R_mdot_acc_2e-3: mratio 0.1 wind radmax 1e16",
+    ]
+
+    inds = [
+        11,
+        13,
+        15
+    ]
+
+    legend = [
+        "60 deg",
+        "75 deg",
+        "85 deg"
+    ]
+
+    outname = "agn_gird_plots.pdf"
+    suptitle = ""
+    plot_3_inclinations(files, titles, suptitle, inds, legend, 2, 3, outname, "agn")
+
+    return
+
+
 def plot_cv_grid():
     """
     Plot grid of CV wind models
     """
 
     inds = [
-        11,
+        10,
         12,
         13,
     ]
 
     legend = [
-        "45 deg",
+        "28 deg",
         "62 deg",
         "80 deg",
     ]
@@ -281,10 +320,10 @@ def plot_cv_grid():
 
     files = [
 
-        "/Users/saultyevil/PySims/TDE/Plots/CV_mdot/exp_1/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Plots/CV_mdot/exp_2/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Plots/CV_mdot/exp_3/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Plots/CV_mdot/exp_-1/tde.spec",
+        "/home/saultyevil/PySims/TDE/Plots/CV_mdot/exp_1/tde.spec",
+        "/home/saultyevil/PySims/TDE/Plots/CV_mdot/exp_2/tde.spec",
+        "/home/saultyevil/PySims/TDE/Plots/CV_mdot/exp_3/tde.spec",
+        "/home/saultyevil/PySims/TDE/Plots/CV_mdot/exp_-1/tde.spec",
     ]
 
     titles = [
@@ -300,9 +339,9 @@ def plot_cv_grid():
     plot_3_inclinations(files, titles, suptitle, inds, legend, 2, 3, outname, "cv")
 
     files = [
-        "/Users/saultyevil/PySims/TDE/Plots/CV_mdot/exp_-2/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Plots/CV_mdot/exp_-3/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Plots/CV_mdot/exp_0/tde.spec",
+        "/home/saultyevil/PySims/TDE/Plots/CV_mdot/exp_-2/tde.spec",
+        "/home/saultyevil/PySims/TDE/Plots/CV_mdot/exp_-3/tde.spec",
+        "/home/saultyevil/PySims/TDE/Plots/CV_mdot/exp_0/tde.spec",
     ]
 
     titles = [
@@ -319,10 +358,10 @@ def plot_cv_grid():
     #
 
     files = [
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/mratio_0.1/1-30R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/mratio_0.5/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/mratio_1/1-30R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/mratio_1.5/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/mratio_0.1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/mratio_0.5/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/mratio_1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/mratio_1.5/tde.spec",
     ]
 
     titles = [
@@ -341,10 +380,10 @@ def plot_cv_grid():
     #
 
     files = [
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/wind_size/1-20R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/wind_size/1-30R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/wind_size/1-50R/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/wind_size/1-70R/tde.spec"
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/wind_size/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/wind_size/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/wind_size/1-50R/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/wind_size/1-70R/tde.spec"
     ]
     
     titles = [
@@ -359,10 +398,10 @@ def plot_cv_grid():
     plot_3_inclinations(files, titles, suptitle, inds, legend, 2, 3, outname, "cv")
 
     files = [
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/tweak/co_mass_2e7/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/tweak/disk_mdot_2e-1/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/tweak/Rdisk/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/tweak/Rdisk2/tde.spec"
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/tweak/co_mass_2e7/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/tweak/disk_mdot_2e-1/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/tweak/Rdisk/tde.spec",
+        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/tweak/Rdisk2/tde.spec"
         
     ]
     
@@ -386,13 +425,13 @@ def star_models():
     """
    
     inds = [
-       11,
+       10,
        12,
        13,
    ]
 
     legend = [
-       "45 deg",
+       "28 deg",
        "62 deg",
        "80 deg",
    ]
@@ -402,11 +441,11 @@ def star_models():
     #
 
     files = [
-        "/Users/saultyevil/PySims/TDE/Star_model/macro_models/sim11_more/tde_macro/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Star_model/macro_models/sim11_more/sim11_V0_sound_speed/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Star_model/macro_models/sim11_more/tde_macro_clump_0.1/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Star_model/macro_models/sim11_more/tde_macro_clump_0.01/tde.spec",
-        "/Users/saultyevil/PySims/TDE/Star_model/macro_models/sim11_more/sim11_no_censrc/tde.spec",
+        "/home/saultyevil/PySims/TDE/Star_model/macro_models/sim11_more/tde_macro/tde.spec",
+        "/home/saultyevil/PySims/TDE/Star_model/macro_models/sim11_more/sim11_V0_sound_speed/tde.spec",
+        "/home/saultyevil/PySims/TDE/Star_model/macro_models/sim11_more/tde_macro_clump_0.1/tde.spec",
+        "/home/saultyevil/PySims/TDE/Star_model/macro_models/sim11_more/tde_macro_clump_0.01/tde.spec",
+        "/home/saultyevil/PySims/TDE/Star_model/macro_models/sim11_more/sim11_no_censrc/tde.spec",
     ]
 
     titles = [
@@ -426,12 +465,12 @@ def star_models():
     #
 
     files = [
-        "/Users/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim6/tdeCV.spec",
-        "/Users/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim7/tdeCV.spec",
-        "/Users/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim8/tdeCV.spec",
-        "/Users/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim8_maxscat/tdeCV.spec",
-        "/Users/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim10/tdeStar.spec",
-        "/Users/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim11/tdeCV.spec",
+        "/home/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim6/tdeCV.spec",
+        "/home/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim7/tdeCV.spec",
+        "/home/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim8/tdeCV.spec",
+        "/home/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim8_maxscat/tdeCV.spec",
+        "/home/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim10/tdeStar.spec",
+        "/home/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim11/tdeCV.spec",
     ]
 
     titles = [
@@ -452,8 +491,8 @@ def star_models():
     #
     
     files = [
-        "/Users/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim12/tdeStar.spec",
-        "/Users/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim12_agn_banding/tdeStar.spec",
+        "/home/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim12/tdeStar.spec",
+        "/home/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim12_agn_banding/tdeStar.spec",
     ]
     
     titles = [
@@ -475,6 +514,7 @@ def main():
 
     plot_agn_grid_1_30()
     plot_agn_grid_1_20()
+    plot_agn_grid_runs()  # new stuff :-)
     plot_cv_grid()
     star_models()
 

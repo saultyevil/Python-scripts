@@ -133,7 +133,7 @@ def read_spec_file(filename:str, delim:str=" ", pandas_table:bool=False) -> Unio
                 lines.append(line)
 
     if pandas_table:
-        return  pd.DataFrame(lines[1:], columns=lines[0])
+        return pd.DataFrame(lines[1:], columns=lines[0])
     else:
         return np.array(lines)
 

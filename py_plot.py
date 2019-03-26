@@ -38,6 +38,7 @@ TODO: add check to see if wind files already exist to avoid issues with windsave
 
 
 import argparse
+import py_rm_data
 import numpy as np
 import py_plot_util
 from matplotlib import pyplot as plt
@@ -455,6 +456,7 @@ def main() -> None:
             var_types = ["ion"] * len(vars)
             plot_python_wind(root, outname+"_ions", path, vars, var_types, filetype=FILETYPE, plot_show=SHOW_PLOT,
                              verbose=VERBOSE)
+        py_rm_data.remove_data_dir(path)
 
     print("\nDone!")
     print("\n--------------------------")
