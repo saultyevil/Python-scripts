@@ -36,10 +36,10 @@ def remove_data_dir(search_dir:str="~/PySims")->int:
         print("Message sent to stderr:")
         print(stderr)
     if stdout:
-        print("Deleting data symbolic links in the following directories:\n\n{}".format(stdout))
+        print("Deleting data symbolic links in the following directories:\n\n{}".format(stdout[:-1]))
     else:
         print("No data symlinks to delete")
-        exit(0)
+        return 0
 
     # Create a hardcoded path and subprocess to remove each file
     ndel = 0
@@ -61,7 +61,9 @@ def remove_data_dir(search_dir:str="~/PySims")->int:
 
 
 if __name__ == "__main__":
+    print("--------------------------------------------------------------------------------\n")
     if len(argv) > 1:
         remove_data_dir(argv[1])
     else:
         remove_data_dir()
+    print("\n--------------------------------------------------------------------------------")

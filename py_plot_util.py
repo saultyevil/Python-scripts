@@ -6,7 +6,6 @@ Various functions used throughout plotting the output from Python. This script s
 rather than being itself run.
 """
 
-
 import os
 import numpy as np
 import pandas as pd
@@ -30,7 +29,7 @@ def tests():
     return
 
 
-def get_python_version(py:str="py", verbose:bool=False) -> Tuple[str, str]:
+def get_python_version(py: str = "py", verbose: bool = False) -> Tuple[str, str]:
     """
     Get the Python version and commit hash for the provided Python binary. This should also work with windsave2table.
 
@@ -70,9 +69,9 @@ def get_python_version(py:str="py", verbose:bool=False) -> Tuple[str, str]:
 
     for i in range(len(out)):
         if out[i] == "Version":
-            version = out[i+1]
+            version = out[i + 1]
         if out[i] == "hash":
-            commit_hash = out[i+1]
+            commit_hash = out[i + 1]
 
     if version == "" and verbose:
         print("py_util.get_python_version: couldn't find version for {}".format(py))
@@ -87,7 +86,7 @@ def get_python_version(py:str="py", verbose:bool=False) -> Tuple[str, str]:
     return version, commit_hash
 
 
-def read_spec_file(filename:str, delim:str=" ", pandas_table:bool=False) -> Union[np.array, pd.DataFrame]:
+def read_spec_file(filename: str, delim: str = " ", pandas_table: bool = False) -> Union[np.array, pd.DataFrame]:
     """
     Read in data from an external file, line by line whilst ignoring comments.
         - Comments begin with #
@@ -196,7 +195,7 @@ def find_pf(ignore_out_pf):
     return pfs
 
 
-def get_spec_viewing_angles(specfiles:List[str], delim:str=" ") -> np.array:
+def get_spec_viewing_angles(specfiles: List[str], delim: str = " ") -> np.array:
     """
     Get all of the unique viewing angles for a set of .spec files.
 
@@ -237,7 +236,7 @@ def get_spec_viewing_angles(specfiles:List[str], delim:str=" ") -> np.array:
     return np.array(vangles)
 
 
-def check_viewing_angle(angle:int, spec:np.array) -> bool:
+def check_viewing_angle(angle: int, spec: np.array) -> bool:
     """
     Check that a viewing angle is legal
 
@@ -268,7 +267,7 @@ def check_viewing_angle(angle:int, spec:np.array) -> bool:
     return allowed
 
 
-def get_root_name_and_path(pf_path:str) -> Tuple[str, str]:
+def get_root_name_and_path(pf_path: str) -> Tuple[str, str]:
     """
     Split the path name into a directory and root name of the Python simulation
 
@@ -304,7 +303,7 @@ def get_root_name_and_path(pf_path:str) -> Tuple[str, str]:
     return root_name, sim
 
 
-def smooth_flux(flux:np.array, smooth:Union[int, float], verbose:bool=False) -> np.array:
+def smooth_flux(flux: np.array, smooth: Union[int, float], verbose: bool = False) -> np.array:
     """
     Smooth the data flux using a Boxcar averaging algorithm.
 
@@ -350,39 +349,28 @@ def smooth_flux(flux:np.array, smooth:Union[int, float], verbose:bool=False) -> 
             print("py_util.smooth_spectra: could not convert smooth {} into an integer".format(smooth))
             return flux
 
-    flux = np.reshape(flux, (len(flux), ))
+    flux = np.reshape(flux, (len(flux),))
     smooth_flux = convolve(flux, boxcar(smooth) / float(smooth), mode="same")
 
     return smooth_flux
 
 
-def get_ylims(wavelength:np.array, flux:np.array, wmin:float=None, wmax:float=None, iPTF15af:bool=False,
-              verbose:bool=False) -> Tuple[float, float]:
+def get_ylims(wavelength: np.array, flux: np.array, wmin: float = None, wmax: float = None, iPTF15af: bool = False,
+              verbose: bool = False) -> Tuple[float, float]:
     """
-    Find the appropriate y limits to use when the wavelength range has been limited. Returns limits which are an order
-    of magnitude larger and smaller than the maximum flux and minimum flux respectively.
+    Find more appropriate y limits to use when the wavelength range has been limited.
 
     Parameters
-    ----------
-    wavelength: array of floats
-        An array containing all of the wavelength points.
-    flux: array of floats
-        An array containing the flux for each wavelength point.
-    wmin: float, optional
-        The smallest wavelength which is being plotted
-    wmax: float, optional
-        The largest wavelength which is being plotted
-    iPTF15af: bool, optional
-        If True, the limits are modified to ensure the iPTF15af spectrum is within the newly calculated flux limits
-    verbose: bool, optional
-        If True, some extra information is pritned to screen
+        wavelength          an array containing all of the wavelength points.
+        flux                an array containing the flux for each wavelength point.
+        wmin                the smallest wavelength which is being plotted
+        wmax                the largest wavelength which is being plotted
+        iPTF15af            [optional] take into account the flux of iPTF15af
+        verbose             [optional] enable verbose printing to screen
 
     Returns
-    -------
-    yupper: float
-        The upper flux limit to use when plotting.
-    ylower: float
-        The lower flux limit to use when plotting
+        yupper          the upper y limit
+        ylower          the lower y limit
     """
 
     wmin_flux = flux.min()
@@ -407,7 +395,7 @@ def get_ylims(wavelength:np.array, flux:np.array, wmin:float=None, wmax:float=No
         ylower = wmin_flux
 
     yupper *= 10
-    ylower /= 10
+    ylower /= 1
 
     # Revolting hack to ensure the Blag TDE spectrum isn't cut off by the lims
     if iPTF15af:
@@ -417,29 +405,23 @@ def get_ylims(wavelength:np.array, flux:np.array, wmin:float=None, wmax:float=No
     return yupper, ylower
 
 
-def get_iPTF15af_spec(smooth:Union[float, int], verbose:bool=False) -> np.array:
+def get_iPTF15af_spec(smooth: Union[float, int], verbose: bool = False) -> np.array:
     """
-    Load the Blagorodnova iPTF15af UV spectrum into
+    Return an array containing the UV spectrum for iPTF15af as in Blagordonova et al. (2019)
 
     Parameters
-    ----------
-    smooth: int
-        The amount of smoothing to be used by the boxcar smoother
-    verbose: bool
-        Enable verbose printing
+        smooth              the amount of smoothing to be used by the boxcar smoother
+        verbose             enable verbose printing
 
     Returns
-    -------
-    blagorodnova_spec: numpy array of floats
-        The UV spectrum of iPTF15af from N. Blagorodnova et al. 2018.
-        ArXiv e-prints, arXiv:1809.07446v1 [astro-ph.HE].
-            Column 0: Wavelength in Angstroms
-            Column 1: Flux per unit wavelength in erg s^-1 cm^-2 A^-1
+    iPTF15af_spec           the UV spectrum of iPTF15af from N. Blagorodnova et al. (2019)
+                                column 0: wavelength in Angstroms
+                                column 1: flux per unit wavelength in erg s^-1 cm^-2 A^-1
     """
 
     try:
         smooth = int(smooth)
-    except:
+    except ValueError:
         print("py_util.get_iPTF15af_spec: Unable to convert smooth into an integer")
         exit(1)
 
@@ -475,29 +457,24 @@ def get_iPTF15af_spec(smooth:Union[float, int], verbose:bool=False) -> np.array:
     return iPTF15af_spec
 
 
-def get_ASSASN_14li_spec(smooth:Union[float, int], verbose:bool=False) -> np.array:
+def get_ASSASN_14li_spec(smooth: Union[float, int], verbose: bool = False) -> np.array:
     """
-    Load the Cenko ASASSN-14li UV spectrum into
+    Return an array containing the UV spectrum for ASSASN14li as in Cenko et al. (2016)
 
     Parameters
-    ----------
-    smooth: int
-        The amount of smoothing to be used by the boxcar smoother
-    verbose: bool
-        Enable verbose printing
+        smooth              the amount of smoothing to be used by the boxcar smoother
+        verbose             enable verbose printing
 
     Returns
-    -------
-    cenk_spec: numpy array of floats
-        The UV spectrum of ASASSN-14li from Cenko et al. 2016.
-            Column 0: Wavelength in Angstroms
-            Column 1: Flux per unit wavelength in erg s^-1 cm^-2 A^-1
-            Column 2: Error in flux
+        ASSASN_14li_spec    the UV spectrum of ASASSN-14li from Cenko et al. 2016.
+                                column 0: wavelength in Angstroms
+                                column 1: flux per unit wavelength in erg s^-1 cm^-2 A^-1
+                                column 2: error in flux
     """
 
     try:
         smooth = int(smooth)
-    except:
+    except ValueError:
         print("py_util.get_ASSASN_14li_spec: Unable to convert smooth into an integer")
         exit(1)
 
@@ -533,23 +510,48 @@ def get_ASSASN_14li_spec(smooth:Union[float, int], verbose:bool=False) -> np.arr
     return ASSASN_14li_spec
 
 
-def run_windsave2table(path:str, root:str, verbose:bool=False) -> Union[int, None]:
+def get_major_absorption_emission_lines() -> dict:
     """
-    Use windsave2table to generate data files for the different quantities in the wind. This function will also create
-    a *.ep.complete file which the function get_wind_data can use to retrieve data.
+    Return a dictionary containing the major absorption and emission lines which I'm interested in. The wavelengths
+    of the lines are in Angstrom.
 
     Parameters
-    ----------
-    path: str
-        The directory of the Python simulation where windsave2table will be run.
-    root: str
-        The root name of the Python simulation.
-    verbose: bool
-        If True, enable verbose output
+        None
 
     Returns
-    -------
-    If something is returned, than an error has occured!
+        major_lines         a dictionary where the keys are the line names
+    """
+
+    major_lines = {
+        "P V": 1118,
+        r"L$_{\alpha}$": 1216,
+        "N V": 1240,
+        "Si IV": 1400,
+        "N IV": 1489,
+        "C IV": 1549,
+        "N III]": 1750,
+        "Al III": 1854,
+        "C III]": 1908,
+        "Mg II": 2798,
+        "He II": 4686,
+        # "FeII": ,  # can't find a fucking value for this cunt
+    }
+
+    return major_lines
+
+
+def run_windsave2table(path: str, root: str, verbose: bool = False) -> Union[int, None]:
+    """
+    Run windsave2table in the directory given by path. This function will also create a *.ep.complete file which
+    combines both the heat and master data tables together.
+
+    Parameters
+        path            the directory of the Python simulation where windsave2table will be run.
+        root            the root name of the Python simulation.
+        verbose         [optional] enable verbose output
+
+    Returns
+        Returns an int on error
     """
 
     # Look for a version file in the directory to see if windsave2table is the
@@ -611,28 +613,22 @@ def run_windsave2table(path:str, root:str, verbose:bool=False) -> Union[int, Non
     return
 
 
-def get_wind_data(root_name:str, var:List[str], var_type:List[str], path:str="./") -> Tuple[np.array, np.array, np.array]:
+def get_wind_data(root_name: str, var: List[str], var_type: List[str], path: str = "./") -> Tuple[
+    np.array, np.array, np.array]:
     """
-    Get the variables given in var from the output data of windsave2table. Note that windsave2table will have to be run
-    before this function can be used or that the files must already exist.
+    Read in variables contained with a windsave2table file. Requires the user to have already run windsave2table already
+    so the data is in the directory.
 
     Parameters
-    ----------
-    root_name: str
-        The root name of the Python simulation
-    var: str
-        The name of the quantity from the Python simulation
-    var_type: str
-        The type of quantity, this can be wind or ion
+        root_name           the root name of the Python simulation
+        var                 the name of the quantity from the Python simulation
+        var_type            the type of quantity, this can be wind or ion
+        path                [optional] the directory containing the Python simulation
 
     Returns
-    -------
-    x: array of floats
-        The x coordinates of the wind in the Python simulation
-    z: array of floats
-        The z coordinates of the wind in the Python simulation
-    qoi_mask: masked array
-        A numpy masked array for the quantity defined in var
+        x                   the x coordinates of the wind in the Python simulation
+        z                   the z coordinates of the wind in the Python simulation
+        qoi_mask            a numpy masked array for the quantity defined in var
     """
 
     if type(root_name) is not str:

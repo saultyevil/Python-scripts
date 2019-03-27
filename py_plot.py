@@ -36,7 +36,7 @@ optional arguments:
 TODO: add check to see if wind files already exist to avoid issues with windsave2table
 """
 
-
+import os
 import argparse
 import py_rm_data
 import numpy as np
@@ -44,17 +44,16 @@ import py_plot_util
 from matplotlib import pyplot as plt
 from typing import List, Tuple, Union
 
-
-VERBOSE = False                # More info will be printed to screen if True
-SHOW_PLOT = False              # If True, the plot will be drawn on screen
-TDE_PLOT = False               # Enable default TDE plotting
-SPECLOGLOG = False             # Enable loglog axes on spectra
-WMIN = None                    # The smallest wavelength to show on the spectra
-WMAX = None                    # The largest wavelength to show on the spectra
-FILETYPE = "png"               # The file type of the output spectra
-SMOOTH = 15                    # The amount of smoothing for the spectra
+VERBOSE = False  # More info will be printed to screen if True
+SHOW_PLOT = False  # If True, the plot will be drawn on screen
+TDE_PLOT = False  # Enable default TDE plotting
+SPECLOGLOG = False  # Enable loglog axes on spectra
+WMIN = None  # The smallest wavelength to show on the spectra
+WMAX = None  # The largest wavelength to show on the spectra
+FILETYPE = "png"  # The file type of the output spectra
+SMOOTH = 15  # The amount of smoothing for the spectra
 OBSERVE_DIST = 100 * 3.086e18  # 100 pc in cm - the default Python distance
-Z = 0                          # Redshift
+Z = 0  # Redshift
 
 
 def get_script_arguments() -> str:
@@ -62,13 +61,10 @@ def get_script_arguments() -> str:
     Parse the various global parameters from the command line.
 
     Parameters
-    ----------
-    None
+        None
 
     Returns
-    -------
-    str:
-        The output base name of the created plots.
+        The output base name for plots
     """
 
     global VERBOSE
@@ -128,42 +124,28 @@ def get_script_arguments() -> str:
     return args.output_name
 
 
-def plot_python_wind(root_name:str, output_name:str, path:str="./", vars:List[str]=None, types:List[str]=None,
-                     shape:Tuple[int, int]=None, title:str=None, loglog:bool=True, filetype:str="png",
-                     plot_show:bool=False, verbose:bool=False, ndims:str="2d") -> None:
+def plot_python_wind(root_name: str, output_name: str, path: str = "./", vars: List[str] = None,
+                     types: List[str] = None, shape: Tuple[int, int] = None, title: str = None, loglog: bool = True,
+                     filetype: str = "png", plot_show: bool = False, ndims: str = "2d", verbose: bool = False) -> None:
     """
     Create a 2D wind plot of the wind variables given in vars.
 
     Parameters
-    ----------
-    root_name: str
-        The root name of the Python simulation
-    output_name: str
-        The base name for the output plot
-    path: str, optional
-        The directory containing the Python simulation
-    vars: list of str, optional
-        The variables to be plotted. If none are provided, default ones are used instead
-    types: list of str, optional
-        The type of the variables to be plotted. Allowed values are wind or ion. One is required for each variable
-    shape: tuple of two ints, optional
-        The number of subplots panels to create, given as (n_rows, n_cols)
-    title: str, optional
-        The title of the plot, placed at the very top
-    loglog: bool, optional
-        If True, log log scaling will be used for the x and y axes
-    filtype: str, optional
-        The file type of the image to create, by default this is png
-    plot_show: bool, optional
-        If True, the plot will be show before saved
-    verbose: bool, optional
-        If True, more verbose output will be shown
-    ndims: str, optional
-        The number of dimensions of the Python simulation. Currently only 2d is supported
+        root_name           the root name of the Python simulation
+        output_name         the base name of the output plot
+        path                the directory containing the Python simulation
+        vars                [optional] the simulation variables to plot
+        types               [optional] the type of the variables to be plotted, allowed values are wind and ion
+        shape               [optional] the number of rows and columns of subplots
+        title               [optional] the plot title
+        loglog              [optional] plot using a log log scale if True
+        filetype            [optional] the file type of the plot
+        plot_show           [optional] show the plot before saving if True
+        ndim                [optional] the dimensionality of the Python simulation - note only 2d is supported
+        verbose             [optional] enable more verbose outputting
 
     Returns
-    -------
-    None
+        None
     """
 
     if ndims == "1d":
@@ -207,7 +189,7 @@ def plot_python_wind(root_name:str, output_name:str, path:str="./", vars:List[st
             fig.colorbar(im, ax=ax[i, j])
             ax[i, j].set_xlabel("x")
             ax[i, j].set_ylabel("z")
-            ax[i, j].set_title(r"$\log_{10}$("+var+")")
+            ax[i, j].set_title(r"$\log_{10}$(" + var + ")")
             if loglog:
                 ax[i, j].set_xscale("log")
                 ax[i, j].set_yscale("log")
@@ -228,31 +210,22 @@ def plot_python_wind(root_name:str, output_name:str, path:str="./", vars:List[st
     return
 
 
-def plot_spec_comps(spec_file:str, outname:str, loglog:bool=False, smooth:int=15, verbose:bool=False,
-                    filetype:str="png", plot_show:bool=False) -> None:
+def plot_spec_comps(spec_file: str, outname: str, loglog: bool = False, smooth: int = 15, filetype: str = "png",
+                    plot_show: bool = False, verbose: bool = False) -> None:
     """
-    Plot the components which makes the integrated flux of a Python Simulation
+    Plot the flux components of a Python spectrum
 
     Parameters
-    ----------
-    spec_file: str
-        The spec file of the Python simulation to plot. Include the full path.
-    outname: str
-        The base name of the output plot
-    loglog: bool, optional
-        If True, log log scales will be used instead of semilogy
-    smooth: int, optional
-        The number of sample points to use in the boxcar smoother
-    verbose: bool, optional
-        If True, more verbose output will be shown
-    filetype: str, optional
-        The file type of the output image. By default, this is png
-    plot_show: bool, optional
-        If True, show the created plot before saving it
+        spec_file           path to spec file to plot
+        outname             base name for the output file
+        loglog              [optional] plot using a log log scale
+        smooth              [optional] number of sample points for boxcar smoother
+        plot_show           [optional] show the plot before saving
+        filetype            [optional] the file type of the plot
+        verbose             [optional] enable verbose output
 
     Returns
-    -------
-    None
+        None
     """
 
     if type(spec_file) is not str:
@@ -301,39 +274,31 @@ def plot_spec_comps(spec_file:str, outname:str, loglog:bool=False, smooth:int=15
     return
 
 
-def plot_spectra(spec_files:List[str], spec_angles:Union[List, np.array], outname:str, wmin:float=None, wmax:float=None,
-                 plot_iPTF15af:bool=False, smooth:int=15, plot_show:bool=False, filetype:str="png",
-                 verbose:bool=False) -> None:
+def plot_spectra(spec_files: List[str], spec_angles: Union[List, np.array], outname: str, smooth: int = 15,
+                 wmin: float = None, wmax: float = None, plot_lines: bool = True, plot_iPTF15af: bool = False,
+                 plot_show: bool = False, filetype: str = "png", verbose: bool = False) -> None:
     """
     Plot the spectrum of each viewing angle of a Python simulation.
 
     Parameters
-    ----------
-    spec_file: str
-        The spec file of the Python simulation to plot. Include the full path.
-    spec_angles: list of ints
-        The spectrum viewing angles which will be plotted
-    outname: str
-        The base name of the output plot
-    wmin: float, optional
-        The smallest wavelength to show
-    wmax: float, optional
-        The longest wavelength to show
-    plot_iPTF15af: bool, optional
-        If True, then the iPTF15af UV spectrum will be overplotted
-    smooth: int, optional
-        The number of sample points to use in the boxcar smoother
-    plot_show: bool, optional
-        If True, show the created plot before saving it
-    verbose: bool, optional
-        If True, more verbose output will be shown
-    filetype: str, optional
-        The file type of the output image. By default, this is png
+        spec_file           path to spec file to plot
+        spec_angles         viewing angles to plot
+        outname             base name for the output file
+        smooth              [optional] number of sample points for boxcar smoother
+        wmin                [optional] smallest wavelength to show
+        wmax                [optional] largest wavelength to show
+        plot_lines          [optional] plot major absorption and emission lines
+        plot_iPTF15af       [optional] overplot iPTF15af
+        plot_show           [optional] show the plot before saving
+        filetype            [optional] the file type of the plot
+        verbose             [optional] enable verbose output
 
     Returns
-    -------
-    None
+        None
     """
+
+    if plot_lines:
+        major_lines = py_plot_util.get_major_absorption_emission_lines()
 
     if plot_iPTF15af:
         iPTF15af_spec = py_plot_util.get_iPTF15af_spec(smooth, verbose)
@@ -343,7 +308,8 @@ def plot_spectra(spec_files:List[str], spec_angles:Union[List, np.array], outnam
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
 
         if plot_iPTF15af:
-            ax.semilogy(iPTF15af_spec[:, 0] / (Z + 1), iPTF15af_spec[:, 1], label="iPTF15af: Blagorodnova et al. (2019)")
+            ax.semilogy(iPTF15af_spec[:, 0] / (Z + 1), iPTF15af_spec[:, 1],
+                        label="iPTF15af: Blagorodnova et al. (2019)")
 
         # Loop over each possible .spec file
         for file in spec_files:
@@ -372,17 +338,29 @@ def plot_spectra(spec_files:List[str], spec_angles:Union[List, np.array], outnam
 
             # Scale the flux
             default_dist = 100 * 3.08567758128e18  # 100 pc
-            flux *= (default_dist**2 / OBSERVE_DIST**2)
+            flux *= (default_dist ** 2 / OBSERVE_DIST ** 2)
             yupper, ylower = py_plot_util.get_ylims(wavelength, flux)
+
+            # Add the major absorption and emission lines to the plot
+            if plot_lines:
+                for count, line in enumerate(major_lines):
+                    if count % 2 == 0:
+                        ax.axvline(major_lines[line], 0.3, 0.4, linewidth=1.4, color="k")
+                        ax.text(major_lines[line], 7 * ylower, line, ha="center", va="center", fontsize=12)
+                    else:
+                        ax.axvline(major_lines[line], 0.65, 0.75, linewidth=1.4, color="k")
+                        ax.text(major_lines[line], 0.22 * yupper, line, ha="center", va="center", fontsize=12)
 
             ax.semilogy(wavelength, flux, label=legend)
             ax.set_xlim(wmin, wmax)
             ax.set_ylim(ylower, yupper)
             ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
-            ax.set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)", fontsize=17)
-            ax.tick_params(labelsize=17)
+            ax.set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)", fontsize=15)
+            ax.minorticks_on()
+            ax.tick_params(which="major", length=10, direction="inout", labelsize=15)
+            ax.tick_params(which="minor", length=5, direction="inout")
 
-        ax.legend(loc="best")
+        ax.legend(loc="lower right")
         ax.set_title("{} {}".format(root, angle) + "$^{\circ}$", fontsize=20)
 
         fig.tight_layout(rect=[0, 0.03, 1, 0.95])
@@ -401,12 +379,10 @@ def main() -> None:
     The main controlling function of the script.
 
     Parameters
-    ----------
-    None
+        None
 
     Returns
-    -------
-    None
+        None
     """
 
     # Parse the running options from the command line
@@ -430,32 +406,34 @@ def main() -> None:
     # Plot spectra
     print("\nPlotting spectra".format(spec_files))
     spec_angles = py_plot_util.get_spec_viewing_angles(spec_files)
-    plot_spectra(spec_files, spec_angles, outname, wmin=WMIN, wmax=WMAX, plot_iPTF15af=TDE_PLOT, smooth=SMOOTH,
-                 verbose=VERBOSE, plot_show=SHOW_PLOT, filetype=FILETYPE)
+    plot_spectra(spec_files, spec_angles, outname, smooth=SMOOTH, wmin=WMIN, wmax=WMAX, plot_iPTF15af=TDE_PLOT,
+                 plot_show=SHOW_PLOT, filetype=FILETYPE, verbose=VERBOSE)
+
+    exit(1)
 
     # If this is being run in an individual folder, then we can plot the spectrum components and wind parameters
     if len(spec_files) == 1:
         root, path = py_plot_util.get_root_name_and_path(spec_files[0])
         print("\nPlotting spectrum components")
-        plot_spec_comps(spec_files[0], outname, loglog=SPECLOGLOG, smooth=SMOOTH, verbose=VERBOSE, filetype=FILETYPE,
-                        plot_show=SHOW_PLOT)
+        plot_spec_comps(spec_files[0], outname, loglog=SPECLOGLOG, smooth=SMOOTH, filetype=FILETYPE,
+                        plot_show=SHOW_PLOT, verbose=VERBOSE)
         # Run windsave2table to extract data from the wind_save file
-        rc = py_plot_util.run_windsave2table(path, root, VERBOSE)
-        if rc:
-            print("py_plot.main: windsave2table failed, skipping wind and ion plots")
-        else:
-            # Plot some wind quantities first
-            print("\nPlotting wind quantities")
-            vars = ["t_e", "t_r", "ne", "v_x", "v_y", "v_z", "ip", "c4"]
-            var_types = ["wind"] * len(vars)
-            plot_python_wind(root, outname+"_wind", path, vars, var_types, filetype=FILETYPE, plot_show=SHOW_PLOT,
-                             verbose=VERBOSE)
-            # Now plot some ions
-            print("\nPlotting wind ions")
-            vars = ["H_i01", "H_i02", "C_i03", "C_i04", "C_i05", "Si_i04", "N_i05", "O_i06"]
-            var_types = ["ion"] * len(vars)
-            plot_python_wind(root, outname+"_ions", path, vars, var_types, filetype=FILETYPE, plot_show=SHOW_PLOT,
-                             verbose=VERBOSE)
+        if os.path.isfile("{}.ep.complete".format(root)) is False:
+            rc = py_plot_util.run_windsave2table(path, root, VERBOSE)
+            if rc:
+                print("py_plot.main: windsave2table failed to run")
+        # Plot some wind quantities first
+        print("\nPlotting wind quantities")
+        vars = ["t_e", "t_r", "ne", "v_x", "v_y", "v_z", "ip", "c4"]
+        var_types = ["wind"] * len(vars)
+        plot_python_wind(root, outname + "_wind", path, vars, var_types, filetype=FILETYPE, plot_show=SHOW_PLOT,
+                         verbose=VERBOSE)
+        # Now plot some ions
+        print("\nPlotting wind ions")
+        vars = ["H_i01", "H_i02", "C_i03", "C_i04", "C_i05", "Si_i04", "N_i05", "O_i06"]
+        var_types = ["ion"] * len(vars)
+        plot_python_wind(root, outname + "_ions", path, vars, var_types, filetype=FILETYPE, plot_show=SHOW_PLOT,
+                         verbose=VERBOSE)
         py_rm_data.remove_data_dir(path)
 
     print("\nDone!")
