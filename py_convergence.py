@@ -94,7 +94,7 @@ def grep_convergence(filename):
     ncycles = len(converged)
     for i in range(ncycles):
         print("Cycle {:2d}/{:2d}: {:3.0f}% cells converged and {:3.0f}% cells still converging".format(
-                i + 1, ncycles, converged[i][1] * 100, converging[0][1] * 100))
+                i + 1, ncycles, converged[i][1] * 100, converging[i][1] * 100))
 
     # Return the lists as arrays to make life easier later
     return np.array(converged), np.array(converging)
