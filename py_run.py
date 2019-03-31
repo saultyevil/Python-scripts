@@ -194,18 +194,6 @@ def get_run_mode() -> None:
 def py_run(root: str, work: str, use_mpi: bool, n_cores: int) -> Tuple[list, list]:
     """
     Function to control running and logging a Python simulation.
-
-    Parameters
-    ----------
-    root            The root name of the Python simulation
-    work            The directory of the Python simulation.
-    use_mpi         If set to True, MPI will be used to parallelise Python.
-    n_cores         The number of cores to parallelise Python over.
-
-    Returns
-    -------
-    lines           The Python output which is sent to stdout.
-    err             The Python output which is sent to stderr.
     """
 
     outf_name = "{}/{}_{}{}{}.txt".format(work, root, DATE.year, DATE.month, DATE.day)
@@ -262,16 +250,6 @@ def py_run(root: str, work: str, use_mpi: bool, n_cores: int) -> Tuple[list, lis
 def check_python_convergence(root: str, dir: str) -> Union[float, int]:
     """
     Check the convergence of a Python simulation by reading the diag file.
-
-    Parameters
-    ----------
-    root            The root name of the Python simulation.
-    dir             The directory containing the Python simulation
-
-    Returns
-    -------
-    convergence_fraction            The fraction of converged cells in the Python simulation.
-                                    If this is -1, this indicates an error.
     """
 
     if 0 > CLIM > 1:
@@ -299,17 +277,6 @@ def check_python_convergence(root: str, dir: str) -> Union[float, int]:
 def plot_python_output(root_name: str, work_dir: str, extra_commands: str = None) -> None:
     """
     Call py_plot.py and plot the output from a Python simulation.
-
-    Parameters
-    ----------
-    root_name           the root name of the Python simulation
-    work_dir            the directory containing the Python simulation
-    verbose             if set to True, output from the plotting script will be shown
-    extra_commands      provide extra commands to the plotting script
-
-    Returns
-    -------
-    None
     """
 
     path = which("py_plot.py")
@@ -371,17 +338,6 @@ def plot_tde(root: str, dir: str, verbose: bool = False) -> None:
 def run_python_etc(pf_paths: List[str], n_sims: int, use_mpi: bool, n_cores: int) -> None:
     """
     Execute all of the different commands to run a Python simulation
-
-    Parameters
-    ----------
-    pf_paths        the directories of the Python simulations
-    n_sims          the number of simulations to be run
-    use_mpi         if True, MPI will be used to parallelise Python
-    n_cores         the number of cores to run Python with
-
-    Returns
-    -------
-    None
     """
 
     if CONVERGENCE:
@@ -438,6 +394,14 @@ def run_python_etc(pf_paths: List[str], n_sims: int, use_mpi: bool, n_cores: int
 def main() -> None:
     """
     Main control function of the script
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
     """
 
     # Determine which routines to run for each simulation

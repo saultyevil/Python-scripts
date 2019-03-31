@@ -31,8 +31,8 @@ from typing import List, Tuple, Union
 VERBOSE = False
 SHOW_PLOT = False
 SPECLOGLOG = False
-WMIN = 0
-WMAX = 0
+WMIN = None
+WMAX = None
 FILETYPE = "png"
 SMOOTH = 15
 OBSERVE_DIST = 100 * PARSEC
@@ -148,7 +148,7 @@ def plot_python_wind(root_name: str, output_name: str, path: str = "./", vars: L
     if vars is None:
         vars = ["t_e", "t_r", "ne", "v_x", "v_y", "v_z", "ip", "c4"]
     if var_type is None:
-        var_type = ["wind", "wind", "wind", "wind", "wind", "wind", "wind", "wind"]
+        var_type = ["wind"] * len(vars)
     if subplot_dims is None:
         subplot_dims = (4, 2)
 
@@ -165,15 +165,15 @@ def plot_python_wind(root_name: str, output_name: str, path: str = "./", vars: L
     for i in range(subplot_dims[0]):
         for j in range(subplot_dims[1]):
             var = vars[idx]
-            var_type = var_type[idx]
-            x, z, qoi = py_plot_util.get_wind_data(root_name, var, var_type)
+            var_t = var_type[idx]
+            x, z, qoi = py_plot_util.get_wind_data(root_name, var, var_t)
             if qoi.all() == 0 and x.all() == 0 and z.all() == 0:
                 idx += 1
                 continue
             with np.errstate(divide="ignore"):
-                if var_type.lower() == "ion":
+                if var_t.lower() == "ion":
                     im = ax[i, j].pcolor(x, z, np.log10(qoi), vmin=-5, vmax=0)
-                elif var_type.lower() == "wind":
+                elif var_t.lower() == "wind":
                     im = ax[i, j].pcolor(x, z, np.log10(qoi))
                 else:
                     print("py_plot.plot_python_wind: type {} not recognised".format(type))
@@ -420,6 +420,7 @@ def main() -> None:
         var_types = ["ion"] * len(vars)
         plot_python_wind(root, outname + "_ions", path, vars, var_types, filetype=FILETYPE, show_plot=SHOW_PLOT,
                          verbose=VERBOSE)
+        print("")  # spacer :-)
         py_rm_data.remove_data_dir(path)
 
     print("\nDone!")

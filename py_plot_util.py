@@ -395,8 +395,9 @@ def get_ylims(wavelength: np.array, flux: np.array, wmin: float, wmax: float, ve
                     The lower y limit to use with the wavelength range
     """
 
-    if wavelength.shape != flux.shape:
+    if wavelength.shape[0] != flux.shape[0]:
         print("py_plot_util.get_y_lims: wavelength and flux are of different dimensions!")
+        print(wavelength.shape, flux.shape)
         exit(1)
 
     wmin_flux = flux.min()

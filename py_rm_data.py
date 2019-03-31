@@ -11,19 +11,21 @@ from sys import argv
 from subprocess import Popen, PIPE
 
 
-def remove_data_dir(search_dir:str="~/PySims")->int:
+def remove_data_dir(search_dir:str="~/PySims", verbose: bool = False)->int:
     """
     Search recursively from search_dir and downwards for directories, files and symlinks named data.
 
     Parameters
     ----------
-    search_dir: str
-        The base directory of which to search recursively for Python data symbolic links.
+    search_dir      str
+                    The base directory of which to search recursively for Python data symbolic links.
+    verbose         bool, optional
+                    Enable verbose logging
 
     Returns
     -------
-    ndel: int
-        The number of symbolic links which were deleted
+    ndel            int
+                    The number of symbolic links which were deleted
     """
 
     # - type l will only search for symbolic links named data
@@ -52,7 +54,7 @@ def remove_data_dir(search_dir:str="~/PySims")->int:
         if stdout:
             print(stdout)
         stderr = stderr.decode("utf-8")
-        if stderr:
+        if stderr and verbose:
             print(stderr)
         else:
             ndel += 1
@@ -63,7 +65,7 @@ def remove_data_dir(search_dir:str="~/PySims")->int:
 if __name__ == "__main__":
     print("--------------------------------------------------------------------------------\n")
     if len(argv) > 1:
-        remove_data_dir(argv[1])
+        remove_data_dir(argv[1], verbose=True)
     else:
-        remove_data_dir()
+        remove_data_dir(verbose=True)
     print("\n--------------------------------------------------------------------------------")
