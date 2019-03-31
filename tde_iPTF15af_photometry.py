@@ -7,6 +7,7 @@ Extinction along the line of sight, AV = 0.093 mag
 import numpy as np
 import py_plot_util
 from matplotlib import pyplot as plt
+from tde_spec_plot import plot_line_ids
 
 def mag2flux(mag, zero):
     return zero * 10**(-mag / 2.5)
@@ -16,7 +17,7 @@ verbose = False
 Z = 0.07897
 
 # load in cv spec
-spec_file = "/Users/saultyevil/PySims/TDE/Star_model/macro_models/sim11_more/tde_macro/tde.spec"
+spec_file = "/home/saultyevil/PySims/TDE/cv_star_model/macro_models/sim11_more/tde_macro/tde.spec"
 spec = py_plot_util.read_spec_file(spec_file, " ")
 wavelength = np.array(spec[1:, 1], dtype=float)
 
@@ -98,7 +99,16 @@ for i in range(len(fluxs)):
 ax.set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)")
 ax.set_xlabel(r"Wavelength ($\AA$)")
 ax.set_xlim(500, 10000)
+ax.set_ylim(1e-18, 1e-13)
+
+# ##################
+
+lines = py_plot_util.get_common_line_ids()
+ax = plot_line_ids(ax, lines, rotation="vertical")
+
+# #################
+
 ax.legend()
 fig.tight_layout()
-plt.savefig("/Users/saultyevil/Dropbox/iIPTF15af_python_sed_photometry.png")
+plt.savefig("/home/saultyevil/PySims/TDE/iIPTF15af_python_sed_photometry.png")
 plt.close()

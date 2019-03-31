@@ -12,7 +12,7 @@ DEFAULT_DIST = 100 * 3.08567758128e18  # 100 pc
 fig, ax = plt.subplots(1, 1, figsize=(12, 8))
 
 # Read in and normalise the observed spectra
-cenkspec = py_plot_util.get_ASSASN_14li_spec(SMOOTH, VERBOSE)
+cenkspec = py_plot_util.get_ASSASN14li_spec(SMOOTH, VERBOSE)
 blag_spec = py_plot_util.get_iPTF15af_spec(SMOOTH, VERBOSE)
 cenk_max = cenkspec[:, 1].max()
 cenk_norm = cenkspec[:, 1] / cenk_max

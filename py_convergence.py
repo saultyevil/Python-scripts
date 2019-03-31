@@ -43,10 +43,7 @@ def plot_convergence(rootname, converged, converging):
     plt.ylabel("Total Fraction")
     plt.title("Max convergence reached = {}".format(max_convergence))
     plt.savefig("{}_convergence.{}".format(rootname, filetype))
-    if showplot:
-        plt.show()
-    else:
-        plt.close()
+    plt.close()
 
     return
 
@@ -79,7 +76,7 @@ def grep_convergence(filename):
     if len(out) == 0:
         print("No output from grep")
         sys.exit(0)
-    print(stdout.decode("utf-8"))
+    # print(stdout.decode("utf-8"))
 
     # Loop over the grep output and separate converged and converging fractions into lists
     cycle = 0
@@ -93,6 +90,11 @@ def grep_convergence(filename):
             n_converging = out[i-1].replace("(", "").replace(")", "")
             converging.append([cycle, float(n_converging)])
             cycle += 1
+
+    ncycles = len(converged)
+    for i in range(ncycles):
+        print("Cycle {:2d}/{:2d}: {:3.0f}% cells converged and {:3.0f}% cells still converging".format(
+                i + 1, ncycles, converged[i][1] * 100, converging[0][1] * 100))
 
     # Return the lists as arrays to make life easier later
     return np.array(converged), np.array(converging)
@@ -145,7 +147,8 @@ def main():
     print("Finding convergence for Python simulation {}.pf".format(rootname))
     filename = "diag_{}/{}_0.diag".format(rootname, rootname)
     converged, converging = grep_convergence(filename)
-    plot_convergence(rootname, converged, converging)
+    if showplot:
+        plot_convergence(rootname, converged, converging)
 
     return
 
