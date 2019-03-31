@@ -51,10 +51,10 @@ def remove_data_dir(search_dir:str="~/PySims", verbose: bool = False)->int:
         cmd = "rm {}".format(dir)
         stdout, stderr = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True).communicate()
         stdout = stdout.decode("utf-8")
-        if stdout:
+        if stdout and verbose:
             print(stdout)
         stderr = stderr.decode("utf-8")
-        if stderr and verbose:
+        if stderr:
             print(stderr)
         else:
             ndel += 1

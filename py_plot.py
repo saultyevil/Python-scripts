@@ -408,6 +408,7 @@ def main() -> None:
             rc = py_plot_util.run_windsave2table(path, root, VERBOSE)
             if rc:
                 print("py_plot.main: windsave2table failed to run")
+                exit(1)
         # Plot some wind quantities first
         print("\nPlotting wind quantities")
         vars = ["t_e", "t_r", "ne", "v_x", "v_y", "v_z", "ip", "c4"]
