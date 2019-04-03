@@ -347,10 +347,16 @@ def main() -> None:
     if args.lineid:
         PLOT_LINE_IDS = True
 
+    print("--------------------------\n")
+
     if args.inclination:
+        print("Plotting {} spectrum for inclination {}".format(root, args.inclination))
         spec_plot_one(root, args.inclination)
     else:
+        print("Plotting {} spectra for all inclination angles".format(root))
         spec_plot_multiple(root)
+
+    print("\n--------------------------")
 
     return
 

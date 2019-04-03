@@ -180,11 +180,13 @@ def check_convergence(root_name: str, work_dir: str) -> Union[int, float]:
             "py_util.read_convergence: Couldn't open read only copy of {}. Does the diag file exist?".format(diag_path))
         return -1
 
+    converge_lines = []
     converge_fraction = None
     for line in diag:
         if line.find("!!Check_converging") != -1:
             c_string = line.split()[2].replace("(", "").replace(")", "")
             converge_fraction = float(c_string)
+            converge_lines.append(line)
 
     if converge_fraction is None:
         print("py_util.read_convergence: unable to parse convergence fraction from diag file {}"

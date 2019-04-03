@@ -111,6 +111,7 @@ def parse_rootname():
     Returns
     -------
     rootname: str
+from sys import argv
         The rootname of the Python simulation.
     """
 

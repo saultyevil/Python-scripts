@@ -706,7 +706,7 @@ def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./") -> 
     file_exists = os.path.isfile(file)
     if not file_exists:
         print("py_util.get_wind_data: file {} doesn't exist for var {}".format(file, var))
-        rc = np.zeros((10, 10))
+        rc = np.zeros(1)
         return rc, rc, rc
 
     # Try to open the data file

@@ -20,7 +20,7 @@ from sys import argv
 from shutil import copyfile
 
 
-def main(pf, parameter, value):
+def change_python_parameter(pf, parameter, value):
     """
     Search a parameter file for a given parameter and replaces the current value
     with a new value. This script will change the parameter file, even if the
@@ -86,4 +86,4 @@ if __name__ == "__main__":
         root = argv[1]
         parameter = argv[2]
         value = argv[3]
-    main(root, parameter, value)
+    change_python_parameter(root, parameter, value)

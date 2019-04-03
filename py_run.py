@@ -324,7 +324,7 @@ def plot_tde(root: str, dir: str, verbose: bool = False) -> None:
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
     out = stdout.decode("utf-8")
-    err = stdout.decode("utf-8")
+    err = stderr.decode("utf-8")
 
     if verbose:
         print(out)

@@ -118,12 +118,12 @@ def plot_agn_grid_1_30():
     #
 
     files = [
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_0/mratio_1/1-30R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_0/mratio_1/1-30R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_2/mratio_1/1-30R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_2/mratio_1/1-30R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_-3/m_ratio1/1-30R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_-2/m_ratio1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-1/Mdot_exp_0/mratio_1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-3/Mdot_exp_0/mratio_1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-1/Mdot_exp_2/mratio_1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-3/Mdot_exp_2/mratio_1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-1/Mdot_exp_-3/m_ratio1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-3/Mdot_exp_-2/m_ratio1/1-30R/tde.spec",
     ]
 
     titles = [
@@ -144,11 +144,11 @@ def plot_agn_grid_1_30():
     #
 
     files = [
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_0/mratio_0.1/1-30R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_0/mratio_0.1/1-30R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_2/mratio_0.1/1-30R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_2/mratio_0.1/1-30R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_-2/mratio_0.1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-1/Mdot_exp_0/mratio_0.1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-3/Mdot_exp_0/mratio_0.1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-1/Mdot_exp_2/mratio_0.1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-3/Mdot_exp_2/mratio_0.1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-3/Mdot_exp_-2/mratio_0.1/1-30R/tde.spec",
     ]
 
     titles = [
@@ -171,9 +171,9 @@ def plot_agn_grid_1_30():
     #
 
     files = [
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/mdot_2e-2_bigger_disk/mratio_0.1/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/mdot_2e-2_bigger_disk/mratio_0.5/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/mdot_2e-2_bigger_disk/mratio_1/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/mdot_2e-2_bigger_disk/mratio_0.1/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/mdot_2e-2_bigger_disk/mratio_0.5/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/mdot_2e-2_bigger_disk/mratio_1/tde.spec",
     ]
 
     titles = [
@@ -212,12 +212,12 @@ def plot_agn_grid_1_20():
     #
 
     files = [
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_0/mratio_1/1-20R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_0/mratio_1/1-20R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_2/mratio_1/1-20R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_2/mratio_1/1-20R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_-3/m_ratio1/1-20R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_-2/m_ratio1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-1/Mdot_exp_0/mratio_1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-3/Mdot_exp_0/mratio_1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-1/Mdot_exp_2/mratio_1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-3/Mdot_exp_2/mratio_1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-1/Mdot_exp_-3/m_ratio1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-3/Mdot_exp_-2/m_ratio1/1-20R/tde.spec",
     ]
 
     titles = [
@@ -238,11 +238,11 @@ def plot_agn_grid_1_20():
     #
 
     files = [
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_0/mratio_0.1/1-20R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_0/mratio_0.1/1-20R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_2/mratio_0.1/1-20R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-1/Mdot_exp_2/mratio_0.1/1-20R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/AGN_Model/disk_mdot_2e-3/Mdot_exp_-2/mratio_0.1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-3/Mdot_exp_0/mratio_0.1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-1/Mdot_exp_0/mratio_0.1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-3/Mdot_exp_2/mratio_0.1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-1/Mdot_exp_2/mratio_0.1/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/agn_model/disk_mdot_2e-3/Mdot_exp_-2/mratio_0.1/1-20R/tde.spec",
     ]
 
     titles = [
@@ -263,11 +263,11 @@ def plot_agn_grid_1_20():
 
 def plot_agn_grid_runs():
     files = [
-        "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/agn_grid/1-20Rwind/tde.spec",
-        "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/agn_grid/1-30Rwind/tde.spec",
-        "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/agn_grid/1-40Rwind/tde.spec",
-        "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/agn_grid/1-20Rwind_wind_1e16/tde.spec",
-        "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/agn_grid/1-40R_mdot_acc_2e-3/tde.spec",
+        "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/agn_grid_simple/1-20Rwind/tde.spec",
+        "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/agn_grid_simple/1-30Rwind/tde.spec",
+        "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/agn_grid_simple/1-40Rwind/tde.spec",
+        "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/agn_grid_simple/1-20Rwind_wind_1e16/tde.spec",
+        "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/agn_grid_simple/1-40R_mdot_acc_2e-3/tde.spec",
     ]
 
     titles = [
@@ -358,10 +358,10 @@ def plot_cv_grid():
     #
 
     files = [
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/mratio_0.1/1-30R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/mratio_0.5/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/mratio_1/1-30R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/mratio_1.5/tde.spec",
+        "/home/saultyevil/PySims/TDE/cv_model/disk_mdot_2e-2/mratio_0.1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/cv_model/disk_mdot_2e-2/mratio_0.5/tde.spec",
+        "/home/saultyevil/PySims/TDE/cv_model/disk_mdot_2e-2/mratio_1/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/cv_model/disk_mdot_2e-2/mratio_1.5/tde.spec",
     ]
 
     titles = [
@@ -380,10 +380,10 @@ def plot_cv_grid():
     #
 
     files = [
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/wind_size/1-20R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/wind_size/1-30R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/wind_size/1-50R/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/disk_mdot_2e-2/wind_size/1-70R/tde.spec"
+        "/home/saultyevil/PySims/TDE/cv_model/disk_mdot_2e-2/wind_size/1-20R/tde.spec",
+        "/home/saultyevil/PySims/TDE/cv_model/disk_mdot_2e-2/wind_size/1-30R/tde.spec",
+        "/home/saultyevil/PySims/TDE/cv_model/disk_mdot_2e-2/wind_size/1-50R/tde.spec",
+        "/home/saultyevil/PySims/TDE/cv_model/disk_mdot_2e-2/wind_size/1-70R/tde.spec"
     ]
     
     titles = [
@@ -398,10 +398,10 @@ def plot_cv_grid():
     plot_3_inclinations(files, titles, suptitle, inds, legend, 2, 3, outname, "cv")
 
     files = [
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/tweak/co_mass_2e7/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/tweak/disk_mdot_2e-1/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/tweak/Rdisk/tde.spec",
-        "/home/saultyevil/PySims/TDE/Wind_1Rstar_models/CV_Model/tweak/Rdisk2/tde.spec"
+        "/home/saultyevil/PySims/TDE/cv_model/tweak/co_mass_2e7/tde.spec",
+        "/home/saultyevil/PySims/TDE/cv_model/tweak/disk_mdot_2e-1/tde.spec",
+        "/home/saultyevil/PySims/TDE/cv_model/tweak/Rdisk/tde.spec",
+        "/home/saultyevil/PySims/TDE/cv_model/tweak/Rdisk2/tde.spec"
         
     ]
     
@@ -441,11 +441,11 @@ def star_models():
     #
 
     files = [
-        "/home/saultyevil/PySims/TDE/Star_model/macro_models/sim11_more/tde_macro/tde.spec",
-        "/home/saultyevil/PySims/TDE/Star_model/macro_models/sim11_more/sim11_V0_sound_speed/tde.spec",
-        "/home/saultyevil/PySims/TDE/Star_model/macro_models/sim11_more/tde_macro_clump_0.1/tde.spec",
-        "/home/saultyevil/PySims/TDE/Star_model/macro_models/sim11_more/tde_macro_clump_0.01/tde.spec",
-        "/home/saultyevil/PySims/TDE/Star_model/macro_models/sim11_more/sim11_no_censrc/tde.spec",
+        "/home/saultyevil/PySims/TDE/cv_star_model/macro_models/sim11_more/tde_macro/tde.spec",
+        "/home/saultyevil/PySims/TDE/cv_star_model/macro_models/sim11_more/sim11_V0_sound_speed/tde.spec",
+        "/home/saultyevil/PySims/TDE/cv_star_model/macro_models/sim11_more/tde_macro_clump_0.1/tde.spec",
+        "/home/saultyevil/PySims/TDE/cv_star_model/macro_models/sim11_more/tde_macro_clump_0.01/tde.spec",
+        "/home/saultyevil/PySims/TDE/cv_star_model/macro_models/sim11_more/sim11_no_censrc/tde.spec",
     ]
 
     titles = [
@@ -465,12 +465,12 @@ def star_models():
     #
 
     files = [
-        "/home/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim6/tdeCV.spec",
-        "/home/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim7/tdeCV.spec",
-        "/home/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim8/tdeCV.spec",
-        "/home/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim8_maxscat/tdeCV.spec",
-        "/home/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim10/tdeStar.spec",
-        "/home/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim11/tdeCV.spec",
+        "/home/saultyevil/PySims/TDE/cv_star_model/simple_atom_models/sim6/tdeCV.spec",
+        "/home/saultyevil/PySims/TDE/cv_star_model/simple_atom_models/sim7/tdeCV.spec",
+        "/home/saultyevil/PySims/TDE/cv_star_model/simple_atom_models/sim8/tdeCV.spec",
+        "/home/saultyevil/PySims/TDE/cv_star_model/simple_atom_models/sim8_maxscat/tdeCV.spec",
+        "/home/saultyevil/PySims/TDE/cv_star_model/simple_atom_models/sim10/tdeStar.spec",
+        "/home/saultyevil/PySims/TDE/cv_star_model/simple_atom_models/sim11/tdeCV.spec",
     ]
 
     titles = [
@@ -491,8 +491,8 @@ def star_models():
     #
     
     files = [
-        "/home/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim12/tdeStar.spec",
-        "/home/saultyevil/PySims/TDE/Star_model/simple_atom_models/sim12_agn_banding/tdeStar.spec",
+        "/home/saultyevil/PySims/TDE/cv_star_model/simple_atom_models/sim12/tdeStar.spec",
+        "/home/saultyevil/PySims/TDE/cv_star_model/simple_atom_models/sim12_agn_banding/tdeStar.spec",
     ]
     
     titles = [

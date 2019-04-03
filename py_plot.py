@@ -27,10 +27,11 @@ import py_plot_util
 from consts import *
 from matplotlib import pyplot as plt
 from typing import List, Tuple, Union
+import tde_spec_plot
 
 VERBOSE = False
 SHOW_PLOT = False
-SPECLOGLOG = False
+SPEC_LOGLOG = False
 WMIN = None
 WMAX = None
 FILETYPE = "png"
@@ -54,7 +55,7 @@ def get_script_arguments() -> str:
 
     global VERBOSE
     global SHOW_PLOT
-    global SPECLOGLOG
+    global SPEC_LOGLOG
     global WMIN
     global WMAX
     global FILETYPE
@@ -81,7 +82,7 @@ def get_script_arguments() -> str:
     if args.show:
         SHOW_PLOT = True
     if args.loglog:
-        SPECLOGLOG = True
+        SPEC_LOGLOG = True
     if args.wmin:
         WMIN = args.wmin
     if args.wmax:
@@ -161,26 +162,34 @@ def plot_python_wind(root_name: str, output_name: str, path: str = "./", vars: L
         return
 
     idx = 0
-    fig, ax = plt.subplots(subplot_dims[0], subplot_dims[1], figsize=(8, 15), squeeze=False)
+    fig, ax = plt.subplots(subplot_dims[0], subplot_dims[1], figsize=(10, 15), squeeze=False)
     for i in range(subplot_dims[0]):
         for j in range(subplot_dims[1]):
             var = vars[idx]
             var_t = var_type[idx]
+            if verbose:
+                print("\tPlotting {} of type {}".format(var, var_t))
             x, z, qoi = py_plot_util.get_wind_data(root_name, var, var_t)
-            if qoi.all() == 0 and x.all() == 0 and z.all() == 0:
+            if len(qoi) == 1 and len(x) == 1 and len(z) == 1:
                 idx += 1
                 continue
             with np.errstate(divide="ignore"):
-                if var_t.lower() == "ion":
+                if var == "converge":
+                    im = ax[i, j].pcolor(x, z, qoi)
+                elif var_t == "ion":
                     im = ax[i, j].pcolor(x, z, np.log10(qoi), vmin=-5, vmax=0)
-                elif var_t.lower() == "wind":
+                elif var_t == "wind":
                     im = ax[i, j].pcolor(x, z, np.log10(qoi))
                 else:
                     print("py_plot.plot_python_wind: type {} not recognised".format(type))
+                    continue
             fig.colorbar(im, ax=ax[i, j])
             ax[i, j].set_xlabel("x")
             ax[i, j].set_ylabel("z")
-            ax[i, j].set_title(r"$\log_{10}$(" + var + ")")
+            if var == "converge":
+                ax[i, j].set_title(r"convergence")
+            else:
+                ax[i, j].set_title(r"$\log_{10}$(" + var + ")")
             if loglog_scale:
                 ax[i, j].set_xscale("log")
                 ax[i, j].set_yscale("log")
@@ -241,6 +250,7 @@ def plot_spec_comps(spec_patch: str, output_name: str, loglog_scale: bool = Fals
 
     # Plot created and emitted emission
     for i in range(len(headers_top)):
+        print("\tPlotting {}".format(headers_top[i]))
         flux = py_plot_util.smooth_flux(np.array(spec[1:, spec[0, :] == headers_top[i]], dtype=float), smooth, verbose)
         if loglog_scale:
             ax[0].loglog(wavelength, flux, label=headers_top[i])
@@ -253,6 +263,7 @@ def plot_spec_comps(spec_patch: str, output_name: str, loglog_scale: bool = Fals
 
     # Plot CenSrc, Disk, Wind, HitSurf and Scattered emission
     for i in range(len(headers_bottom)):
+        print("\tPlotting {}".format(headers_bottom[i]))
         flux = py_plot_util.smooth_flux(np.array(spec[1:, spec[0, :] == headers_bottom[i]], dtype=float), smooth,
                                         verbose)
         if loglog_scale:
@@ -345,9 +356,11 @@ def plot_spectra(spec_path: List[str], inclinations: Union[List, np.array], outp
             ax.set_ylim(ylower, yupper)
             ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
             ax.set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)", fontsize=15)
+            lines = py_plot_util.get_common_line_ids()
+            tde_spec_plot.plot_line_ids(ax, lines)
 
         ax.legend(loc="lower right")
-        ax.set_title("{} {}".format(root, angle) + "$^{\circ}$", fontsize=20)
+        ax.set_title("{} {}".format(root, angle) + r"$^{\circ}$", fontsize=20)
 
         fig.tight_layout(rect=[0, 0.03, 1, 0.95])
         plt.savefig("{}_{}.{}".format(output_name, angle, filetype))
@@ -401,7 +414,7 @@ def main() -> None:
     if len(spec_files) == 1:
         root, path = py_plot_util.get_root_name_and_path(spec_files[0])
         print("\nPlotting spectrum components")
-        plot_spec_comps(spec_files[0], outname, loglog_scale=SPECLOGLOG, smooth=SMOOTH, filetype=FILETYPE,
+        plot_spec_comps(spec_files[0], outname, loglog_scale=SPEC_LOGLOG, smooth=SMOOTH, filetype=FILETYPE,
                         show_plot=SHOW_PLOT, verbose=VERBOSE)
         # Run windsave2table to extract data from the wind_save file
         if os.path.isfile("{}.ep.complete".format(root)) is False:
@@ -411,7 +424,7 @@ def main() -> None:
                 exit(1)
         # Plot some wind quantities first
         print("\nPlotting wind quantities")
-        vars = ["t_e", "t_r", "ne", "v_x", "v_y", "v_z", "ip", "c4"]
+        vars = ["t_e", "t_r", "ne", "converge", "w", "ntot", "ip", "c4"]
         var_types = ["wind"] * len(vars)
         plot_python_wind(root, outname + "_wind", path, vars, var_types, filetype=FILETYPE, show_plot=SHOW_PLOT,
                          verbose=VERBOSE)
