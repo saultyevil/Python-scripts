@@ -20,7 +20,7 @@ from sys import argv
 from shutil import copyfile
 
 
-def change_python_parameter(pf, parameter, value):
+def change_python_parameter(pf: str, parameter: str, value: str, verbose: bool = False):
     """
     Search a parameter file for a given parameter and replaces the current value
     with a new value. This script will change the parameter file, even if the
@@ -34,6 +34,8 @@ def change_python_parameter(pf, parameter, value):
                     The name of the parameter to be edited
     value           str
                     The new value of the parameter
+    verbose         bool, optional
+                    Enable verbose logging
 
     Returns
     -------
@@ -64,11 +66,12 @@ def change_python_parameter(pf, parameter, value):
             lines[l] = new
             break
     if old and new:
-        print("Changed parameter {} to value {}".format(parameter, value))
-        print("OLD: {}".format(old.replace("\n", "")))
-        print("NEW: {}".format(new.replace("\n", "")))
+        if verbose:
+            print("Changed parameter {} to value {}".format(parameter, value))
+            print("OLD: {}".format(old.replace("\n", "")))
+            print("NEW: {}".format(new.replace("\n", "")))
     else:
-        print("Could not find parameter {} in {}".format(parameter, root))
+        print("Could not find parameter {} in {}".format(parameter, pf))
         exit(1)
 
     # Now write out modified lines to file
@@ -86,4 +89,4 @@ if __name__ == "__main__":
         root = argv[1]
         parameter = argv[2]
         value = argv[3]
-    change_python_parameter(root, parameter, value)
+    change_python_parameter(root, parameter, value, True)

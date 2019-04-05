@@ -6,6 +6,7 @@ Various functions used throughout batch running of Python simulations. This scri
 rather than being itself run.
 """
 
+import io
 import time
 import datetime
 from shutil import which
@@ -13,6 +14,90 @@ from platform import system
 from typing import Tuple, Union
 from subprocess import Popen, PIPE
 from multiprocessing import cpu_count
+
+LOGFILE = None
+
+
+def init_logfile(logfile_name: str, glogfile: bool = True):
+    """
+    Initialise a logfile global variable
+
+    Parameters
+    ----------
+    logfile_name        str
+                        The name of the logfile to initialise
+    glogfile            bool, optional
+                        If this is false, a object for a logfile will be returned
+                        instead.
+
+    Returns
+    -------
+    None
+    """
+
+    global LOGFILE
+
+    if glogfile:
+        if LOGFILE:
+            print("py_run_util.init_logfile: logfile already initialised as {}".format(LOGFILE.name))
+            return
+        LOGFILE = open(logfile_name, "w")
+    else:
+        logfile = open(logfile_name, "w")
+        return logfile
+
+    return
+
+
+def close_logfile(logfile=None) -> None:
+    """
+    Close the global logfile
+
+    Parameters
+    ----------
+    logfile             io.TextIO, optional
+                        Close a logfile file. If no argument is given the the
+                        global logfile will be closed.
+    Returns
+    -------
+    None
+    """
+
+    global LOGFILE
+    if logfile:
+        logfile.close()
+    else:
+        LOGFILE.close()
+
+    return
+
+
+def log(message: str, logfile=None) -> None:
+    """
+    Log a message to screen and to a logfile.
+
+    Parameters
+    ----------
+    message             str
+                        The message to log to screen and file
+    logfile             io.TextIO, optional
+                        An open file object which is the logfile to log to. If
+                        this is not provided, then the global logfile
+
+    Returns
+    -------
+    None
+    """
+
+    print(message)
+    if logfile:
+        logfile.write("{}\n".format(message))
+    elif LOGFILE:
+        LOGFILE.write("{}\n".format(message))
+    else:
+        return
+
+    return
 
 
 def process_line_output(line: str, spec_cycle: bool, print_crap: bool = True, verbose: bool = False) -> bool:
@@ -43,37 +128,37 @@ def process_line_output(line: str, spec_cycle: bool, print_crap: bool = True, ve
         cycle = int(line[3])  # + 1
         ncycles = line[5]
         current_time = time.strftime("%H:%M")
-        print("{} : Ionisation Cycle ....... {}/{}".format(current_time, cycle, ncycles))
+        log("{} : Ionisation Cycle ....... {}/{}".format(current_time, cycle, ncycles))
     elif line.find("to calculate a detailed spectrum") != -1 and print_crap:
         line = line.split()
         spec_cycle = True
         cycle = int(line[1])  # + 1
         ncycles = line[3]
         current_time = time.strftime("%H:%M")
-        print("{} : Spectrum Cycle ......... {}/{}".format(current_time, cycle, ncycles))
+        log("{} : Spectrum Cycle ......... {}/{}".format(current_time, cycle, ncycles))
     elif line.find("per cent") != -1 and line.find("Photon") != -1 and print_crap:
         line = line.split()
-        print("   - {}% of {} photons transported".format(line[-3], line[-5]))
+        log("      - {}% of {} photons transported".format(line[-3], line[-5]))
     elif line.find("!!Check_converging:") != -1 and print_crap:
         line = line.split()
         nconverged = int(line[1])
         fconverged = line[2]
-        print("   - {} cells converged {}".format(nconverged, fconverged))
+        log("      - {} cells converged {}".format(nconverged, fconverged))
     elif (line.find("Completed ionization cycle") != -1 or line.find("Completed spectrum cycle") != -1) and print_crap:
         line = line.split()
         elapsed_time_seconds = float(line[-1])
         elapsed_time = datetime.timedelta(seconds=elapsed_time_seconds // 1)
-        print("   - Elapsed run time {} hrs:mins:secs".format(elapsed_time))
+        log("      - Elapsed run time {} hrs:mins:secs".format(elapsed_time))
     elif line.find("photon transport completed in") != -1 and print_crap:
         line = line.split()
         transport_time_seconds = float(line[5])
         transport_time = datetime.timedelta(seconds=transport_time_seconds // 1)
-        print("   - Photon transported in {} hrs:mins:secs".format(transport_time))
+        log("      - Photon transported in {} hrs:mins:secs".format(transport_time))
     elif line.find("Completed entire program.") != -1 and print_crap:
         line = line.split()
         tot_run_time_seconds = float(line[-1])
         tot_run_time = datetime.timedelta(seconds=tot_run_time_seconds // 1)
-        print("\nSimulation completed in {} hrs:mins:secs".format(tot_run_time))
+        log("\nSimulation completed in {} hrs:mins:secs".format(tot_run_time))
 
     return spec_cycle
 
@@ -177,7 +262,8 @@ def check_convergence(root_name: str, work_dir: str) -> Union[int, float]:
             diag = file.readlines()
     except IOError:
         print(
-            "py_util.read_convergence: Couldn't open read only copy of {}. Does the diag file exist?".format(diag_path))
+                "py_util.read_convergence: Couldn't open read only copy of {}. Does the diag file exist?".format(
+                    diag_path))
         return -1
 
     converge_lines = []

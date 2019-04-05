@@ -356,8 +356,6 @@ def plot_spectra(spec_path: List[str], inclinations: Union[List, np.array], outp
             ax.set_ylim(ylower, yupper)
             ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
             ax.set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)", fontsize=15)
-            lines = py_plot_util.get_common_line_ids()
-            tde_spec_plot.plot_line_ids(ax, lines)
 
         ax.legend(loc="lower right")
         ax.set_title("{} {}".format(root, angle) + r"$^{\circ}$", fontsize=20)
