@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Various functions used throughout batch running of Python simulations. This script should be imported into other scripts
-rather than being itself run.
+Various functions used throughout batch running of Python simulations. This
+script should be imported into other scripts rather than being itself run.
 """
 
 import io
@@ -101,7 +101,7 @@ def log(message: str, logfile=None) -> None:
     return
 
 
-def process_line_output(line: str, spec_cycle: bool, print_crap: bool = True, verbose: bool = False) -> bool:
+def process_line_output(line: str, spec_cycle: bool, n_cores: int = 1, print_crap: bool = True, verbose: bool = False) -> bool:
     """
     Process the output from a Python simulation and print something to screen. Very ugly! Sad!
 
@@ -110,16 +110,23 @@ def process_line_output(line: str, spec_cycle: bool, print_crap: bool = True, ve
     line                str
                         The line to process
     spec_cycle          bool
-                        If True then the line will be processed as a spectral cycle instead
+                        If True then the line will be processed as a spectral
+                        cycle instead
+    n_cores             int, optional
+                        The number of cores the simulation is being run with. This
+                        is required to calculate the total photon number
     print_crap          bool, optional
-                        If this is False, then all output to screen will be suppressed
+                        If this is False, then all output to screen will be
+                        suppressed
     verbose             bool, optional
-                        If this is True, then every line will be printed to screen
+                        If this is True, then every line will be printed to
+                        screen
 
     Returns
     -------
     spec_cycle          bool
-                        Indicates if the previously processes line was a spectral cycle line or not
+                        Indicates if the previously processes line was a
+                        spectral cycle line or not
     """
 
     if verbose:
@@ -139,7 +146,7 @@ def process_line_output(line: str, spec_cycle: bool, print_crap: bool = True, ve
         log("{} : Spectrum Cycle ......... {}/{}".format(current_time, cycle, ncycles))
     elif line.find("per cent") != -1 and line.find("Photon") != -1 and print_crap:
         line = line.split()
-        log("      : {}% of {} photons transported".format(line[-3], line[-5]))
+        log("      : {}% of {} photons transported".format(line[-3], int(line[-5] * n_cores)))
     elif line.find("!!Check_converging:") != -1 and print_crap:
         line = line.split()
         nconverged = int(line[1])
@@ -154,7 +161,7 @@ def process_line_output(line: str, spec_cycle: bool, print_crap: bool = True, ve
         line = line.split()
         transport_time_seconds = float(line[5])
         transport_time = datetime.timedelta(seconds=transport_time_seconds // 1)
-        log("      : Photon transported in {} hrs:mins:secs".format(transport_time))
+        log("      : Photons transported in {} hrs:mins:secs".format(transport_time))
     elif line.find("Completed entire program.") != -1 and print_crap:
         line = line.split()
         tot_run_time_seconds = float(line[-1])
@@ -166,10 +173,11 @@ def process_line_output(line: str, spec_cycle: bool, print_crap: bool = True, ve
 
 def find_number_of_physical_cores_lscpu() -> float:
     """
-    Find the physical number of CPU cores in a computer. This function looks at the number of available CPUs
-    and the number of cores per CPU.
+    Find the physical number of CPU cores in a computer. This function looks at
+    the number of available CPUs and the number of cores per CPU.
 
-    Note that this will only work with systems where lscpu is installed, i.e. Linux systems.
+    Note that this will only work with systems where lscpu is installed,
+    i.e. Linux systems.
 
     Parameters
     ----------
@@ -200,9 +208,11 @@ def find_number_of_physical_cores_lscpu() -> float:
 
 def get_num_procs(default_cores: int = 0) -> Tuple[bool, int]:
     """
-    Determine the number of Python processes to run. For linux systems, and probably Windows :^), this will use
-    lscpu to figure out the number of cores to use. On macOS, this will use multiprocessing.cpu_count() to figure
-    out the number of cores to use - note that this will include virtual threads (hyperthreads) UGH.
+    Determine the number of Python processes to run. For linux systems, and
+    probably Windows :^), this will use lscpu to figure out the number of cores
+    to use. On macOS, this will use multiprocessing.cpu_count() to figure
+    out the number of cores to use - note that this will include virtual threads
+    (hyperthreads) UGH.
 
     Parameters
     ----------
@@ -238,7 +248,7 @@ def get_num_procs(default_cores: int = 0) -> Tuple[bool, int]:
     return mpi, n_cores
 
 
-def check_convergence(root_name: str, work_dir: str) -> Union[int, float]:
+def check_convergence(root: str, wd: str) -> Union[int, float]:
     """
     Check the convergence of a Python simulation.
 
@@ -252,19 +262,19 @@ def check_convergence(root_name: str, work_dir: str) -> Union[int, float]:
     Returns
     -------
     converge_fraction   int or float
-                        If an int is return, there has been an error in finding the convergence fraction of
-                        the simulation. Otherwise, the fraction of wind cells which converged is returned.
+                        If an int is return, there has been an error in finding
+                        the convergence fraction of the simulation. Otherwise,
+                        the fraction of wind cells which converged is returned.
     """
 
-    diag_path = "{}/diag_{}/{}_0.diag".format(work_dir, root_name, root_name)
+    diag_path = "{}/diag_{}/{}_0.diag".format(wd, root, root)
 
     try:
         with open(diag_path, "r") as file:
             diag = file.readlines()
     except IOError:
-        print(
-                "py_util.read_convergence: Couldn't open read only copy of {}. Does the diag file exist?".format(
-                    diag_path))
+        print("py_util.read_convergence: Couldn't open read only copy of {}. Does the diag file exist?"
+              .format(diag_path))
         return -1
 
     converge_lines = []
@@ -276,8 +286,7 @@ def check_convergence(root_name: str, work_dir: str) -> Union[int, float]:
             converge_lines.append(line)
 
     if converge_fraction is None:
-        print("py_util.read_convergence: unable to parse convergence fraction from diag file {}"
-              .format(diag_path))
+        print("py_util.read_convergence: unable to parse convergence fraction from diag file {}".format(diag_path))
         return -1
 
     if 0 > converge_fraction > 1:

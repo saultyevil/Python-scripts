@@ -102,10 +102,12 @@ def plot_python_wind(root_name: str, output_name: str, path: str = "./", vars: L
                      loglog_scale: bool = True, filetype: str = "png", show_plot: bool = False, data_ndims: str = "2d",
                      verbose: bool = False) -> None:
     """
-    Create a 2D wind plot of the wind variables given in the list vars, of var type given in the list var_type.
-    This function will only work with 2d Python simulations - who even uses 1d in Python anyway? Other than for sn runs.
-    There is some error checking going on for inputs - this should be enough to make sure that something is plotted
-    but still may cause the script to fall over, and will force exit in some situations.
+    Create a 2D wind plot of the wind variables given in the list vars, of var
+    type given in the list var_type. This function will only work with 2d Python
+     simulations - who even uses 1d in Python anyway? Other than for sn runs.
+    There is some error checking going on for inputs - this should be enough to
+    make sure that something is plotted but still may cause the script to fall
+    over, and will force exit in some situations.
 
     Parameters
     ----------
@@ -118,7 +120,8 @@ def plot_python_wind(root_name: str, output_name: str, path: str = "./", vars: L
     vars                list[str], optional
                         The Python wind variables to plot
     var_type            list[str], optional
-                        The type of the variables to be plotted, allowable values are wind and ion
+                        The type of the variables to be plotted, allowable
+                        values are wind and ion
     subplot_dims        tuple[int, int], optional
                         The number of rows and columns of subplot panels
     plot_title          str, optional
@@ -126,11 +129,13 @@ def plot_python_wind(root_name: str, output_name: str, path: str = "./", vars: L
     loglog_scale        bool, optional
                         Plot using a log log scale, set to True by default
     filetype            str, optional
-                        The file type of the output plot saved to disk, set to png by default
+                        The file type of the output plot saved to disk, set to
+                        png by default
     show_plot           bool, optional
                         Show the plot before saving if set to True
     data_ndims          str, optional
-                        The dimensionality of the Python simulation - note only 2d is supported for now
+                        The dimensionality of the Python simulation - note only
+                        2d is supported for now
     verbose             bool, optional
                         Enable verbose logging
 
@@ -224,9 +229,11 @@ def plot_spec_comps(spec_patch: str, output_name: str, loglog_scale: bool = Fals
     loglog_scale    bool, optional
                     Use a log-log scale for the plot
     smooth          int, optional
-                    The size of the window for the boxcar smoother. Larger numbers result in more smoothing
+                    The size of the window for the boxcar smoother. Larger
+                    numbers result in more smoothing
     filetype        str, optional
-                    The file type of the plot saved to disk, by default this is png
+                    The file type of the plot saved to disk, by default this is
+                    png
     show_plot       bool, optional
                     Show the plot before saving to disk
     verbose         bool, optional
@@ -304,9 +311,11 @@ def plot_spectra(spec_path: List[str], inclinations: Union[List, np.array], outp
     wmax            float, optional
                     The largest wavelength to show on the plot
     smooth          int, optional
-                    The size of the window for the boxcar smoother. Larger numbers result in more smoothing
+                    The size of the window for the boxcar smoother. Larger
+                    numbers result in more smoothing
     filetype        str, optional
-                    The file type of the plot saved to disk, by default this is png
+                    The file type of the plot saved to disk, by default this is
+                    png
     show_plot       bool, optional
                     Show the plot before saving to disk
     verbose         bool, optional

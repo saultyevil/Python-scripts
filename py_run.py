@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-Run a batch of Python simulations. Currently, the script will search recursively for Python pfs (disregarding anything
-which is py_wind.pf or .out.pf files) and execute a number of commands depending on what is requested by the user.
+Run a batch of Python simulations. Currently, the script will search recursively
+for Python pfs (disregarding anything which is py_wind.pf or .out.pf files) and
+execute a number of commands depending on what is requested by the user.
 
 Currently, the script is able to:
     - Run simulations with -r
@@ -81,6 +82,7 @@ WMIN = None
 WMAX = None
 NOT_QUIET = True
 VERBOSE = False
+SPEC_OVERRIDE = False
 
 
 def get_run_mode() -> None:
@@ -103,8 +105,9 @@ def get_run_mode() -> None:
     global DRY_RUN
     global NOT_QUIET
     global N_CORES
+    global SPEC_OVERRIDE
 
-    p = argparse.ArgumentParser(description="Enable or disable features")
+    p = argparse.ArgumentParser(description="General script to run Python simulations")
     # Different run modes
     p.add_argument("-d", action="store_true", help="Run with -r -c -p")
     p.add_argument("-r", action="store_true", help="Run simulations")
@@ -112,6 +115,7 @@ def get_run_mode() -> None:
     p.add_argument("-c", action="store_true", help="Check the convergence of runs - calls convergence.py")
     p.add_argument("-p", action="store_true", help="Run plotting scripts")
     p.add_argument("-tde", action="store_true", help="Enable TDE plotting")
+    p.add_argument("-spec", action="store_true", help="Run spectral cycles even if a simulation hasn't converged")
     # Script parameters
     p.add_argument("-py_ver", type=str, action="store", help="Name of the Python executable")
     p.add_argument("-f", "--py_flags", type=str, action="store", help="Runtime flags to pass to Python")
@@ -145,6 +149,9 @@ def get_run_mode() -> None:
         do_something = True
     if args.c:
         CHECK_CONVERGENCE = True
+        do_something = True
+    if args.spec:
+        SPEC_OVERRIDE = True
         do_something = True
     if args.p:
         CREATE_PLOTS = True
@@ -200,7 +207,7 @@ def get_run_mode() -> None:
     return
 
 
-def py_run(root: str, dir: str, use_mpi: bool, n_cores: int, spec_cycle: bool = False) -> None:
+def py_run(root: str, wd: str, use_mpi: bool, n_cores: int, spec_cycle: bool = False) -> None:
     """
     Function to control running and py_run_util.logging a Python simulation.
 
@@ -220,17 +227,17 @@ def py_run(root: str, dir: str, use_mpi: bool, n_cores: int, spec_cycle: bool = 
     pf = root + ".pf"
 
     if spec_cycle:
-        py_change_parameter.change_python_parameter(pf, "Spectrum_cycles", "5", VERBOSE)
-        py_change_parameter.change_python_parameter(pf, "Photons_per_cycle", "1e5", VERBOSE)
+        py_change_parameter.change_python_parameter(wd + pf, "Spectrum_cycles", "5", VERBOSE)
+        py_change_parameter.change_python_parameter(wd + pf, "Photons_per_cycle", "1e6", VERBOSE)
     else:
-        py_change_parameter.change_python_parameter(pf, "Spectrum_cycles", "0", VERBOSE)
+        py_change_parameter.change_python_parameter(wd + pf, "Spectrum_cycles", "0", VERBOSE)
 
-    outf_name = "{}/{}_{}{:02d}{:02d}.txt".format(dir, root, DATE.year, int(DATE.month), int(DATE.day))
+    outf_name = "{}/{}_{}{:02d}{:02d}.txt".format(wd, root, DATE.year, int(DATE.month), int(DATE.day))
     outf = open(outf_name, "w")
 
     # Construct shell command to run Python and use subprocess to run
     command = ""
-    command += "cd {}; Setup_Py_Dir; ".format(dir)
+    command += "cd {}; Setup_Py_Dir; ".format(wd)
     if use_mpi:
         command += "mpirun -n {} ".format(n_cores)
     command += "{} ".format(PY_VERSION)
@@ -252,7 +259,7 @@ def py_run(root: str, dir: str, use_mpi: bool, n_cores: int, spec_cycle: bool = 
             break
         line = stdout_line.decode("utf-8").replace("\n", "")
         outf.write("{}\n".format(line))
-        spec_cycle = py_run_util.process_line_output(line, spec_cycle, NOT_QUIET, VERBOSE)
+        spec_cycle = py_run_util.process_line_output(line, spec_cycle, n_cores, NOT_QUIET, VERBOSE)
     py_run_util.log("")
 
     outf.close()
@@ -263,7 +270,7 @@ def py_run(root: str, dir: str, use_mpi: bool, n_cores: int, spec_cycle: bool = 
     if err:
         py_run_util.log("Captured from stderr:")
         py_run_util.log(err)
-        errfname = "{}/err_{}{}{}.out".format(dir, root, DATE.year, DATE.month, DATE.day)
+        errfname = "{}/err_{}{}{}.out".format(wd, root, DATE.year, DATE.month, DATE.day)
         with open(errfname, "w") as f:
             f.writelines(err)
     rc = cmd.returncode
@@ -278,7 +285,7 @@ def py_run(root: str, dir: str, use_mpi: bool, n_cores: int, spec_cycle: bool = 
     return
 
 
-def check_python_convergence(root: str, dir: str) -> Union[float, int]:
+def check_python_convergence(root: str, wd: str) -> Union[float, int]:
     """
     Check the convergence of a Python simulation by reading the diag file.
     """
@@ -287,7 +294,7 @@ def check_python_convergence(root: str, dir: str) -> Union[float, int]:
         py_run_util.log("py_run.check_python_convergence: convergence_limit {} should be between 0 and 1".format(CLIM))
         return -1
 
-    convergence_fraction = py_run_util.check_convergence(root, dir)
+    convergence_fraction = py_run_util.check_convergence(root, wd)
     py_run_util.log("convergence limit ............ {}".format(CLIM))
     py_run_util.log("actual convergence ........... {}\n".format(convergence_fraction))
 
@@ -298,7 +305,7 @@ def check_python_convergence(root: str, dir: str) -> Union[float, int]:
     elif convergence_fraction < CLIM:
         py_run_util.log(NOT_CONVERGED)
         with open("not_converged.txt", "a") as f:
-            f.write("{}\t{}.pf\t{}\n".format(dir, root, convergence_fraction))
+            f.write("{}\t{}.pf\t{}\n".format(wd, root, convergence_fraction))
     elif convergence_fraction >= CLIM:
         py_run_util.log(CONVERGED)
     else:
@@ -308,7 +315,7 @@ def check_python_convergence(root: str, dir: str) -> Union[float, int]:
     return convergence_fraction
 
 
-def plot_python_output(root_name: str, work_dir: str, extra_commands: str = None) -> None:
+def plot_python_output(root_name: str, wd: str, extra_commands: str = None) -> None:
     """
     Call py_plot.py and plot the output from a Python simulation.
     """
@@ -318,7 +325,7 @@ def plot_python_output(root_name: str, work_dir: str, extra_commands: str = None
         py_run_util.log("py_plot.py not in $PATH and executable")
         return
 
-    commands = "cd {}; py_plot.py {}".format(work_dir, root_name)
+    commands = "cd {}; py_plot.py {}".format(wd, root_name)
     if WMIN:
         commands += " -wmin {}".format(WMIN)
     if WMAX:
@@ -342,7 +349,7 @@ def plot_python_output(root_name: str, work_dir: str, extra_commands: str = None
     return
 
 
-def plot_tde(root: str, dir: str) -> None:
+def plot_tde(root: str, wd: str) -> None:
     """
     Do some tde plotting :-)
     """
@@ -352,7 +359,7 @@ def plot_tde(root: str, dir: str) -> None:
         py_run_util.log("tde_spec_plot.py not in $PATH and executable")
         return
 
-    command = "cd {}; tde_spec_plot.py {} -tde iPTF15af -l".format(dir, root)
+    command = "cd {}; tde_spec_plot.py {} -tde iPTF15af -l".format(wd, root)
     py_run_util.log(command)
 
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
@@ -379,35 +386,40 @@ def run_python_etc(pf_paths: List[str], n_sims: int, use_mpi: bool, n_cores: int
         open("not_converged.txt", "w").close()
 
     for i, path in enumerate(pf_paths):
-        root, dir = py_plot_util.get_root_name_and_path(path)
+        root, wd = py_plot_util.get_root_name_and_path(path)
 
         py_run_util.log("--------------------------\n")
         py_run_util.log("     Simulation {}/{}".format(i + 1, n_sims))
         py_run_util.log("\n--------------------------\n")
-        py_run_util.log("Working directory ......... {}".format(dir))
+        py_run_util.log("Working directory ......... {}".format(wd))
         py_run_util.log("Python root name .......... {}\n".format(root))
 
         if RUN_SIMS:
             py_run_util.log("Running the simulation: {}\n".format(root))
-            py_run(root, dir, use_mpi, n_cores)
+            py_run(root, wd, use_mpi, n_cores)
 
         if CHECK_CONVERGENCE:
             py_run_util.log("Checking the convergence of the simulation:\n")
-            convergence_fraction = check_python_convergence(root, dir)
+            convergence_fraction = check_python_convergence(root, wd)
             if convergence_fraction >= CLIM and RUN_SIMS:
-                py_run(root, dir, use_mpi, n_cores, True)
+                py_run(root, wd, use_mpi, n_cores, True)
             elif convergence_fraction < CLIM and RUN_SIMS:
-                py_run_util.log("As the simulation hasn't converged, no spectrum cycles will be run\n")
+                if SPEC_OVERRIDE:
+                    py_run_util.log("As the simulation hasn't converged, but SPEC_OVERRIDE is True, spec cycles will be "
+                                    "run as normal")
+                    py_run(root, wd, use_mpi, n_cores, True)
+                else:
+                    py_run_util.log("As the simulation hasn't converged, no spectrum cycles will be run\n")
 
         if CREATE_PLOTS:
             py_run_util.log("Creating plots for the simulation\n")
-            plot_python_output(root, dir, None)
+            plot_python_output(root, wd, None)
 
         if TDE_PLOT:
             py_run_util.log("Creating TDE specific plot for simulation\n")
-            plot_tde(root, dir)
+            plot_tde(root, wd)
 
-        py_rm_data.remove_data_dir(dir, VERBOSE)
+        py_rm_data.remove_data_dir(wd, VERBOSE)
 
     return
 
