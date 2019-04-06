@@ -117,7 +117,7 @@ def get_run_mode() -> None:
     p.add_argument("-f", "--py_flags", type=str, action="store", help="Runtime flags to pass to Python")
     p.add_argument("-clim", type=float, action="store", help="The convergence limit: c_value < 1")
     p.add_argument("-v", "--verbose", action="store_true", help="Verbose outputting")
-    p.add_argument("-dry", action="store_true", help="py_run_util.log the simulations found and exit")
+    p.add_argument("--dry", action="store_true", help="Print the simulations found and exit")
     p.add_argument("-q", action="store_true", help="Enable quiet mode")
     p.add_argument("-n_cores", action="store", help="The number of processor cores to run Python with")
     # Plot parameters
@@ -230,7 +230,6 @@ def py_run(root: str, dir: str, use_mpi: bool, n_cores: int, spec_cycle: bool = 
 
     # Construct shell command to run Python and use subprocess to run
     command = ""
-
     command += "cd {}; Setup_Py_Dir; ".format(dir)
     if use_mpi:
         command += "mpirun -n {} ".format(n_cores)
@@ -255,6 +254,7 @@ def py_run(root: str, dir: str, use_mpi: bool, n_cores: int, spec_cycle: bool = 
         outf.write("{}\n".format(line))
         spec_cycle = py_run_util.process_line_output(line, spec_cycle, NOT_QUIET, VERBOSE)
     py_run_util.log("")
+
     outf.close()
 
     # Have to do this in case the buffer is too large and causes a deadlock
@@ -291,7 +291,11 @@ def check_python_convergence(root: str, dir: str) -> Union[float, int]:
     py_run_util.log("convergence limit ............ {}".format(CLIM))
     py_run_util.log("actual convergence ........... {}\n".format(convergence_fraction))
 
-    if convergence_fraction < CLIM:
+    if convergence_fraction < 0:
+        py_run_util.log(ITS_A_MYSTERY)
+    elif convergence_fraction > 1:
+        py_run_util.log(ITS_A_MYSTERY)
+    elif convergence_fraction < CLIM:
         py_run_util.log(NOT_CONVERGED)
         with open("not_converged.txt", "a") as f:
             f.write("{}\t{}.pf\t{}\n".format(dir, root, convergence_fraction))
@@ -361,6 +365,7 @@ def plot_tde(root: str, dir: str) -> None:
     if err:
         py_run_util.log("Captured from stderr:")
         py_run_util.log(err)
+    py_run_util.log("")
 
     return
 
@@ -377,7 +382,7 @@ def run_python_etc(pf_paths: List[str], n_sims: int, use_mpi: bool, n_cores: int
         root, dir = py_plot_util.get_root_name_and_path(path)
 
         py_run_util.log("--------------------------\n")
-        py_run_util.log("Simulation {}/{}".format(i + 1, n_sims))
+        py_run_util.log("     Simulation {}/{}".format(i + 1, n_sims))
         py_run_util.log("\n--------------------------\n")
         py_run_util.log("Working directory ......... {}".format(dir))
         py_run_util.log("Python root name .......... {}\n".format(root))
@@ -437,7 +442,10 @@ def main() -> None:
     py_run_util.log("")
 
     if DRY_RUN:
-        py_run_util.log("--------------------------")
+        py_run_util.log("The following parameter files were found:\n")
+        for i in range(len(pf_paths)):
+            py_run_util.log("{}".format(pf_paths[i]))
+        py_run_util.log("\n--------------------------")
         return
 
     # Now run Python, plotting and convergence procedures

@@ -354,7 +354,7 @@ def plot_spectra(spec_path: List[str], inclinations: Union[List, np.array], outp
             ax.semilogy(wavelength, flux, label=legend)
             ax.set_xlim(wmin, wmax)
             ax.set_ylim(ylower, yupper)
-            ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
+            ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=15)
             ax.set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)", fontsize=15)
 
         ax.legend(loc="lower right")

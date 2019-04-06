@@ -112,7 +112,7 @@ def plot_line_ids(ax: plt.axes, lines: dict, rotation: str = "horizontal") -> pl
         # check to make sure that a line isn't off the actual axis of the plot
         if float(lines[l]) > xlims[1]:
             continue
-        elif float(lines[l]) < xlims[0]:
+        if float(lines[l]) < xlims[0]:
             continue
         # plot the text in an alternating up-down pattern
         if i % 2 == 0:
@@ -278,6 +278,10 @@ def spec_plot_multiple(root: str) -> None:
     index = 0
     for i in range(shape[0]):
         for j in range(shape[1]):
+            # ensure that the x label is shown only on the bottom plots
+            if i == shape[0] - 1:
+                ax[i, j].set_xlabel(r"Wavelength ($\AA$)")
+
             if index > n_spec - 1:
                 break
 
@@ -301,9 +305,6 @@ def spec_plot_multiple(root: str) -> None:
             if PLOT_LINE_IDS:
                 ax[i, j] = plot_line_ids(ax[i, j], lines)
 
-            # ensure that the x label is shown only on the bottom plots
-            if i == shape[0] - 1:
-                ax[i, j].set_xlabel(r"Wavelength ($\AA$)")
             index += 1
 
 

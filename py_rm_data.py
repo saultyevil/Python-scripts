@@ -29,7 +29,7 @@ def remove_data_dir(search_dir: str = "~/PySims", verbose: bool = False) -> int:
                     The number of symbolic links which were deleted
     """
 
-    # - type l will only search for symbolic links named data
+    # - type l will only search for symbolic links
     cmd = "cd {}; find . -type l -name 'data'".format(search_dir)
     stdout, stderr = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True).communicate()
     stdout = stdout.decode("utf-8")

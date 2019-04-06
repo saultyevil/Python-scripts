@@ -64,6 +64,7 @@ def close_logfile(logfile=None) -> None:
     """
 
     global LOGFILE
+
     if logfile:
         logfile.close()
     else:
@@ -138,22 +139,22 @@ def process_line_output(line: str, spec_cycle: bool, print_crap: bool = True, ve
         log("{} : Spectrum Cycle ......... {}/{}".format(current_time, cycle, ncycles))
     elif line.find("per cent") != -1 and line.find("Photon") != -1 and print_crap:
         line = line.split()
-        log("      - {}% of {} photons transported".format(line[-3], line[-5]))
+        log("      : {}% of {} photons transported".format(line[-3], line[-5]))
     elif line.find("!!Check_converging:") != -1 and print_crap:
         line = line.split()
         nconverged = int(line[1])
         fconverged = line[2]
-        log("      - {} cells converged {}".format(nconverged, fconverged))
+        log("      : {} cells converged {}".format(nconverged, fconverged))
     elif (line.find("Completed ionization cycle") != -1 or line.find("Completed spectrum cycle") != -1) and print_crap:
         line = line.split()
         elapsed_time_seconds = float(line[-1])
         elapsed_time = datetime.timedelta(seconds=elapsed_time_seconds // 1)
-        log("      - Elapsed run time {} hrs:mins:secs".format(elapsed_time))
+        log("      : Elapsed run time {} hrs:mins:secs".format(elapsed_time))
     elif line.find("photon transport completed in") != -1 and print_crap:
         line = line.split()
         transport_time_seconds = float(line[5])
         transport_time = datetime.timedelta(seconds=transport_time_seconds // 1)
-        log("      - Photon transported in {} hrs:mins:secs".format(transport_time))
+        log("      : Photon transported in {} hrs:mins:secs".format(transport_time))
     elif line.find("Completed entire program.") != -1 and print_crap:
         line = line.split()
         tot_run_time_seconds = float(line[-1])
