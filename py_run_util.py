@@ -146,7 +146,7 @@ def process_line_output(line: str, spec_cycle: bool, n_cores: int = 1, print_cra
         log("{} : Spectrum Cycle ......... {}/{}".format(current_time, cycle, ncycles))
     elif line.find("per cent") != -1 and line.find("Photon") != -1 and print_crap:
         line = line.split()
-        log("      : {}% of {} photons transported".format(line[-3], int(line[-5] * n_cores)))
+        log("      : {}% of {:1.2e} photons transported".format(line[-3], int(int(line[-5]) * n_cores)))
     elif line.find("!!Check_converging:") != -1 and print_crap:
         line = line.split()
         nconverged = int(line[1])
