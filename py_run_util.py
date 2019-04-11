@@ -6,12 +6,11 @@ Various functions used throughout batch running of Python simulations. This
 script should be imported into other scripts rather than being itself run.
 """
 
-import io
 import time
 import datetime
-from shutil import which
 from platform import system
 from typing import Tuple, Union
+from shutil import which, copyfile
 from subprocess import Popen, PIPE
 from multiprocessing import cpu_count
 
@@ -41,9 +40,9 @@ def init_logfile(logfile_name: str, glogfile: bool = True):
         if LOGFILE:
             print("py_run_util.init_logfile: logfile already initialised as {}".format(LOGFILE.name))
             return
-        LOGFILE = open(logfile_name, "w")
+        LOGFILE = open(logfile_name, "a")
     else:
-        logfile = open(logfile_name, "w")
+        logfile = open(logfile_name, "a")
         return logfile
 
     return
@@ -101,7 +100,7 @@ def log(message: str, logfile=None) -> None:
     return
 
 
-def process_line_output(line: str, spec_cycle: bool, n_cores: int = 1, print_crap: bool = True, verbose: bool = False) -> bool:
+def process_line_output(line: str, pcycle: bool, n_cores: int = 1, print_crap: bool = True, verbose: bool = False) -> bool:
     """
     Process the output from a Python simulation and print something to screen. Very ugly! Sad!
 
@@ -109,7 +108,7 @@ def process_line_output(line: str, spec_cycle: bool, n_cores: int = 1, print_cra
     ----------
     line                str
                         The line to process
-    spec_cycle          bool
+    pcycle              bool
                         If True then the line will be processed as a spectral
                         cycle instead
     n_cores             int, optional
@@ -124,7 +123,7 @@ def process_line_output(line: str, spec_cycle: bool, n_cores: int = 1, print_cra
 
     Returns
     -------
-    spec_cycle          bool
+    pcycle              bool
                         Indicates if the previously processes line was a
                         spectral cycle line or not
     """
@@ -139,7 +138,7 @@ def process_line_output(line: str, spec_cycle: bool, n_cores: int = 1, print_cra
         log("{} : Ionisation Cycle ....... {}/{}".format(current_time, cycle, ncycles))
     elif line.find("to calculate a detailed spectrum") != -1 and print_crap:
         line = line.split()
-        spec_cycle = True
+        pcycle = True
         cycle = int(line[1])  # + 1
         ncycles = line[3]
         current_time = time.strftime("%H:%M")
@@ -168,7 +167,7 @@ def process_line_output(line: str, spec_cycle: bool, n_cores: int = 1, print_cra
         tot_run_time = datetime.timedelta(seconds=tot_run_time_seconds // 1)
         log("\nSimulation completed in {} hrs:mins:secs".format(tot_run_time))
 
-    return spec_cycle
+    return pcycle
 
 
 def find_number_of_physical_cores_lscpu() -> float:
@@ -295,3 +294,64 @@ def check_convergence(root: str, wd: str) -> Union[int, float]:
         return -1
 
     return converge_fraction
+
+
+def change_parameter(pf: str, parameter: str, value: str, verbose: bool = False):
+    """
+    Search a parameter file for a given parameter and replaces the current value
+    with a new value. This script will change the parameter file, even if the
+    old and new parameter values are the same :-).
+
+    Parameters
+    ----------
+    pf              str
+                    The name of the parameter file to edit
+    parameter       str
+                    The name of the parameter to be edited
+    value           str
+                    The new value of the parameter
+    verbose         bool, optional
+                    Enable verbose logging
+
+    Returns
+    -------
+    Returns a non-zero integer on non-successful exit.
+    """
+
+    assert(type(pf) == str)
+    assert(type(parameter) == str)
+    assert(type(value) == str)
+
+    if pf.find(".pf") == -1:
+        pf += ".pf"
+
+    old = ""
+    new = ""
+
+    # Create back up file, in case things go to shit
+    copyfile(pf, pf + ".bak")
+
+    # Open file, search for parameter and replace
+    with open(pf, "r") as f:
+        lines = f.readlines()
+    nlines = len(lines)
+    for l in range(nlines):
+        if lines[l].find(parameter) != -1:
+            old = lines[l]
+            new = "{} {}\n".format(parameter, value)
+            lines[l] = new
+            break
+    if old and new:
+        if verbose:
+            print("Changed parameter {} to value {}".format(parameter, value))
+            print("OLD: {}".format(old.replace("\n", "")))
+            print("NEW: {}".format(new.replace("\n", "")))
+    else:
+        print("Could not find parameter {} in {}".format(parameter, pf))
+        exit(1)
+
+    # Now write out modified lines to file
+    with open(pf, "w") as f:
+        f.writelines(lines)
+
+    return

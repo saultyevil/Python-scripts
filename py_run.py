@@ -15,7 +15,6 @@ Currently, the script is able to:
 
 The script can also be run in a directory containing only one Python pf.
 
-TODO: be able to run simulations from file input
 TODO: flexible flag choices for py_plot.py - input option for the script
 """
 
@@ -26,7 +25,6 @@ import py_run_util
 import py_plot_util
 from sys import exit
 from shutil import which
-import py_change_parameter
 from typing import Union, List
 from subprocess import Popen, PIPE, CalledProcessError
 
@@ -58,13 +56,12 @@ ITS_A_MYSTERY = \
     | (_| (_) | | | \ V /  __/ | | (_| |  __/ | | | (_|  __/ | \__ \
      \___\___/|_| |_|\_/ \___|_|  \__, |\___|_| |_|\___\___| |_|___/
                                   |___/
-                                  
-                                         _
-              __ _   _ __ ___  _   _ ___| |_ ___ _ __ _   _
-             / _` | | '_ ` _ \| | | / __| __/ _ \ '__| | | |
-            | (_| | | | | | | | |_| \__ \ ||  __/ |  | |_| |
-             \__,_| |_| |_| |_|\__, |___/\__\___|_|   \__, |
-                               |___/                  |___/
+                                        _
+             __ _   _ __ ___  _   _ ___| |_ ___ _ __ _   _
+            / _` | | '_ ` _ \| | | / __| __/ _ \ '__| | | |
+           | (_| | | | | | | | |_| \__ \ ||  __/ |  | |_| |
+            \__,_| |_| |_| |_|\__, |___/\__\___|_|   \__, |
+                              |___/                  |___/
     """
 
 DATE = datetime.datetime.now()
@@ -83,6 +80,7 @@ WMAX = None
 NOT_QUIET = True
 VERBOSE = False
 SPEC_OVERRIDE = False
+SIMS_FROM_FILE = False
 
 
 def get_run_mode() -> None:
@@ -106,6 +104,7 @@ def get_run_mode() -> None:
     global NOT_QUIET
     global N_CORES
     global SPEC_OVERRIDE
+    global SIMS_FROM_FILE
 
     p = argparse.ArgumentParser(description="General script to run Python simulations")
     # Different run modes
@@ -116,7 +115,8 @@ def get_run_mode() -> None:
     p.add_argument("-p", action="store_true", help="Run plotting scripts")
     p.add_argument("-tde", action="store_true", help="Enable TDE plotting")
     p.add_argument("-spec", action="store_true", help="Run spectral cycles even if a simulation hasn't converged")
-    # Script parameters
+    p.add_argument("-path", action="store", help="Provide a list of directories of Python parameter files to run")
+    # Script Parameters
     p.add_argument("-py_ver", type=str, action="store", help="Name of the Python executable")
     p.add_argument("-f", "--py_flags", type=str, action="store", help="Runtime flags to pass to Python")
     p.add_argument("-clim", type=float, action="store", help="The convergence limit: c_value < 1")
@@ -124,7 +124,7 @@ def get_run_mode() -> None:
     p.add_argument("--dry", action="store_true", help="Print the simulations found and exit")
     p.add_argument("-q", action="store_true", help="Enable quiet mode")
     p.add_argument("-n_cores", action="store", help="The number of processor cores to run Python with")
-    # Plot parameters
+    # Plot Parameters
     p.add_argument("-wmin", type=float, action="store", help="The smallest wavelength to display")
     p.add_argument("-wmax", type=float, action="store", help="The largest wavelength to display")
     args = p.parse_args()
@@ -147,12 +147,13 @@ def get_run_mode() -> None:
         RUN_SIMS = True
         RESUME_RUN = True
         do_something = True
+    if args.path:
+        SIMS_FROM_FILE = args.path
     if args.c:
         CHECK_CONVERGENCE = True
         do_something = True
     if args.spec:
         SPEC_OVERRIDE = True
-        do_something = True
     if args.p:
         CREATE_PLOTS = True
         do_something = True
@@ -183,7 +184,7 @@ def get_run_mode() -> None:
     if args.wmax:
         WMAX = args.wmax
 
-    py_run_util.log("--------------------------\n")
+    py_run_util.log("------------------------\n")
     py_run_util.log("Python version ............. {}".format(PY_VERSION))
     py_run_util.log("Show Verbose Output ........ {}".format(VERBOSE))
     py_run_util.log("Run Simulations ............ {}".format(RUN_SIMS))
@@ -201,7 +202,7 @@ def get_run_mode() -> None:
     if do_something is False:
         py_run_util.log("No run mode parameter provided, there is nothing to do!\n")
         p.print_help()
-        py_run_util.log("\n--------------------------")
+        py_run_util.log("\n------------------------")
         exit(0)
 
     return
@@ -220,20 +221,20 @@ def py_run(root: str, wd: str, use_mpi: bool, n_cores: int, spec_cycle: bool = F
     """
 
     if spec_cycle:
-        py_run_util.log("Spectral cycles\n---------------\n")
+        py_run_util.log("Spectral cycles\n--------------\n")
     else:
-        py_run_util.log("Ionisation cycles\n-----------------\n")
+        py_run_util.log("Ionisation cycles\n----------------\n")
 
     pf = root + ".pf"
 
     if spec_cycle:
-        py_change_parameter.change_python_parameter(wd + pf, "Spectrum_cycles", "5", VERBOSE)
-        py_change_parameter.change_python_parameter(wd + pf, "Photons_per_cycle", "1e6", VERBOSE)
+        py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "5", VERBOSE)
+        py_run_util.change_parameter(wd + pf, "Photons_per_cycle", "1e6", VERBOSE)
     else:
-        py_change_parameter.change_python_parameter(wd + pf, "Spectrum_cycles", "0", VERBOSE)
+        py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "0", VERBOSE)
 
     outf_name = "{}/{}_{}{:02d}{:02d}.txt".format(wd, root, DATE.year, int(DATE.month), int(DATE.day))
-    outf = open(outf_name, "w")
+    outf = open(outf_name, "a")
 
     # Construct shell command to run Python and use subprocess to run
     command = ""
@@ -253,13 +254,13 @@ def py_run(root: str, wd: str, use_mpi: bool, n_cores: int, spec_cycle: bool = F
     py_run_util.log("{}\n".format(command))
 
     # Real time output of Python
-    spec_cycle = False
+    pcycle = False
     for stdout_line in iter(cmd.stdout.readline, ""):
         if not stdout_line:
             break
         line = stdout_line.decode("utf-8").replace("\n", "")
         outf.write("{}\n".format(line))
-        spec_cycle = py_run_util.process_line_output(line, spec_cycle, n_cores, NOT_QUIET, VERBOSE)
+        pcycle = py_run_util.process_line_output(line, pcycle, n_cores, NOT_QUIET, VERBOSE)
     py_run_util.log("")
 
     outf.close()
@@ -270,8 +271,8 @@ def py_run(root: str, wd: str, use_mpi: bool, n_cores: int, spec_cycle: bool = F
     if err:
         py_run_util.log("Captured from stderr:")
         py_run_util.log(err)
-        errfname = "{}/err_{}{}{}.out".format(wd, root, DATE.year, DATE.month, DATE.day)
-        with open(errfname, "w") as f:
+        errfname = "{}/err_{}{:02d}{:02d}.out".format(wd, root, DATE.year, int(DATE.month), int(DATE.day))
+        with open(errfname, "a") as f:
             f.writelines(err)
     rc = cmd.returncode
     if rc:
@@ -388,9 +389,9 @@ def run_python_etc(pf_paths: List[str], n_sims: int, use_mpi: bool, n_cores: int
     for i, path in enumerate(pf_paths):
         root, wd = py_plot_util.get_root_name_and_path(path)
 
-        py_run_util.log("--------------------------\n")
+        py_run_util.log("------------------------\n")
         py_run_util.log("     Simulation {}/{}".format(i + 1, n_sims))
-        py_run_util.log("\n--------------------------\n")
+        py_run_util.log("\n------------------------\n")
         py_run_util.log("Working directory ......... {}".format(wd))
         py_run_util.log("Python root name .......... {}\n".format(root))
 
@@ -405,8 +406,8 @@ def run_python_etc(pf_paths: List[str], n_sims: int, use_mpi: bool, n_cores: int
                 py_run(root, wd, use_mpi, n_cores, True)
             elif convergence_fraction < CLIM and RUN_SIMS:
                 if SPEC_OVERRIDE:
-                    py_run_util.log("As the simulation hasn't converged, but SPEC_OVERRIDE is True, spec cycles will be "
-                                    "run as normal")
+                    py_run_util.log("As the simulation hasn't converged, but SPEC_OVERRIDE is True, spec cycles will be"
+                                    " run as normal\n")
                     py_run(root, wd, use_mpi, n_cores, True)
                 else:
                     py_run_util.log("As the simulation hasn't converged, no spectrum cycles will be run\n")
@@ -424,17 +425,27 @@ def run_python_etc(pf_paths: List[str], n_sims: int, use_mpi: bool, n_cores: int
     return
 
 
+def get_pf_from_file() -> List[str]:
+    """
+    Read in a list of Python simulations to run from a file provided as a command
+    line argument.
+    """
+
+    assert(type(SIMS_FROM_FILE) == str)
+
+    pf_paths = []
+    with open(SIMS_FROM_FILE, "r") as f:
+        tmp = f.readlines()
+    nsims = len(tmp)
+    for i in range(nsims):
+        pf_paths.append(tmp[i].replace("\r", "n").replace("\n", ""))
+
+    return pf_paths
+
+
 def main() -> None:
     """
     Main control function of the script
-
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    None
     """
 
     outfname = "py_{}{:02d}{:02d}.txt".format(DATE.year, int(DATE.month), int(DATE.day))
@@ -442,11 +453,14 @@ def main() -> None:
 
     # Determine which routines to run for each simulation
     get_run_mode()
-    pf_paths = py_plot_util.find_pf(ignore_out_pf=True)
+    if SIMS_FROM_FILE:
+        pf_paths = get_pf_from_file()
+    else:
+        pf_paths = py_plot_util.find_pf(ignore_out_pf=True)
     n_sims = len(pf_paths)
     if not n_sims:
         py_run_util.log("No parameter files found, nothing to do!\n")
-        py_run_util.log("--------------------------")
+        py_run_util.log("------------------------")
         exit(0)
 
     use_mpi, n_procs = py_run_util.get_num_procs(N_CORES)
@@ -457,13 +471,13 @@ def main() -> None:
         py_run_util.log("The following parameter files were found:\n")
         for i in range(len(pf_paths)):
             py_run_util.log("{}".format(pf_paths[i]))
-        py_run_util.log("\n--------------------------")
+        py_run_util.log("\n------------------------")
         return
 
     # Now run Python, plotting and convergence procedures
     run_python_etc(pf_paths, n_sims, use_mpi, n_procs)
 
-    py_run_util.log("--------------------------")
+    py_run_util.log("------------------------")
 
     py_run_util.close_logfile()
 

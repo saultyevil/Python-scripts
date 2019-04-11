@@ -17,7 +17,7 @@ from typing import Tuple
 from matplotlib import pyplot as plt
 
 SMOOTH = 15
-WMIN = 800
+WMIN = 1000
 WMAX = 3000
 TDE_OBJ = None
 DEFAULT_DIST = 100 * PARSEC
@@ -221,10 +221,10 @@ def spec_plot_one(root: str, inc: str) -> None:
         ax.semilogy(tde[:, 0], tde[:, 1], label=TDE_OBJ + " " + reference)
     ax.semilogy(wavelength, flux, label="i = {}".format(inc) + r"$^{\circ}$")
     ax.set_xlim(WMIN, WMAX)
-    ax.set_ylim(fmin, fmax)
+    ax.set_ylim(1e-17, 1e-14)
     ax.set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)")
     ax.set_xlabel(r"Wavelength ($\AA$)")
-    ax.legend()
+    ax.legend(loc="lower right")
     if PLOT_LINE_IDS:
         plot_line_ids(ax, lines)
 
@@ -307,7 +307,6 @@ def spec_plot_multiple(root: str) -> None:
 
             index += 1
 
-
     fig.suptitle(root)
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.savefig("{}_spectra.{}".format(root, FTYPE))
@@ -316,7 +315,7 @@ def spec_plot_multiple(root: str) -> None:
     return
 
 
-def spec_plot_comparison(name):
+def spec_plot_comparison(name: str, inc: str = None):
     """
     Create a comparison plot similar to spec_plot for multiple spectra which are
     search for recursively in the working directory.
@@ -325,6 +324,8 @@ def spec_plot_comparison(name):
     ----------
     name                str
                         The base name of the output plot
+    inc                 str
+                        The inclination angle
 
     Returns
     -------
@@ -350,11 +351,24 @@ def spec_plot_comparison(name):
     # Use the first spectrum as a template for what all the other spectra are like
     test_spec = py_plot_util.read_spec_file(spec_files[0], pandas_table=True)
     wavelength = test_spec["Lambda"].values.astype(float)
-    inclination = spectrum_inclinations(test_spec)
+
+    if inc:
+        inclination = [inc]
+        size = (12, 8)
+    else:
+        inclination = spectrum_inclinations(test_spec)
+        size = (18, 12)
+
+
     n_specs = len(inclination)
+    print(inclination, len(inclination))
+    print("n_specs", n_specs)
 
     shape = subplot_dims(n_specs)
-    fig, ax = plt.subplots(shape[0], shape[1], figsize=(18, 12), squeeze=False, sharex="col")
+    fig, ax = plt.subplots(shape[0], shape[1], figsize=size, squeeze=False, sharex="col")
+
+    ymin = 1
+    ymax = 0
 
     index = 0
     for i in range(shape[0]):
@@ -365,7 +379,10 @@ def spec_plot_comparison(name):
             if TDE_OBJ:
                 ax[i, j].semilogy(tde[:, 0], tde[:, 1], label=TDE_OBJ)
 
-            inc = inclination[index]
+            if inc:
+                ii = inc
+            else:
+                ii = inclination[index]
 
             # Loop over each spectrum from each simulation
             for file in spec_files:
@@ -373,19 +390,25 @@ def spec_plot_comparison(name):
 
                 # Get the spectrum
                 spectrum = py_plot_util.read_spec_file(file, pandas_table=True)
-                raw_flux = spectrum[inc].values.astype(float)
+                raw_flux = spectrum[ii].values.astype(float)
                 flux = py_plot_util.smooth_flux(raw_flux, SMOOTH, VERBOSE)
                 flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
                 fmax, fmin = py_plot_util.get_ylims(wavelength, flux, WMIN, WMAX)
 
+                if fmax > ymax:
+                    ymax = fmax
+                if fmin < ymin:
+                    ymin = fmin
+
                 # Plot the spectrum
-                ax[i, j].semilogy(wavelength, flux, label=r"$i$ = {}".format(inc) + r"$^{\circ}$ "+dir)
-                ax[i, j].set_xlim(WMIN, WMAX)
-                ax[i, j].set_ylim(fmin, fmax)
-                ax[i, j].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)")
-                ax[i, j].legend(loc="upper right")
-                if PLOT_LINE_IDS:
-                    plot_line_ids(ax[i, j], lines)
+                ax[i, j].semilogy(wavelength, flux, label=r"$i$ = {}".format(ii) + r"$^{\circ}$ " + dir)
+
+            ax[i, j].set_xlim(WMIN, WMAX)
+            ax[i, j].set_ylim(ymin, ymax)
+            ax[i, j].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)")
+            ax[i, j].legend(loc="upper right")
+            if PLOT_LINE_IDS:
+                plot_line_ids(ax[i, j], lines)
 
             if i == shape[0] - 1:
                 ax[i, j].set_xlabel(r"Wavelength ($\AA$)")
@@ -452,12 +475,15 @@ def main() -> None:
 
     print("--------------------------\n")
 
-    if args.inclination:
+    if args.inclination and not args.comparison:
         print("Plotting {} spectrum for inclination {}".format(root, args.inclination))
         spec_plot_one(root, args.inclination)
     elif args.comparison:
         print("Plotting comparison spectrum")
-        spec_plot_comparison(root)
+        if args.inclination:
+            spec_plot_comparison(root, args.inclination)
+        else:
+            spec_plot_comparison(root)
     else:
         print("Plotting {} spectra for all inclination angles".format(root))
         spec_plot_multiple(root)
