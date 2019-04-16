@@ -166,7 +166,7 @@ def get_run_mode() -> None:
     if args.py_flags:
         PY_FLAGS = args.py_flags
     if args.clim:  # Bad variable names here :-) clim is from the arg list
-        if 0 < args.c_value < 1:
+        if 0 < args.clim < 1:
             CLIM = args.clim
         else:
             py_run_util.log("Invalid value of c_value {}".format(args.c_value))
