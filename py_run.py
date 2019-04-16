@@ -228,10 +228,11 @@ def py_run(root: str, wd: str, use_mpi: bool, n_cores: int, spec_cycle: bool = F
     pf = root + ".pf"
 
     if spec_cycle:
-        py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "5", VERBOSE)
-        py_run_util.change_parameter(wd + pf, "Photons_per_cycle", "1e6", VERBOSE)
+        py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "10", VERBOSE)
+        py_run_util.change_parameter(wd + pf, "Photons_per_cycle", "5e6", VERBOSE)
     else:
         py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "0", VERBOSE)
+        py_run_util.change_parameter(wd + pf, "Photons_per_cycle", "1e8", VERBOSE)
 
     outf_name = "{}/{}_{}{:02d}{:02d}.txt".format(wd, root, DATE.year, int(DATE.month), int(DATE.day))
     outf = open(outf_name, "a")

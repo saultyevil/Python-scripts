@@ -1,11 +1,26 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+
+"""
+Create and run a grid of Python simulations. Note that this script has to be
+edited before being called as I didn't want to add one billion command line
+arguments/switches to the script like with py_run.
+
+Usage
+
+    [python] py_run_grid.py [--dry-run]
+
+    --dry-run: only create the grid of parameter files
+"""
+
+
 import os
 import py_run
 import shutil
 import numpy as np
 import py_run_util
+from sys import argv
 from typing import List
 
 
@@ -86,17 +101,30 @@ def run_grid() -> None:
     None
     """
 
+    dry_run = False
+
+    if len(argv) == 2:
+        if argv[1] == "--dry-run":
+            dry_run = True
+        else:
+            print("don't know command {}".format(argv[1]))
+    elif len(argv) > 2:
+        print("only takes 1 command ;-)")
+        print(__doc__)
+        return
+
     print("ENSURE THAT THE SCRIPT HAS BEEN EDITED APPROPRIATELY BEFORE RUNNING")
-    input("Press a button to continue...")
+    input("Press a enter to continue...")
 
     # This is the parameter which will be changed
-    root = "tde.pf"
+    root = "../tde_cv.pf"
     parameter = "Wind.mdot(msol/yr)"
 
     grid = []
-    tmp = np.linspace(0.01, 0.1, 10)
+    # tmp = np.linspace(0.01, 0.1, 10)
+    tmp = [2, 3, 1/2, 1/3]
     for i in range(len(tmp)):
-        grid.append("{:.4e}".format(2e-1 * tmp[i]))
+        grid.append("{:.4e}".format(2e-2 * tmp[i]))
 
     print("Running grid of {} simulations:".format(len(grid)))
     print("Parameter: {}".format(parameter))
@@ -118,9 +146,12 @@ def run_grid() -> None:
     py_run.SPEC_OVERRIDE = True
 
     # Finally make a call to run_python to run all of the parameter files
-    nsims = len(pfs)
-    mpi, ncores = py_run_util.get_num_procs()
-    py_run.run_python_etc(pfs, nsims, mpi, ncores)
+    if dry_run:
+        return
+    else:
+        nsims = len(pfs)
+        mpi, ncores = py_run_util.get_num_procs()
+        py_run.run_python_etc(pfs, nsims, mpi, ncores)
 
     return
 

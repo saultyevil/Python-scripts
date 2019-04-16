@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+
 """
 Various functions used throughout batch running of Python simulations. This
 script should be imported into other scripts rather than being itself run.
 """
+
 
 import time
 import datetime
@@ -13,6 +15,7 @@ from typing import Tuple, Union
 from shutil import which, copyfile
 from subprocess import Popen, PIPE
 from multiprocessing import cpu_count
+
 
 LOGFILE = None
 
@@ -102,7 +105,8 @@ def log(message: str, logfile=None) -> None:
 
 def process_line_output(line: str, pcycle: bool, n_cores: int = 1, print_crap: bool = True, verbose: bool = False) -> bool:
     """
-    Process the output from a Python simulation and print something to screen. Very ugly! Sad!
+    Process the output from a Python simulation and print something to screen.
+    Very ugly! Very sad!
 
     Parameters
     ----------
@@ -216,8 +220,9 @@ def get_num_procs(default_cores: int = 0) -> Tuple[bool, int]:
     Parameters
     ----------
     default_cores       int, optional
-                        If this is provided, the function will assume that this is the number of cores Python
-                        will be run using and that the computer is capable of using this many cores
+                        If this is provided, the function will assume that this
+                        is the number of cores Python will be run using and that
+                        the computer is capable of using this many cores
 
     Returns
     -------
@@ -238,7 +243,7 @@ def get_num_procs(default_cores: int = 0) -> Tuple[bool, int]:
         return mpi, default_cores
     else:
         if system() == "Darwin":
-            n_cores = cpu_count()
+            n_cores = cpu_count() // 2  # divide by 2 because hyperthreading :^)
         else:
             n_cores = find_number_of_physical_cores_lscpu()
             if n_cores == 0:
