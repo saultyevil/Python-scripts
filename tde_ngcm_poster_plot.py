@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
+import tde_util
 import py_plot_util
 import numpy as np
-from matplotlib import  pyplot as plt
+from matplotlib import pyplot as plt
 
 
 SMOOTH = 11
 VERBOSE = False
 spec_files = py_plot_util.find_spec_files()
-blag_spec = py_plot_util.get_iPTF15af_spec(SMOOTH, VERBOSE)
+blag_spec = tde_util.iPTF15af_spec(SMOOTH, VERBOSE)
 
 fig, ax = plt.subplots(1, 1, figsize=(12,8))
 Z = 0.07897
@@ -29,7 +30,7 @@ for file in spec_files:
             idx = i
             break
     flux = np.array(spec[1:, idx], dtype=float)
-    smoothflux = py_plot_util.smooth_flux(flux, SMOOTH, VERBOSE)
+    smoothflux = py_plot_util.smooth_1d_array(flux, SMOOTH, VERBOSE)
     wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
     OBSERVE_DIST = 1.079987153448e+27
     default_dist = 100 * 3.08567758128e18  # 100 pc

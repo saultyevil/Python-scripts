@@ -4,10 +4,10 @@
 Extinction along the line of sight, AV = 0.093 mag
 """
 
+import tde_util
 import numpy as np
 import py_plot_util
 from matplotlib import pyplot as plt
-from tde_spec_plot import plot_line_ids
 
 def mag2flux(mag, zero):
     return zero * 10**(-mag / 2.5)
@@ -22,13 +22,13 @@ spec = py_plot_util.read_spec_file(spec_file, " ")
 wavelength = np.array(spec[1:, 1], dtype=float)
 
 # flux indexs should be 11 (45 deg) or 12 (62 deg) -- rescale to iPTF15af distance
-flux45 = py_plot_util.smooth_flux(np.array(spec[1:, 11], dtype=float), smooth, verbose)
+flux45 = py_plot_util.smooth_1d_array(np.array(spec[1:, 11], dtype=float), smooth, verbose)
 flux45 *= 3.08567758128e20**2 / 1.079987153448e+27**2
-flux62 = py_plot_util.smooth_flux(np.array(spec[1:, 12], dtype=float), smooth, verbose)
+flux62 = py_plot_util.smooth_1d_array(np.array(spec[1:, 12], dtype=float), smooth, verbose)
 flux62 *= 3.08567758128e20**2 / 1.079987153448e+27**2
 
 # load iPTF15af and put into rest frame
-blag = py_plot_util.get_iPTF15af_spec(smooth, verbose)
+blag = tde_util.iPTF15af_spec(smooth, verbose)
 blag[:, 0] /= (Z + 1)
 
 mags = np.array([
@@ -104,7 +104,7 @@ ax.set_ylim(1e-18, 1e-13)
 # ##################
 
 lines = py_plot_util.get_common_line_ids()
-ax = plot_line_ids(ax, lines, rotation="vertical")
+ax = py_plot_util.plot_line_ids(ax, lines, rotation="vertical")
 
 # #################
 

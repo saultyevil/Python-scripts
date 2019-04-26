@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+
+import tde_util
 import py_plot_util
 import numpy as np
 from matplotlib import pyplot as plt
@@ -27,7 +29,7 @@ def plot_3_inclinations(files, titles, suptitle, inds, labels, ncols, nrows, out
 
     fig, ax = plt.subplots(nrows, ncols, figsize=figsi, squeeze=False)
 
-    blag = py_plot_util.get_iPTF15af_spec(SMOOTH, VERBOSE)
+    blag = tde_util.iPTF15af_spec(SMOOTH, VERBOSE)
     blag[:, 0] /= (0.07897 + 1)
     fmax = np.max(blag[:, 1])
     blag[:, 1] /= fmax
@@ -47,19 +49,19 @@ def plot_3_inclinations(files, titles, suptitle, inds, labels, ncols, nrows, out
             # Read in the fluxes and normalise and scale appropriately
             # inclination angle 1
             flux1 = np.array(spec[1:, inds[0]], dtype=float)
-            flux1 = py_plot_util.smooth_flux(flux1, SMOOTH, VERBOSE)
+            flux1 = py_plot_util.smooth_1d_array(flux1, SMOOTH, VERBOSE)
             fmax = np.max(flux1)
             flux1 /= fmax
             flux1 *= 10000
             # inclination angle 2
             flux2 = np.array(spec[1:, inds[1]], dtype=float)
-            flux2 = py_plot_util.smooth_flux(flux2, SMOOTH, VERBOSE)
+            flux2 = py_plot_util.smooth_1d_array(flux2, SMOOTH, VERBOSE)
             fmax = np.max(flux2)
             flux2 /= fmax
             flux2 *= 100  # move up axis
             # inclination angle 3
             flux3 = np.array(spec[1:, inds[2]], dtype=float)
-            flux3 = py_plot_util.smooth_flux(flux3, SMOOTH, VERBOSE)
+            flux3 = py_plot_util.smooth_1d_array(flux3, SMOOTH, VERBOSE)
             fmax = np.max(flux3)
             flux3 /= fmax
             flux3 /= 1  # move up axis MORE

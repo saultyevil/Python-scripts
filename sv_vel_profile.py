@@ -32,7 +32,7 @@ class SV93wind:
         self.alpha = accel_exp
         self.vinf = v_inf
 
-    def _find_theta(self, r0):
+    def find_theta(self, r0):
         """
         Determine the angle at which the wind emerges from at a special radius
         r from the disk surface
@@ -49,18 +49,18 @@ class SV93wind:
 
         return theta
 
-    def _r0_guess_func(self, r, x):
+    def r0_guess_func(self, r, x):
         """
         Note that r is a position along the disk
         """
 
-        theta = self._find_theta(r)
+        theta = self.find_theta(r)
         rho = np.sqrt(x[0] ** 2 + x[1] ** 2)
         rho_guess = r + np.tan(theta) * x[2]
 
         return rho_guess - rho  # We want to make this zero
 
-    def _find_r0(self, x):
+    def find_r0(self, x):
         """
         Determine r0 for a point in the x, y plane
         """
@@ -79,16 +79,16 @@ class SV93wind:
         elif rho >= rho_max:
             return self.rmax * rho - rho_max
         else:
-            return brentq(self._r0_guess_func, self.rmin, self.rmax, args=(x))
+            return brentq(self.r0_guess_func, self.rmin, self.rmax, args=(x))
 
-    def _vesc(self, r0):
+    def vesc(self, r0):
         """
         Calculate the escape velocity at a point r0
         """
 
         return np.sqrt(2 * G * self.mobj / r0)
 
-    def _poloidal_velocity(self, l, r0):
+    def poloidal_velocity(self, l, r0):
         """
         Calculate the polodial velocity for a polodial distance l along a wind
         stream line with fixed.
@@ -98,22 +98,32 @@ class SV93wind:
             return self.v0
 
         tmp = (l / self.Rv) ** self.alpha
-        v_term = self.vinf * self._vesc(r0)
+        v_term = self.vinf * self.vesc(r0)
         vl = self.v0 + (v_term - self.v0) * (tmp / (tmp + 1))
 
         return vl
 
-    def _velocity_vector(self, x):
+    def velocity_vector(self, x):
         """
         Determine the 3d velocity vector in cartesian coordinates
         """
 
-        r0 = self._find_r0(x)
-        theta = self._find_theta(r0)
+        r0 = self.find_r0(x)
+
+        if self.rmin > r0 or r0 > self.rmax:
+            print("r0 outside rmin or rmax of wind")
+            print("r0 = ", r0)
+            exit(1)
+
+        theta = self.find_theta(r0)
+        # if self.thetamin < theta < self.thetamax:
+        #     print("theta cannot be smaller than thetamin or larger than thetamax")
+        #     print(theta)
+        #     exit(1)
 
         r = np.sqrt(x[0] ** 2 + x[1] ** 2)
         l = np.sqrt((r - r0) ** 2 + x[2] ** 2)
-        vl = self._poloidal_velocity(l, r0)
+        vl = self.poloidal_velocity(l, r0)
 
         v = np.zeros(3)
         v[0] = vl * np.sin(theta)
@@ -141,8 +151,8 @@ def plot_power_law():
     m_cobj = 3e7                    # Msol
     mdot_wind = 2e-2                # Msol/yr
     Rstar = 2.65e13                 # cm
-    r_min = 10 * Rstar              # cm
-    r_max = 55 * Rstar              # cm
+    r_min = 1 * Rstar              # cm
+    r_max = 30 * Rstar              # cm
     theta_min = 70                  # degrees
     theta_max = 82                  # degrees
     accel_length = 5e16             # cm
@@ -152,7 +162,8 @@ def plot_power_law():
 
     # This next part of the code will create a plot for different values of alpha
     # which controls how quickly the wind is accelerated. To do this, we will assume
-    # the stream line originates from r_min
+    # the streamline originates from r_min where r0 is the launch radius of the
+    # streamline
     n_resolution = 500
     wind_alphas = [0.1, 0.2, 0.4, 0.8, 1.0, 2.0, 4.0, 8.0, 10.0, 15.0]
 
@@ -163,9 +174,9 @@ def plot_power_law():
         r0 = wind.rmin
         l = np.linspace(wind.rmin, 2 * wind.Rv, n_resolution)
         vl = np.zeros(n_resolution)
-        for i in range(n_resolution):
-            vl[i] = wind._poloidal_velocity(l[i], r0)
-        vinf = wind.vinf * wind._vesc(r0)
+        for i in range(n_resolution):  # TODO: if I was clever earlier, this wouldn't need to be a loop
+            vl[i] = wind.poloidal_velocity(l[i], r0)
+        vinf = wind.vinf * wind.vesc(r0)
         plt.plot(l / wind.Rv, vl / vinf, label=r"$\alpha$ = {}".format(al))
 
     plt.xlabel(r"$l$/$R_{v}$", fontsize=15)

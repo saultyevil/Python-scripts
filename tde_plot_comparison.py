@@ -1,63 +1,128 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
-import py_plot_util
+
+import tde_util
 import numpy as np
+import pandas as pd
+import py_plot_util
+import tde_spec_plot
+from consts import *
 from matplotlib import pyplot as plt
 
-SMOOTH = 11
+
+SMOOTH = 15
+WMIN = 100
+WMAX = 6000
+TDE_OBJ = "iPTF15af"
+DEFAULT_DIST = 100 * PARSEC
+FTYPE = "png"
 VERBOSE = False
-OBSERVE_DIST = 1.079987153448e+27      # 350 Mpc
-DEFAULT_DIST = 100 * 3.08567758128e18  # 100 pc
 
-fig, ax = plt.subplots(1, 1, figsize=(12, 8))
 
-# Read in and normalise the observed spectra
-cenkspec = py_plot_util.get_ASSASN14li_spec(SMOOTH, VERBOSE)
-blag_spec = py_plot_util.get_iPTF15af_spec(SMOOTH, VERBOSE)
-cenk_max = cenkspec[:, 1].max()
-cenk_norm = cenkspec[:, 1] / cenk_max
-blag_max = blag_spec[:, 1].max()
-blag_norm = blag_spec[:, 1] / blag_max
+grid_angles = ["20", "40", "60", "62", "70", "75", "80", "85", "89"]
+COMP_MODEL_SPEC_PATH = "zzz_orig/tde.spec"
 
-# Plot the observed spectra
-ax.semilogy(blag_spec[:, 0] / (0.07897 + 1), blag_norm, label="iPTF15af: Blagordnova et al. (2019)")
-ax.semilogy(cenkspec[:, 0] / (0.02058 + 1), cenk_norm * 20, label="ASASSN-14li: Cenko et al. (2016)")
+try:
+    comp_model_spec = py_plot_util.read_spec_file(COMP_MODEL_SPEC_PATH, " ", pandas_table=True)
+    comp_model_angles = py_plot_util.spec_inclinations_pandas(comp_model_spec)
+except IOError:
+    print("Can't open base agn model. Is something wrong?")
+    comp_model_spec = np.zeros((10,2))
+    comp_model_spec = grid_angles.copy()
 
-# Load in the Python model - assume this is being called in the model directory
-# spec_file = "/home/saultyevil/PySims/TDE/Star_model/macro_models/sim11/tde.spec"
-spec_file = py_plot_util.find_spec_files()[0]
-print(spec_file)
-spec = py_plot_util.read_spec_file(spec_file, " ")
 
-# Horrid hacky code for easier indexing :^) please ignore
-angles = [28, 45, 62, 80]
-idxs = []
-for angle in angles:
-    for i in range(spec.shape[1]):
-        if spec[0, i].isdigit() and float(spec[0, i]) == angle:
-            spec[0, i] = float(angle)
-            idxs.append(i)
+def plot_comparison(grid_name, root, i_to_plot, subplots, sim_dirs, tde_obj="iPTF15af", wmin=WMIN, wmax=WMAX,
+                    smooth=SMOOTH):
+    """
+    Create a comparison plot of a bunch of spec files.
+    
+    Parameter
+    ---------
+    grid_name   The grid parameter 
+    root        The common root name of the simulations to plot
+    subplots    The shape of the subplot panels (tuple)
+    sim_dirs    A list of directories for the grid simulation
+    
+    Returns
+    -------
+    None
+    """
 
-# Pull out the correct flux for the angle and scale appropriately
-labels = ["Matom model 28°", "Matom model 45°", "Matom model 62°", "Matom model 80°"]  # the python interpreter may HATE this
-offset = [0.1, 1, 10, 25]
-for i in range(len(angles)):
-    wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
-    flux = np.array(spec[1:, idxs[i]], dtype=float)
-    smoothflux = py_plot_util.smooth_flux(flux, SMOOTH, VERBOSE)
-    flux_dist = smoothflux * (DEFAULT_DIST ** 2 / OBSERVE_DIST ** 2)  # + 6e-16 *offset[i])
-    flux_max = flux_dist.max()
-    flux_norm = flux_dist / flux_max
-    ax.semilogy(wavelength, flux_norm * offset[i], label=labels[i])
+    nrows, ncols = subplots
+    fig, ax = plt.subplots(nrows, ncols, figsize=(32, 16), squeeze=False)
+    print("Plotting {} grid,\n\t{},\nfor angles,\n\t{}".format(grid_name, sim_dirs, i_to_plot))
+    
+    # hack to make i_to_plot a list
+    if type(i_to_plot) == float or type(i_to_plot) == int or type(i_to_plot) == str:
+        i_to_plot = [i_to_plot]
+    
+    tde_spec_plot.TDE_OBJ = tde_obj  # hacky fix
+    tde, dist, reference = tde_spec_plot.get_tde_spectrum()
+    line_ids = py_plot_util.get_common_line_ids()
 
-# Plot attributes and etc
-ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
-ax.set_ylabel(r"Normalised Flux $F_{\lambda}$ + const", fontsize=17)
-ax.tick_params(labelsize=14)
-ax.set_xlim(1150, 2800)
-ax.legend(fontsize=14)
-ax.set_title("Preliminary wind model", fontsize=17)
+    index = 0 
+    for i in range(nrows):
+        for j in range(ncols):
+            
+            if index > len(i_to_plot) - 1:
+                break
+            
+            # Plot TDE spectrum for comparison
+            ax[i, j].semilogy(tde[:, 0], tde[:, 1], "b", label=TDE_OBJ)
+            
+            # Plot AGN base model - if the inclination angle is in the spec file
+            if i_to_plot[index] in comp_model_angles:
+                base_lambda = comp_model_spec["Lambda"].values.astype(float)
+                base_flux = comp_model_spec[i_to_plot[index]].values.astype(float)
+                base_flux = py_plot_util.smooth_1d_array(base_flux, 30)
+                base_flux *= DEFAULT ** 2 / dist ** 2
+                ax[i, j].semilogy(base_lambda, base_flux, "k", label="zzz_orig")
+                
+            ymin = 1e-14
+            ymax = 1e-13
+            for d in sim_dirs:
+                spec_filename = d + "/" + root + ".spec"
+                try:
+                    spectrum = py_plot_util.read_spec_file(spec_filename, pandas_table=True)
+                except IOError:
+                    print("Can't open spec {}, check pls".format(spec_filename))
+                inclinations = py_plot_util.spec_inclinations_pandas(spectrum)
+                if i_to_plot[index] not in inclinations:
+                    continue
+                wavelength = spectrum["Lambda"].values.astype(float)
+                flux = spectrum[i_to_plot[index]].values.astype(float)
+                flux = py_plot_util.smooth_1d_array(flux, smooth)
+                flux *= DEFAULT_DIST ** 2 / dist ** 2
+                ax[i, j].semilogy(wavelength, flux, label=spec_filename)
+                
+                tmp_max, tmp_min = py_plot_util.get_ylimits(wavelength, flux, wmin, wmax)
+                if tmp_max > ymax:
+                    ymax = tmp_max
+                if tmp_min < ymin:
+                    ymin = tmp_min
+                
+            ax[i, j].legend(loc="upper right")
+            ax[i, j].set_ylim(ymin, ymax)
+            ax[i, j].set_xlim(wmin, wmax)
+            ax[i, j].set_title("i = " + i_to_plot[index])
+            
+            py_plot_util.plot_line_ids(ax[i, j], line_ids)
+            
+            # increment index counter
+            index += 1
+            
+    fig.suptitle(grid_name)
+            
+    grid_name = grid_name.replace("/", "_")
+        
+    fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    
+    plt.savefig(grid_name+".pdf")
+    plt.show()
+            
+    return
+    
 
-fig.tight_layout()
-plt.savefig("tde_models.png")
-plt.show()
+if __name__ == "__main__":
+    print("Don't run this :-)")

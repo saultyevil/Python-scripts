@@ -228,7 +228,7 @@ def py_run(root: str, wd: str, use_mpi: bool, n_cores: int, spec_cycle: bool = F
     pf = root + ".pf"
 
     if spec_cycle:
-        py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "10", VERBOSE)
+        py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "3", VERBOSE)
         py_run_util.change_parameter(wd + pf, "Photons_per_cycle", "5e6", VERBOSE)
     else:
         py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "0", VERBOSE)
@@ -277,7 +277,8 @@ def py_run(root: str, wd: str, use_mpi: bool, n_cores: int, spec_cycle: bool = F
             f.writelines(err)
     rc = cmd.returncode
     if rc:
-        raise CalledProcessError(rc, command)
+        print("Python exited with non-zero exit code: {}".format(rc))
+        # raise CalledProcessError(rc, command)
 
     # Append a file containing the Python version and commit hash
     version, hash = py_plot_util.get_python_version(PY_VERSION, VERBOSE)
@@ -388,7 +389,7 @@ def run_python_etc(pf_paths: List[str], n_sims: int, use_mpi: bool, n_cores: int
         open("not_converged.txt", "w").close()
 
     for i, path in enumerate(pf_paths):
-        root, wd = py_plot_util.get_root_name_and_path(path)
+        root, wd = py_plot_util.parse_root_name_and_path(path)
 
         py_run_util.log("------------------------\n")
         py_run_util.log("     Simulation {}/{}".format(i + 1, n_sims))

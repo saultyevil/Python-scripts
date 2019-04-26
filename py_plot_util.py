@@ -11,8 +11,8 @@ import numpy as np
 import pandas as pd
 from sys import exit
 from shutil import which
-from socket import gethostname
 from subprocess import Popen, PIPE
+from matplotlib import pyplot as plt
 from typing import Tuple, List, Union
 from scipy.signal import convolve, boxcar
 
@@ -22,11 +22,7 @@ def tests():
     Warns the user that this script is a utility script and not meant to be run. It will also print the current
     Python version to screen.
 
-    TODO: add unit tests
-
-    Parameters
-    ----------
-    None
+    TODO: add unit tests or something
 
     Returns
     -------
@@ -95,6 +91,42 @@ def get_python_version(py: str = "py", verbose: bool = False) -> Tuple[str, str]
     return version, commit_hash
 
 
+def parse_root_name_and_path(pf_path: str) -> Tuple[str, str]:
+    """
+    Split a path name into a directory path and root name for a Python simulation.
+
+    TODO: the loop could probably be replaced by a str.find() instead
+
+    Parameters
+    ----------
+    pf_path         str
+                    The directory path to a Python .pf file
+
+    Returns
+    -------
+    root_name       str
+                    The root name of the Python simulation
+    path            str
+                    The directory path containing the provided Python .pf file
+    """
+
+    if type(pf_path) != str:
+        print("py_util.get_root_name_and_path: Provided a {} when expecting a string".format(type(pf_path)))
+        exit(1)
+
+    dot = 0
+    slash = 0
+    for l in range(len(pf_path)):
+        if pf_path[l] == "/":
+            slash = l + 1
+        if pf_path[l] == ".":
+            dot = l
+    root_name = pf_path[slash:dot]
+    path = pf_path[:slash]
+
+    return root_name, path
+
+
 def read_spec_file(file_name: str, delim: str = " ", pandas_table: bool = False) -> Union[np.array, pd.DataFrame]:
     """
     Read in data from an external file, line by line whilst ignoring comments.
@@ -132,27 +164,27 @@ def read_spec_file(file_name: str, delim: str = " ", pandas_table: bool = False)
         else:
             line = line.split(delim)
         if len(line) > 0:
-            if line[0] == "Freq.":  # Clean up the inclination angle names
+            # Clean up the inclination angle names
+            if line[0] == "Freq.":
                 for j in range(len(line)):
                     if line[j][0] == "A":
                         # TODO: this will fail for other phase angles, maybe?
                         line[j] = line[j].replace("P0.50", "").replace("A", "")
-            if line[0][0] != "#":  # Don't add lines which are comments
+            # Don't add lines which are comments
+            if line[0][0] != "#":
                 lines.append(line)
 
+    # I have decided to add the option to return a pandas table as well
     if pandas_table:
         return pd.DataFrame(lines[1:], columns=lines[0])
-    else:
-        return np.array(lines)
+
+    return np.array(lines)
 
 
 def find_spec_files() -> List[str]:
     """
-    Use the unix find command to find spec files in the current working directory and in directories below
-
-    Parameters
-    ----------
-    None
+    Use the unix find command to find spec files in the current working directory
+    and in directories below.
 
     Returns
     -------
@@ -167,7 +199,6 @@ def find_spec_files() -> List[str]:
     spec_files = sorted(spec_files, key=str.lower)
 
     if err:
-        print("py_util.find_spec_files: find returning something to stderr...")
         print("Captured from stderr:")
         print(err)
         return []
@@ -197,7 +228,6 @@ def find_pf(ignore_out_pf: bool = True):
     err = stderr.decode("utf-8")
 
     if err:
-        print("py_util.find_pf: find returned something to stderr...")
         print("Captured from stderr:")
         print(err)
         exit(1)
@@ -213,7 +243,7 @@ def find_pf(ignore_out_pf: bool = True):
     return pfs
 
 
-def get_spec_viewing_angles(spec_names: List[str], delim: str = " ") -> np.array:
+def spec_inclinations_numpy(spec_names: List[str], delim: str = " ") -> np.array:
     """
     Get all of the unique inclination angles for a set of Python .spec files.
 
@@ -233,7 +263,7 @@ def get_spec_viewing_angles(spec_names: List[str], delim: str = " ") -> np.array
     """
 
     # TODO: add some input error checking
-    # TODO: why did I write it like this? It's hideous
+    # TODO: why did I write it like this? It's hideous - this is better for Pandas lol
 
     iangles = []
     # Find the viewing angles in each .spec file
@@ -254,11 +284,45 @@ def get_spec_viewing_angles(spec_names: List[str], delim: str = " ") -> np.array
     return iangles
 
 
-def check_inclination_angle(inclination: int, spec: np.array) -> bool:
+def spec_inclinations_pandas(spectrum: pd.DataFrame) -> list:
+    """
+    Return a list of the viewing angles within a spectrum
+
+    Parameters
+    ----------
+    spectrum            Pandas DataFrame
+                        The spectrum to extract the viewing angles from
+
+    Returns
+    -------
+    viewing_angles      list
+                        The inclinations within the spectrum file
+    """
+
+    viewing_angles = []
+
+    if type(spectrum) != pd.DataFrame:
+        print("viewing_angles_in_spec: spectrum is not a pandas dataframe")
+        exit(1)
+
+    column_headers = spectrum.columns.values
+    for header in column_headers:
+        if header.isdigit():
+            viewing_angles.append(header)
+
+    return viewing_angles
+
+
+def check_inclination_present(inclination: int, spec: np.array) -> bool:
     """
     Check that an inclination angle is in the spectrum array.
 
     This is a terrible function.
+
+    In theory, this can probably be replaced by one line of Python code
+
+        if angle not in angles:
+            continue
 
     Parameters
     ----------
@@ -285,43 +349,7 @@ def check_inclination_angle(inclination: int, spec: np.array) -> bool:
     return allowed
 
 
-def get_root_name_and_path(pf_path: str) -> Tuple[str, str]:
-    """
-    Split a path name into a directory path and root name for a Python simulation.
-
-    TODO: the loop could probably be replaced by a str.find() instead
-
-    Parameters
-    ----------
-    pf_path         str
-                    The directory path to a Python .pf file
-
-    Returns
-    -------
-    root_name       str
-                    The root name of the Python simulation
-    path            str
-                    The directory path containing the provided Python .pf file
-    """
-
-    if type(pf_path) != str:
-        print("py_util.get_root_name_and_path: Provided a {} when expecting a string".format(type(pf_path)))
-        exit(1)
-
-    dot = 0
-    slash = 0
-    for l in range(len(pf_path)):
-        if pf_path[l] == "/":
-            slash = l + 1
-        if pf_path[l] == ".":
-            dot = l
-    root_name = pf_path[slash:dot]
-    path = pf_path[:slash]
-
-    return root_name, path
-
-
-def smooth_flux(flux: np.array, smooth: Union[int, float], verbose: bool = False) -> np.array:
+def smooth_1d_array(flux: np.array, smooth: Union[int, float], verbose: bool = False) -> np.array:
     """
     Smooth 1d data using a boxcar smoother.
 
@@ -370,7 +398,42 @@ def smooth_flux(flux: np.array, smooth: Union[int, float], verbose: bool = False
     return smoothed
 
 
-def get_ylims(wavelength: np.array, flux: np.array, wmin: float, wmax: float, verbose: bool = False) -> Tuple[float, float]:
+def subplot_dims(n_plots: int) -> tuple:
+    """
+    Determine the dimensions for a plot with multiple subplot panels. Two columns
+     of subplots will always be used.
+
+    TODO: if n_plots is large, use 3 columns instead
+
+    Parameters
+    ----------
+    n_plots         int
+                    The number of subplots which will be plotted
+
+    Returns
+    -------
+    dims            tuple
+                    The dimensions of the subplots returned as (nrows, ncols)
+    """
+
+    if n_plots > 2:
+        ncols = 2
+        nrows = (1 + n_plots) // ncols
+    else:
+        ncols = 1
+        nrows = n_plots
+
+    dims = (nrows, ncols)
+
+    return dims
+
+
+def get_ylimitz(ax):
+    return
+
+
+def get_ylimits(wavelength: np.array, flux: np.array, wmin: Union[float, None], wmax: Union[float, None],
+                verbose: bool = False) -> Tuple[float, float]:
     """
     Find more appropriate y limits to use when the wavelength range has been limited.
 
@@ -389,10 +452,10 @@ def get_ylims(wavelength: np.array, flux: np.array, wmin: float, wmax: float, ve
 
     Returns
     -------
-    yupper          float
-                    The upper y limit to use with the wavelength range
-    ylower          float
-                    The lower y limit to use with the wavelength range
+    yupper              float
+                        The upper y limit to use with the wavelength range
+    ylower              float
+                        The lower y limit to use with the wavelength range
     """
 
     if wavelength.shape[0] != flux.shape[0]:
@@ -427,121 +490,6 @@ def get_ylims(wavelength: np.array, flux: np.array, wmin: float, wmax: float, ve
     return yupper, ylower
 
 
-def get_iPTF15af_spec(smooth: int, verbose: bool = False) -> np.array:
-    """
-    Return an array containing the UV spectrum for iPTF15af as in Blagordonova et al. (2019)
-
-    Parameters
-    ----------
-    smooth              int
-                        The size of the window for the boxcar filter
-    verbose             bool, optional
-                        Enable verbose logging
-
-    Returns
-    --------
-    iPTF15af_spec       np.array[float]
-                        the UV spectrum of iPTF15af from N. Blagorodnova et al. (2019)
-                            column 0: wavelength in Angstroms
-                            column 1: flux per unit wavelength in erg s^-1 cm^-2 A^-1
-    """
-
-    try:
-        smooth = int(smooth)
-    except ValueError:
-        print("py_util.get_iPTF15af_spec: Unable to convert smooth into an integer")
-        exit(1)
-
-    spec_dir = ""
-    hostname = gethostname()
-    if hostname == "ASTRO-REX":
-        spec_dir = "/home/saultyevil/PySims/TDE/Blagorodnova_iPTF15af.dat"
-    elif hostname == "excession":
-        spec_dir = "/home/ejp1n17/PySims/TDE/Blagorodnova_iPTF15af.dat"
-    elif hostname == "REXBOOK-AIR.local":
-        spec_dir = "/Users/saultyevil/Dropbox/DiskWinds/PySims/TDE/Blagorodnova_iPTF15af.dat"
-    elif hostname == "REXBUNTU":
-        spec_dir = "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/Blagorodnova_iPTF15af.dat"
-    elif hostname == "REX":
-        spec_dir = "/home/saultyevil/PySims/TDE/Blagorodnova_iPTF15af.dat"
-    else:
-        print("Unknown hostname, update py_util with directory for the Blagordnova spectrum")
-        exit(1)
-
-    if verbose:
-        print("Hostname: {}".format(hostname))
-        print("iPTF15af spectra being read in from {}".format(spec_dir))
-
-    try:
-        iPTF15af_spec = np.loadtxt(spec_dir)
-    except IOError:
-        print("py_util.get_iPTF15af_spec: Unable to open the iPTF15af UV spectrum from the following path {}. "
-              "Update the directories in the script".format(spec_dir))
-        exit(1)
-
-    iPTF15af_spec[:, 1] = smooth_flux(iPTF15af_spec[:, 1], smooth)
-
-    return iPTF15af_spec
-
-
-def get_ASSASN14li_spec(smooth: int, verbose: bool = False) -> np.array:
-    """
-    Return an array containing the UV spectrum for ASSASN14li as in Cenko et al. (2016)
-
-    Parameters
-    ----------
-    smooth              int
-                        The size of the window for the boxcar filter
-    verbose             bool, optional
-                        Enable verbose logging
-
-    Returns
-    -------
-    ASSASN_14li_spec    np.array[float]
-                        the UV spectrum of ASASSN-14li from Cenko et al. 2016.
-                            column 0: wavelength in Angstroms
-                            column 1: flux per unit wavelength in erg s^-1 cm^-2 A^-1
-                            column 2: error in flux
-    """
-
-    try:
-        smooth = int(smooth)
-    except ValueError:
-        print("py_util.get_ASSASN_14li_spec: Unable to convert smooth into an integer")
-        exit(1)
-
-    cenk_dir = ""
-    hostname = gethostname()
-    if hostname == "ASTRO-REX":
-        cenk_dir = "/home/saultyevil/PySims/TDE/ASASSN-14li_spec_Cenko.dat"
-    elif hostname == "excession":
-        cenk_dir = "/home/ejp1n17/PySims/TDE/ASASSN-14li_spec_Cenko.dat"
-    elif hostname == "REXBOOK-AIR.local":
-        cenk_dir = "/Users/saultyevil/Dropbox/DiskWinds/PySims/TDE/ASASSN-14li_spec_Cenko.dat"
-    elif hostname == "REXBUNTU":
-        cenk_dir = "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/ASASSN-14li_spec_Cenko.dat"
-    elif hostname == "REX":
-        cenk_dir = "/home/saultyevil/PySims/TDE/ASASSN-14li_spec_Cenko.dat"
-    else:
-        print("Unknown hostname, update py_util with directory for the Cenko spectrum")
-        exit(1)
-
-    if verbose:
-        print("Hostname: {}".format(hostname))
-        print("Cenko spectra being read in from {}".format(cenk_dir))
-
-    try:
-        ASSASN_14li_spec = np.loadtxt(cenk_dir)
-    except IOError:
-        print("py_util.get_ASSASN_14li_spec: Unable to open the ASSASSN_14li spectrum from the following path {}. "
-              "Update the directories in the script".format(cenk_dir))
-        exit(1)
-
-    ASSASN_14li_spec[:, 1] = smooth_flux(ASSASN_14li_spec[:, 1], smooth)
-
-    return ASSASN_14li_spec
-
-
 def get_common_line_ids() -> dict:
     """
     Return a dictionary containing the major absorption and emission lines which I'm interested in. The wavelengths
@@ -574,6 +522,50 @@ def get_common_line_ids() -> dict:
     }
 
     return common_lines
+
+
+def plot_line_ids(ax: plt.axes, lines: dict, rotation: str = "horizontal") -> plt.axes:
+    """
+    Plot major absorption and emission line IDs onto a spectrum.
+
+    Note, this should be used after setting the x limits on a figure.
+
+    Parameters
+    ----------
+    ax              plt.axes
+                    The plot object to add line IDs to
+    lines           dict
+                    A dictionary containing the line name and wavelength in Angstroms (ordered by wavelength)
+    rotation        str, optional
+                    Vertical or horizontal rotation for text ids
+
+    Returns
+    -------
+    ax              plt.axes
+                    The plot object now with lines IDs :-)
+    """
+
+    xlims = ax.get_xlim()
+
+    for i, l in enumerate(lines):
+        # check to make sure that a line isn't off the actual axis of the plot
+        if float(lines[l]) > xlims[1]:
+            continue
+        if float(lines[l]) < xlims[0]:
+            continue
+        # plot the text in an alternating up-down pattern
+        if i % 2 == 0:
+            line = ax.axvline(lines[l], 0.8, 0.9, color="k")
+            x, y = line.get_data()
+            coords = ax.transLimits.transform((x[0], y[1]))
+            ax.text(coords[0], 0.95, l, transform=ax.transAxes, ha="center", va="center", rotation=rotation)
+        else:
+            line = ax.axvline(lines[l], 0.1, 0.2, color="k")
+            x, y = line.get_data()
+            coords = ax.transLimits.transform((x[0], y[0]))
+            ax.text(coords[0], 0.05, l, transform=ax.transAxes, ha="center", va="center", rotation=rotation)
+
+    return ax
 
 
 def run_windsave2table(path: str, root: str, verbose: bool = False) -> Union[int, None]:
@@ -735,7 +727,7 @@ def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./") -> 
         print("py_util.get_wind_data: could not find var {} or another key".format(var))
         exit(1)
 
-    # construct mask for data wanted
+    # Construct mask for data wanted
     inwind = data["inwind"].values.reshape(nx_cells, nz_cells)
     mask = (inwind < 0)
     qoi_mask = np.ma.masked_where(mask, qoi)
