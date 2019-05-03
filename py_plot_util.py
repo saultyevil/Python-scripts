@@ -432,8 +432,8 @@ def get_ylimitz(ax):
     return
 
 
-def get_ylimits(wavelength: np.array, flux: np.array, wmin: Union[float, None], wmax: Union[float, None],
-                verbose: bool = False) -> Tuple[float, float]:
+def get_ylimits(wavelength: np.array, flux: np.array, wmin: float, wmax: float,
+                scale: float = 10, verbose: bool = False) -> Tuple[float, float]:
     """
     Find more appropriate y limits to use when the wavelength range has been limited.
 
@@ -447,6 +447,8 @@ def get_ylimits(wavelength: np.array, flux: np.array, wmin: Union[float, None], 
                         The shortest wavelength which is being plotted
     wmax                float
                         The longest wavelength which is being plotted
+    scale               float, optional
+                        The scaling factor for white space around the data
     verbose             bool, optional
                         Enable verbose logging
 
@@ -459,33 +461,19 @@ def get_ylimits(wavelength: np.array, flux: np.array, wmin: Union[float, None], 
     """
 
     if wavelength.shape[0] != flux.shape[0]:
-        print("py_plot_util.get_y_lims: wavelength and flux are of different dimensions!")
+        print("py_plot_util.get_ylimits: wavelength and flux are of different dimensions!")
         print(wavelength.shape, flux.shape)
         exit(1)
+    if type(wavelength) != np.ndarray or type(flux) != np.ndarray:
+        print("py_plot_util.get_ylimits: wavelength or flux not a numpy array!")
+        exit(1)
 
-    wmin_flux = flux.min()
-    wmax_flux = flux.max()
+    idx_wmin = wavelength < wmin
+    idx_wmax = wavelength > wmax
+    flux_lim_wav = np.where(idx_wmin == idx_wmax)
 
-    if wmin:
-        wmin_idx = np.abs(wavelength - float(wmin)).argmin()
-        if verbose:
-            print("wmin_idx: {}".format(wmin_idx))
-        wmin_flux = flux[wmin_idx]
-    if wmax:
-        wmax_idx = np.abs(wavelength - float(wmax)).argmin()
-        if verbose:
-            print("wmax_idx: {}".format(wmax_idx))
-        wmax_flux = flux[wmax_idx]
-
-    if wmin_flux > wmax_flux:
-        yupper = wmin_flux
-        ylower = wmax_flux
-    else:
-        yupper = wmax_flux
-        ylower = wmin_flux
-
-    yupper *= 10
-    ylower /= 10
+    yupper = np.max(flux[flux_lim_wav]) * scale
+    ylower = np.min(flux[flux_lim_wav]) / scale
 
     return yupper, ylower
 
@@ -646,7 +634,7 @@ def run_windsave2table(path: str, root: str, verbose: bool = False) -> Union[int
     return
 
 
-def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./") -> Tuple[np.array, np.array, np.array]:
+def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./", coord: str = "rectilinear") -> Tuple[np.array, np.array, np.array]:
     """
     Read in variables contained within a windsave2table file. Requires the user to have already run windsave2table
     already so the data is in the directory.
@@ -704,6 +692,11 @@ def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./") -> 
     # Try to open the data file
     try:
         data = pd.read_table(file, delim_whitespace=True)
+        # Due to how r-theta grids are coded up in Python, sometimes the theta
+        # which is spit out will be > 90. Here, all of the wind values are ~0
+        # and it makes a mess with colour scales, so remove these rows :-)
+        if coord == "polar" and var_type != "ion":
+            data = data[~(data["theta"] > 90)]
     except IOError:
         print("py_util.get_wind_data: could not open file {} for var {}".format(file, var))
         exit(1)
@@ -714,8 +707,27 @@ def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./") -> 
         zj = data["j"]
         nx_cells = int(np.max(xi) + 1)
         nz_cells = int(np.max(zj) + 1)
-        x = data["x"].values.reshape(nx_cells, nz_cells)
-        z = data["z"].values.reshape(nx_cells, nz_cells)
+
+        if coord == "rectilinear":
+            x = data["x"].values.reshape(nx_cells, nz_cells)
+            z = data["z"].values.reshape(nx_cells, nz_cells)
+        elif coord == "polar":
+            # Do some dumb coordinate transform from x, z to r theta
+            if var_type.lower() == "ion":
+                x = data["x"].values.reshape(nx_cells, nz_cells)
+                z = data["z"].values.reshape(nx_cells, nz_cells)
+                r = np.sqrt(x ** 2 + z ** 2)
+                theta = np.rad2deg(np.arctan(z / x))
+                x = r
+                z = theta
+            else:
+                x = data["r"].values.reshape(nx_cells, nz_cells)
+                z = data["theta"].values.reshape(nx_cells, nz_cells)
+        else:
+            print("py_util.get_wind_data: projection {} not understood, allowed values: rectilinear or polar"
+                  .format(coord))
+            rc = np.zeros(1)
+            return rc, rc, rc
         if var_type.lower() == "ion":
             qoi = data[ion_level].values.reshape(nx_cells, nz_cells)
         elif var_type.lower() == "wind":
