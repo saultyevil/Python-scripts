@@ -426,9 +426,6 @@ def plot_spectra(spec_path: List[str], inclinations: Union[List, np.array], outp
 
     root = "spec"
 
-    # ymin = 0.1
-    # ymax = 1
-
     # Loop over each possible viewing angle as provided in inclinations
     for angle in inclinations:
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
@@ -460,18 +457,20 @@ def plot_spectra(spec_path: List[str], inclinations: Union[List, np.array], outp
             wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
             flux = py_plot_util.smooth_1d_array(np.array(spec[1:, idx], dtype=float), smooth, verbose)
             flux *= (DEFAULT_DIST ** 2 / OBSERVE_DIST ** 2)
-
             ax.semilogy(wavelength, flux, label=legend)
-            ax.set_xlim(wmin, wmax)
+            tymax, tymin = py_plot_util.get_ylimits(wavelength, flux, wmin, wmax, scale=5)
 
-            tymin, tymax = ax.get_ylim()
-
-            if tymin < ymin:
-                ymin = tymin / 2
-            if tymax > ymax:
-                ymax = tymax * 2
+            if tymin == 0 or tymax == 0:
+                ymin = None
+                ymax = None
+            else:
+                if tymin < ymin:
+                    ymin = tymin
+                if tymax > ymax:
+                    ymax = tymax
 
         ax.set_ylim(ymin, ymax)
+        ax.set_xlim(wmin, wmax)
         ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=15)
         ax.set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)", fontsize=15)
         ax.legend(loc="lower right")

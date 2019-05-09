@@ -29,10 +29,11 @@ def planck_nu(t, nu):
     in units of ergs s^-1 cm^-2 Hz^-1
     """
 
-    x = np.exp(H * nu / (BOLTZMANN * t))
+    x = H * nu / (BOLTZMANN * t)
     y = 2 * H * nu ** 3 / C ** 2
+    bnu = y / (np.exp(x) - 1)
 
-    return y * (x - 1) ** -1
+    return bnu
 
 
 def planck_lambda(t, lamda):
@@ -52,13 +53,17 @@ def planck_lambda(t, lamda):
     in units of ergs s^-1 cm^-2 A^-1
     """
 
-    x = np.exp(H * C / (lamda * BOLTZMANN * t))
-    y = 2 * H * C ** 2 / lamda ** 5
+    # convert lambda into cm
+    lcm = lamda * ANGSTROM
 
-    return y * (x - 1) ** -1
+    x = H * C / (lcm * BOLTZMANN * t)
+    y = 2 * H * C ** 2 / lcm ** 5
+    b_lambda = y / (np.exp(x) - 1)
+
+    return b_lambda * ANGSTROM
 
 
-def t_eff(r: float, m: float, mdot: float, rin: float) -> float:
+def t_eff(r: float, m: float, mdot: float, rstar: float) -> float:
     """
     Return the effective temperature at a position R in an accretion disk. See Frank, King, Raine 1995 Chapter 5.
 
@@ -68,7 +73,7 @@ def t_eff(r: float, m: float, mdot: float, rin: float) -> float:
                     The position on the disk given in cm
     m               float
                     The mass of the central object given in g
-    rin             float
+    rstar           float
                     The radius of the central object given in cm
     mdot            float
                     The mass accretion rate of the accretion disk given in g s^-1
@@ -79,12 +84,11 @@ def t_eff(r: float, m: float, mdot: float, rin: float) -> float:
                     The effective temperature of the accretion disk at point R on the accretion disk given in K
     """
 
-    if r < rin:
+    if r < rstar:
         print("ss_disk.t_eff: r < rin")
         exit(1)
 
-    teff = (3 * G * m * mdot) / (8 * np.pi * r ** 3 * STEFAN_BOLTZMANN) * (1 - (rin / r) ** 0.5)
-    teff = teff ** 0.25
+    teff = ((3 * G * m * mdot) / (8 * np.pi * r ** 3 * STEFAN_BOLTZMANN) * (1 - (rstar / r) ** 0.5)) ** 0.25
 
     return teff
 
@@ -128,9 +132,8 @@ def disk_spectrum(min: float, max: float, m: float, mdot: float, rin: float, rou
 
     max_temperature = 0
     r_grid = np.linspace(rin, rout, nrings)
-    unit_grid = np.linspace(min, max, npoints)
     disk_spec = np.zeros((npoints, 2))
-    disk_spec[:, 0] = unit_grid
+    disk_spec[:, 0] = unit_grid = np.linspace(min, max, npoints)
 
     for i in range(nrings - 1):
         # Use midpoint of annulus as point on r grid
@@ -149,7 +152,7 @@ def disk_spectrum(min: float, max: float, m: float, mdot: float, rin: float, rou
             print("value of {} for nu_or_lambda invalid".format(nu_or_lambda))
             exit(1)
         # Finally calculate the monochromatic flux and increment the spectrum
-        disk_spec[:, 1] += bb * annulus_area
+        disk_spec[:, 1] += bb * annulus_area * np.pi
 
     if verbose:
         print("ss_disk.get_disk_spectrum: maximum effective disk temperature {} K".format(max_temperature))
@@ -161,16 +164,12 @@ def main():
     """
     Main function
 
-    Parameters
-    ----------
-    None
-
     Returns
     -------
     None
     """
 
-    object = "cv"
+    object = "tde"
     if object == "cv":
         min = 1e11
         max = 1e18
@@ -180,14 +179,13 @@ def main():
         rout = rin * 1e5
         nu_or_lambda = "nu"
     elif object == "tde":
-        min = 1000 * 1e-10
-        max = 3000 * 1e-10
+        min = 1e11
+        max = 1e18
         rin = 2.65e13
-        # rout = 5.00e14
         rout = 1e4 * rin
         m = 3e7
         mdot = 4e-2
-        nu_or_lambda = "lambda"
+        nu_or_lambda = "nu"
     else:
         print("Unknown object")
         exit(1)
@@ -202,7 +200,7 @@ def main():
     # Plot spectrum
     fig, ax = plt.subplots(1, 1, figsize=(12, 8))
     ax.plot(np.log10(lamda), np.log10(lamda*flux))
-    ax.set_ylim(10, 40)
+    ax.set_ylim(10, 50)
     ax.set_xlim(11, 18)
     ax.set_xlabel(r"log[$\nu$]", fontsize=15)
     ax.set_ylabel(r"log[$\nu$L$_{\nu}$]", fontsize=15)

@@ -9,9 +9,9 @@ arguments/switches to the script like with py_run.
 
 Usage
 
-    [python] py_run_grid.py [--dry-run]
+    [python] py_create_grid.py [--run_grids]
 
-    --dry-run: only create the grid of parameter files
+    --full_run: as well as creating a grid of runs, also run them
 """
 
 
@@ -101,15 +101,17 @@ def run_grid() -> None:
     None
     """
 
-    dry_run = False
+    dry_run = True
+    full_run = False
 
     if len(argv) == 2:
-        if argv[1] == "--dry-run":
-            dry_run = True
+        if argv[1] == "--run_grid":
+            full_run = True
+            dry_run = False
         else:
             print("don't know command {}".format(argv[1]))
     elif len(argv) > 2:
-        print("only takes 1 command ;-)")
+        print("only takes 1 command which is --run_grid ;-)")
         print(__doc__)
         return
 
@@ -117,12 +119,12 @@ def run_grid() -> None:
     input("Press a enter to continue...")
 
     # This is the parameter which will be changed
-    root = "../tde_cv.pf"
-    parameter = "Wind.mdot(msol/yr)"
+    root = "tde_spherical.pf"
+    parameter = "Stellar_wind.mdot(msol/yr)"
 
     grid = []
-    # tmp = np.linspace(0.01, 0.1, 10)
-    tmp = [2, 3, 1/2, 1/3]
+    # tmp = np.linspace(0.0, 2.0, 10)
+    tmp = [1.1, 1.2, 1.5, 2.0, 3.5, 5.0, 7.5, 10.0]
     for i in range(len(tmp)):
         grid.append("{:.4e}".format(2e-2 * tmp[i]))
 
@@ -132,23 +134,23 @@ def run_grid() -> None:
 
     pfs = create_grid(root, parameter, grid)
 
-    # Set up global variables for py_run modules
-    py_run.PY_VERSION = "py"
-    py_run.PY_FLAGS = "-p 2"
-    py_run.RUN_SIMS = True
-    py_run.RESUME_RUN = False
-    py_run.CHECK_CONVERGENCE = True
-    py_run.CLIM = 0.85
-    py_run.CREATE_PLOTS = True
-    py_run.TDE_PLOT = True
-    py_run.NOT_QUIET = True
-    py_run.VERBOSE = False
-    py_run.SPEC_OVERRIDE = True
-
     # Finally make a call to run_python to run all of the parameter files
     if dry_run:
         return
-    else:
+    if full_run:
+        # Set up global variables for py_run modules
+        py_run.PY_VERSION = "py"
+        py_run.PY_FLAGS = "-p 2"
+        py_run.RUN_SIMS = True
+        py_run.RESUME_RUN = False
+        py_run.CHECK_CONVERGENCE = True
+        py_run.CLIM = 0.85
+        py_run.CREATE_PLOTS = True
+        py_run.TDE_PLOT = True
+        py_run.NOT_QUIET = True
+        py_run.VERBOSE = False
+        py_run.SPEC_OVERRIDE = True
+        # Run Python using py_run.py
         nsims = len(pfs)
         mpi, ncores = py_run_util.get_num_procs()
         py_run.run_python_etc(pfs, nsims, mpi, ncores)

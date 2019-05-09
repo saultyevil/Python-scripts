@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 
+import ss_disk
 import numpy as np
 from consts import *
 from scipy.optimize import brentq
@@ -15,12 +16,13 @@ class SV93wind:
     """
 
     def __init__(self, m_cobj, mdot_wind, r_min, r_max, theta_min, theta_max,
-                 accel_length, accel_exp, v_inf, gamma):
+                 accel_length, accel_exp, v_inf, gamma, v0=6e5):
         """
-        Initialise the SV wind object with the parameters given.
+        Initialise the SV wind object with the parameters given. Note that the
+        default value for v0 is 6e5 cm/s.
         """
 
-        self.v0 = 6e5  # 6 km/s in cm/s
+        self.v0 = v0
         self.gamma = gamma
         self.mobj = m_cobj * MSOL
         self.mdot = mdot_wind * MSOL_PER_YEAR
@@ -150,9 +152,9 @@ def plot_power_law():
     accel_exp = 1.0
     m_cobj = 3e7                    # Msol
     mdot_wind = 2e-2                # Msol/yr
-    Rstar = 2.65e13                 # cm
-    r_min = 1 * Rstar              # cm
-    r_max = 30 * Rstar              # cm
+    r_star = 2.65e13                # cm
+    r_min = 1 * r_star              # cm
+    r_max = 30 * r_star             # cm
     theta_min = 70                  # degrees
     theta_max = 82                  # degrees
     accel_length = 5e16             # cm
@@ -165,14 +167,34 @@ def plot_power_law():
     # the streamline originates from r_min where r0 is the launch radius of the
     # streamline
     n_resolution = 500
-    wind_alphas = [0.1, 0.2, 0.4, 0.8, 1.0, 2.0, 4.0, 8.0, 10.0, 15.0]
+    # wind_alphas = [0.1, 0.2, 0.4, 0.8, 1.0, 2.0, 4.0, 8.0, 10.0, 15.0]
+    wind_alphas = [0.5, 1.0, 2.0]
+
+    print("Plotting SV93 polodial velocity power law for:")
+    print(wind_alphas)
 
     plt.figure(figsize=(12, 8))
 
+    r0 = 1.5 * wind.rmin
+    if r0 < wind.rmin:
+        print("r0 < wind.rmin")
+        exit(1)
+    if r0 > wind.rmax:
+        print("r0 > wind.rmax")
+        exit(1)
+
+    v0_sound_speed = 1
+    if v0_sound_speed:
+        print("SV93 v0 set to {} sound speed at {}rmin".format(v0_sound_speed, r0 / wind.rmin))
+        teff = ss_disk.t_eff(r0, wind.mobj, wind.mdot, r_star)
+        wind.v0 = 1e6 * np.sqrt(teff / 1e4)  # Taken from Frank, King & Raine 1985
+        wind.v0 *= v0_sound_speed
+        print("teff = {:e}".format(teff))
+    print("v0 = {:e}".format(wind.v0))
+    rad_max = 5e17  # 2 * wind.Rv
+    l = np.linspace(wind.rmin, rad_max, n_resolution)
     for al in wind_alphas:
         wind.alpha = al
-        r0 = wind.rmin
-        l = np.linspace(wind.rmin, 2 * wind.Rv, n_resolution)
         vl = np.zeros(n_resolution)
         for i in range(n_resolution):  # TODO: if I was clever earlier, this wouldn't need to be a loop
             vl[i] = wind.poloidal_velocity(l[i], r0)
@@ -181,7 +203,9 @@ def plot_power_law():
 
     plt.xlabel(r"$l$/$R_{v}$", fontsize=15)
     plt.ylabel(r"$v_{l}$/$v_{\infty}$", fontsize=15)
-    plt.xlim(0, 2)
+    plt.title(r"$r_{0} = $" + str(r0 / wind.rmin) + r"$r_{min}$")
+    plt.xlim(0, rad_max / wind.Rv)
+    plt.ylim(0, 1)
     plt.legend()
     plt.show()
 

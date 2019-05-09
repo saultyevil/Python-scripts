@@ -468,12 +468,17 @@ def get_ylimits(wavelength: np.array, flux: np.array, wmin: float, wmax: float,
         print("py_plot_util.get_ylimits: wavelength or flux not a numpy array!")
         exit(1)
 
-    idx_wmin = wavelength < wmin
-    idx_wmax = wavelength > wmax
-    flux_lim_wav = np.where(idx_wmin == idx_wmax)
-
-    yupper = np.max(flux[flux_lim_wav]) * scale
-    ylower = np.min(flux[flux_lim_wav]) / scale
+    if wmin and wmax:
+        idx_wmin = wavelength < wmin
+        idx_wmax = wavelength > wmax
+        flux_lim_wav = np.where(idx_wmin == idx_wmax)[0]
+        # print(flux.shape, flux[np.array([10, 20])])
+        # print(flux_lim_wav.shape)
+        yupper = np.max(flux[flux_lim_wav]) * scale
+        ylower = np.min(flux[flux_lim_wav]) / scale
+    else:
+        print("py_plot_util.get_ylimits: wmin and wmax not supplied!")
+        return 0, 0
 
     return yupper, ylower
 
@@ -695,6 +700,9 @@ def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./", coo
         # Due to how r-theta grids are coded up in Python, sometimes the theta
         # which is spit out will be > 90. Here, all of the wind values are ~0
         # and it makes a mess with colour scales, so remove these rows :-)
+        # Currently, windsave2table only output ions on a rectilinear grid, hence
+        # this will crash so the cartesian coordinates have to be converted to
+        # polar later on in this function
         if coord == "polar" and var_type != "ion":
             data = data[~(data["theta"] > 90)]
     except IOError:
@@ -712,7 +720,7 @@ def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./", coo
             x = data["x"].values.reshape(nx_cells, nz_cells)
             z = data["z"].values.reshape(nx_cells, nz_cells)
         elif coord == "polar":
-            # Do some dumb coordinate transform from x, z to r theta
+            # Transform from cartesian to polar coordinates
             if var_type.lower() == "ion":
                 x = data["x"].values.reshape(nx_cells, nz_cells)
                 z = data["z"].values.reshape(nx_cells, nz_cells)
@@ -728,6 +736,7 @@ def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./", coo
                   .format(coord))
             rc = np.zeros(1)
             return rc, rc, rc
+        
         if var_type.lower() == "ion":
             qoi = data[ion_level].values.reshape(nx_cells, nz_cells)
         elif var_type.lower() == "wind":
@@ -735,6 +744,7 @@ def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./", coo
         else:  # for safety, I guess?
             print("py_util.get_wind_data: type {} not recognised".format(var_type))
             exit(1)
+            
     except KeyError:
         print("py_util.get_wind_data: could not find var {} or another key".format(var))
         exit(1)

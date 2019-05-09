@@ -120,6 +120,7 @@ NOT_QUIET = True
 VERBOSE = False
 SPEC_OVERRIDE = False
 SIMS_FROM_FILE = False
+POLAR = True
 
 
 def get_run_mode() -> None:
@@ -144,6 +145,7 @@ def get_run_mode() -> None:
     global N_CORES
     global SPEC_OVERRIDE
     global SIMS_FROM_FILE
+    global POLAR
 
     p = argparse.ArgumentParser(description="General script to run Python simulations")
     # Different run modes
@@ -166,6 +168,7 @@ def get_run_mode() -> None:
     # Plot Parameters
     p.add_argument("-wmin", type=float, action="store", help="The smallest wavelength to display")
     p.add_argument("-wmax", type=float, action="store", help="The largest wavelength to display")
+    p.add_argument("-polar", action="store_true", help="Plot using a polar projection")
     args = p.parse_args()
 
     do_something = False
@@ -222,6 +225,8 @@ def get_run_mode() -> None:
         WMIN = args.wmin
     if args.wmax:
         WMAX = args.wmax
+    if args.polar:
+        POLAR = True
 
     py_run_util.log("------------------------\n")
     py_run_util.log("Python version ............. {}".format(PY_VERSION))
@@ -372,6 +377,8 @@ def plot_python_output(root_name: str, wd: str, extra_commands: str = None) -> N
         commands += " -wmin {}".format(WMIN)
     if WMAX:
         commands += " -wmax {}".format(WMAX)
+    if POLAR:
+        commands += " -p"
     if extra_commands:
         commands += "{}".format(extra_commands)
     py_run_util.log(commands)

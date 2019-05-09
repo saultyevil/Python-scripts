@@ -8,6 +8,7 @@ as additionally plotting emission and absorption line IDs for common lines we
 would expect in TDE spectrum with high velocity wind outflows.
 """
 
+import ss_disk
 import argparse
 import tde_util
 import numpy as np
@@ -107,7 +108,21 @@ def spec_plot_inclination(root: str, inc: str) -> None:
     ymax, ymin = py_plot_util.get_ylimits(wavelength, flux, WMIN, WMAX)
 
     # Plot the TDE spectrum for the specific inclination angle
-    ax.semilogy(wavelength, flux, label="i = {}".format(inc) + r"$^{\circ}$")
+    ax.semilogy(wavelength, flux, label="Model at i = {}".format(inc) + r"$^{\circ}$")
+
+    # Uncomment if you want to include a crude accretion disk spectrum :-)
+    # TODO: put this into a separate function
+    # mobj = 1e7
+    # mdot = 1e-1
+    # rin = 2.65e13
+    # rout = 3.5e14 # 3.3e14
+    # disk = ss_disk.disk_spectrum(WMIN, WMAX, mobj, mdot, rin, rout, verbose=VERBOSE)
+    # if VERBOSE:
+    #     print("np.sum(disk[:, 1]) = {:e}".format(np.sum(disk[:, 1])))
+    #     print("L_disk = {:e}".format(0.5 * G * (mobj * MSOL) * (mdot * MSOL_PER_YEAR) / rin))
+    # disk[:, 1] /= (4 * np.pi * observe_dist ** 2)
+    # ax.semilogy(disk[:, 0], disk[:, 1], label="accretion disk")
+
     ax.set_xlim(WMIN, WMAX)
     ax.set_ylim(ymin, ymax)
     if PLOT_LINE_IDS:
@@ -160,16 +175,16 @@ def spec_plot_multiple(root: str) -> None:
     # Figure out the shape of the subplot grid and create the plotting object
     n_spec = len(inclinations)
     nrows, ncols = py_plot_util.subplot_dims(n_spec)
-    fig, ax = plt.subplots(nrows, ncols, figsize=(12, 8), squeeze=False, sharex="col")
+    fig, ax = plt.subplots(nrows, ncols, figsize=(12, 12), squeeze=False, sharex="col")
 
     index = 0
     for i in range(nrows):
         for j in range(ncols):
-            if index > n_spec - 1:
-                break
             # This ensures that the wavelength label will only be put on the bottom plots
             if i == nrows - 1:
                 ax[i, j].set_xlabel(r"Wavelength ($\AA$)")
+            if index > n_spec - 1:
+                break
             if TDE_OBJ:
                 ax[i, j].semilogy(tde[:, 0], tde[:, 1], label=TDE_OBJ)
 
@@ -218,7 +233,16 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
     None
     """
 
+    copypasta = \
+        """
+    I have put you on a permanent ignore, public and private. I have found you disturbing, rude and generally 
+    not worth talking to. According to the channels you hang on, it strengtens  the effect of wanting to put 
+    you on ignore because of my lack of interest in you as a person. This message is not meant to be rude to 
+    you, just to inform you that i won't see anything of what you type from now on.
+        """
+
     print("USE WITH CAUTION. THIS SHITTY THING DOESN'T WORK SOMETIMES.")
+    print(copypasta)
 
     spec_files = py_plot_util.find_spec_files()
     if len(spec_files) == 0:
@@ -236,7 +260,7 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
 
     # Figure out the inclinations in the spec files for the simulations
     if inc:
-        inclination = [inc]
+        inclination = inc
         size = (12, 8)
     else:
         inclination = []
@@ -255,6 +279,8 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
         for j in range(ncols):
             if i == nrows - 1:
                 ax[i, j].set_xlabel(r"Wavelength ($\AA$)")
+            if j == 0:
+                ax[i, j].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)")
             if index > n_specs - 1:
                 break
 
@@ -286,11 +312,15 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
                 # Plot the spectrum for a model
                 ax[i, j].semilogy(wavelength, flux, label=r"$i$: {}".format(ii) + r"$^{\circ}$: " + dir)
 
-                tmax, tmin = py_plot_util.get_ylimits(wavelength, flux, WMIN, WMAX)
-                if tmax > ymax:
-                    ymax = tmax
-                if tmin < ymin:
-                    ymin = tmin
+                tmax, tmin = py_plot_util.get_ylimits(wavelength, flux, WMIN, WMAX, scale=5)
+                if tmax == 0 or tmin == 0:
+                    ymin = None
+                    ymax = None
+                else:
+                    if tmax > ymax:
+                        ymax = tmax
+                    if tmin < ymin:
+                        ymin = tmin
 
             # Finishing touches to plot
             ax[i, j].set_xlim(WMIN, WMAX)
@@ -303,7 +333,7 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
             index += 1
 
     fig.suptitle("Model Comparison")
-    fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    fig.tight_layout(rect=[0, 0.05, 1, 0.95])
     plt.savefig("{}_comparison.{}".format(name, FTYPE))
     plt.close()
 
@@ -355,7 +385,7 @@ def main() -> None:
     if args.verbose:
         VERBOSE = True
     if args.lineid:
-        PLOT_LINE_IDS = True
+        PLOT_LINE_IDS = False
 
     print("--------------------------\n")
 
