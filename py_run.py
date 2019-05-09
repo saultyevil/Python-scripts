@@ -30,14 +30,14 @@ from subprocess import Popen, PIPE, CalledProcessError
 
 CONVERGED = \
     r"""
-    _______________________________________________
+    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                                                  _
       ___ ___  _ ____   _____ _ __ __ _  ___  __| |
      / __/ _ \| '_ \ \ / / _ \ '__/ _` |/ _ \/ _` |
     | (_| (_) | | | \ V /  __/ | | (_| |  __/ (_| |
      \___\___/|_| |_|\_/ \___|_|  \__, |\___|\__,_|
                                   |___/
-    _______________________________________________
+    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                             \
                              \     ____________
                               \    |__________|
@@ -60,14 +60,14 @@ CONVERGED = \
 
 NOT_CONVERGED = \
     r"""
-    _________________________________________________________________
+    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                  _                                                 _
      _ __   ___ | |_    ___ ___  _ ____   _____ _ __ __ _  ___  __| |
     | '_ \ / _ \| __|  / __/ _ \| '_ \ \ / / _ \ '__/ _` |/ _ \/ _` |
     | | | | (_) | |_  | (_| (_) | | | \ V /  __/ | | (_| |  __/ (_| |
     |_| |_|\___/ \__|  \___\___/|_| |_|\_/ \___|_|  \__, |\___|\__,_|
                                                     |___/
-    _________________________________________________________________
+    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                                                 \                                 
                                                  \     ____________
                                                   \    |__________|
@@ -111,7 +111,7 @@ RUN_SIMS = False
 RESUME_RUN = False
 N_CORES = 0
 CHECK_CONVERGENCE = False
-CLIM = 0.90
+CLIM = 0.85
 CREATE_PLOTS = False
 TDE_PLOT = False
 WMIN = None
@@ -150,12 +150,12 @@ def get_run_mode() -> None:
     p = argparse.ArgumentParser(description="General script to run Python simulations")
     # Different run modes
     p.add_argument("-d", action="store_true", help="Run with -r -c -p")
-    p.add_argument("-r", action="store_true", help="Run simulations")
-    p.add_argument("-resume", action="store_true", help="Restart a previous run")
+    p.add_argument("-s", action="store_true", help="Run simulations")
+    p.add_argument("-sc", action="store_true", help="Run spectral cycles even if a simulation hasn't converged")
+    p.add_argument("-r", action="store_true", help="Restart a previous run")
     p.add_argument("-c", action="store_true", help="Check the convergence of runs - calls convergence.py")
     p.add_argument("-p", action="store_true", help="Run plotting scripts")
     p.add_argument("-tde", action="store_true", help="Enable TDE plotting")
-    p.add_argument("-spec", action="store_true", help="Run spectral cycles even if a simulation hasn't converged")
     p.add_argument("-path", action="store", help="Provide a list of directories of Python parameter files to run")
     # Script Parameters
     p.add_argument("-py_ver", type=str, action="store", help="Name of the Python executable")
@@ -181,11 +181,11 @@ def get_run_mode() -> None:
         do_something = True
     if args.verbose:
         VERBOSE = True
-    if args.r:
+    if args.s:
         RUN_SIMS = True
         CHECK_CONVERGENCE = True
         do_something = True
-    if args.resume:
+    if args.s:
         RUN_SIMS = True
         RESUME_RUN = True
         do_something = True
@@ -194,7 +194,7 @@ def get_run_mode() -> None:
     if args.c:
         CHECK_CONVERGENCE = True
         do_something = True
-    if args.spec:
+    if args.sc:
         SPEC_OVERRIDE = True
     if args.p:
         CREATE_PLOTS = True
@@ -229,19 +229,23 @@ def get_run_mode() -> None:
         POLAR = True
 
     py_run_util.log("------------------------\n")
-    py_run_util.log("Python version ............. {}".format(PY_VERSION))
-    py_run_util.log("Show Verbose Output ........ {}".format(VERBOSE))
-    py_run_util.log("Run Simulations ............ {}".format(RUN_SIMS))
-    py_run_util.log("Resume Run ................. {}".format(RESUME_RUN))
-    py_run_util.log("Show Convergence ........... {}".format(CHECK_CONVERGENCE))
-    if CHECK_CONVERGENCE:
-        py_run_util.log("Convergence Limit .......... {}".format(CLIM))
-    py_run_util.log("Create Plots ............... {}".format(CREATE_PLOTS))
-    if CREATE_PLOTS:
-        py_run_util.log("wmin ....................... {}".format(WMIN))
-        py_run_util.log("wmax ....................... {}".format(WMAX))
-    if TDE_PLOT:
-        py_run_util.log("Plot TDE ................... {}".format(TDE_PLOT))
+    py_run_util.log("Python version ................... {}".format(PY_VERSION))
+    py_run_util.log("Run simulations .................. {}".format(RUN_SIMS))
+    py_run_util.log("Spectral cycles .................. {}".format(SPEC_OVERRIDE))
+    py_run_util.log("Resume run ....................... {}".format(RESUME_RUN))
+    py_run_util.log("Convergence limit ................ {}".format(CLIM))
+    py_run_util.log("Number of cores .................. {}".format(N_CORES))
+    py_run_util.log("Show convergence ................. {}".format(CHECK_CONVERGENCE))
+    py_run_util.log("Create plots ..................... {}".format(CREATE_PLOTS))
+    py_run_util.log("Polar projection ................. {}".format(POLAR))
+    py_run_util.log("wmin ............................. {}".format(WMIN))
+    py_run_util.log("wmax ............................. {}".format(WMAX))
+    py_run_util.log("Plot TDE ......................... {}".format(TDE_PLOT))
+    py_run_util.log("Don't suppress Python output ..... {}".format(NOT_QUIET))
+    py_run_util.log("Show Verbose Output .............. {}".format(VERBOSE))
+
+    if PY_FLAGS:
+        py_run_util.log("Using these extra python flags:\n\t{}".format(PY_FLAGS))
 
     if do_something is False:
         py_run_util.log("No run mode parameter provided, there is nothing to do!\n")
@@ -262,6 +266,8 @@ def py_run(root: str, wd: str, use_mpi: bool, n_cores: int, spec_cycle: bool = F
     cycles have been completed and the model is converged. Hence the model will
     be restarted from the spectrum cycles and the photon number will be normally
     be reduced to 1e6.
+
+    TODO: holy fuck this is complicated now.. sort it out Ed
     """
 
     if spec_cycle:
@@ -272,11 +278,13 @@ def py_run(root: str, wd: str, use_mpi: bool, n_cores: int, spec_cycle: bool = F
     pf = root + ".pf"
 
     if spec_cycle:
-        py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "3", VERBOSE)
-        py_run_util.change_parameter(wd + pf, "Photons_per_cycle", "5e6", VERBOSE)
+        py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "5", VERBOSE)
+        if RESUME_RUN:
+            py_run_util.change_parameter(wd + pf, "Photons_per_cycle", "5e6", VERBOSE)
     else:
-        py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "0", VERBOSE)
-        py_run_util.change_parameter(wd + pf, "Photons_per_cycle", "1e8", VERBOSE)
+        if not spec_cycle:
+            py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "0", VERBOSE)
+        py_run_util.change_parameter(wd + pf, "Photons_per_cycle", "1e7", VERBOSE)
 
     outf_name = "{}/{}_{}{:02d}{:02d}.txt".format(wd, root, DATE.year, int(DATE.month), int(DATE.day))
     outf = open(outf_name, "a")
@@ -287,7 +295,7 @@ def py_run(root: str, wd: str, use_mpi: bool, n_cores: int, spec_cycle: bool = F
     if use_mpi:
         command += "mpirun -n {} ".format(n_cores)
     command += "{} ".format(PY_VERSION)
-    if RESUME_RUN or spec_cycle:
+    if RESUME_RUN:
         command += "-r "
     if PY_FLAGS:
         if type(PY_FLAGS) != str:

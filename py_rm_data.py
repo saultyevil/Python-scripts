@@ -4,9 +4,15 @@
 """
 Remove all data directories from Python simulations - this was written because
 Dropbox is able to follow symbolic links on Linux >:(
+
+Usage:
+        python py_rm_data.py [directory]
+
+        directory: a string for the path to the base directory to search
+                   recursively from for data symbolic links
 """
 
-from sys import argv
+from sys import argv, exit
 from subprocess import Popen, PIPE
 
 
@@ -68,6 +74,9 @@ def remove_data_dir(search_dir: str = "~/PySims", verbose: bool = False) -> int:
 if __name__ == "__main__":
     print("--------------------------------------------------------------------------------\n")
     if len(argv) > 1:
+        if argv[1] == "-h" or argv[1] == "--help":
+            print(__doc__)
+            exit(0)
         remove_data_dir(argv[1], True)
     else:
         remove_data_dir(verbose=True)

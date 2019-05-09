@@ -234,7 +234,7 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
     """
 
     copypasta = \
-        """
+        r"""
     I have put you on a permanent ignore, public and private. I have found you disturbing, rude and generally 
     not worth talking to. According to the channels you hang on, it strengtens  the effect of wanting to put 
     you on ignore because of my lack of interest in you as a person. This message is not meant to be rude to 
