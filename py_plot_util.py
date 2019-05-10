@@ -428,10 +428,6 @@ def subplot_dims(n_plots: int) -> tuple:
     return dims
 
 
-def get_ylimitz(ax):
-    return
-
-
 def get_ylimits(wavelength: np.array, flux: np.array, wmin: float, wmax: float,
                 scale: float = 10, verbose: bool = False) -> Tuple[float, float]:
     """
@@ -477,7 +473,8 @@ def get_ylimits(wavelength: np.array, flux: np.array, wmin: float, wmax: float,
         yupper = np.max(flux[flux_lim_wav]) * scale
         ylower = np.min(flux[flux_lim_wav]) / scale
     else:
-        print("py_plot_util.get_ylimits: wmin and wmax not supplied!")
+        if verbose:
+            print("py_plot_util.get_ylimits: wmin and wmax not supplied!")
         return 0, 0
 
     return yupper, ylower

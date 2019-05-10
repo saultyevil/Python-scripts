@@ -45,7 +45,7 @@ CONVERGED = \
                                  /           /  \
                                 /___________/___/|
                                 |          |     |
-                                |  ==\ /== |     |
+                                |  ==   == |     |
                                 |   O   O  | \ \ |
                                 |     <    |  \ \|
                                /|          |   \ \
@@ -77,10 +77,10 @@ NOT_CONVERGED = \
                                                     |          |     |
                                                     |  ==\ /== |     |
                                                     |   O   O  | \ \ |
-                                                    |     <    |  \ \|
+                                                    |   () ()  |  \ \|
                                                    /|          |   \ \
-                                                  / |  \_____/ |   / /
-                                                 / /|          |  / /|
+                                                  / |   _____  |   / /
+                                                 / /|  /     \ |  / /|
                                                 /||\|          | /||\/
                                                     -------------|
                                                         | |    | |
@@ -149,7 +149,7 @@ def get_run_mode() -> None:
 
     p = argparse.ArgumentParser(description="General script to run Python simulations")
     # Different run modes
-    p.add_argument("-d", action="store_true", help="Run with -r -c -p")
+    p.add_argument("-d", action="store_true", help="Run with -s -c -p")
     p.add_argument("-s", action="store_true", help="Run simulations")
     p.add_argument("-sc", action="store_true", help="Run spectral cycles even if a simulation hasn't converged")
     p.add_argument("-r", action="store_true", help="Restart a previous run")
@@ -185,10 +185,6 @@ def get_run_mode() -> None:
         RUN_SIMS = True
         CHECK_CONVERGENCE = True
         do_something = True
-    if args.s:
-        RUN_SIMS = True
-        RESUME_RUN = True
-        do_something = True
     if args.path:
         SIMS_FROM_FILE = args.path
     if args.c:
@@ -196,6 +192,10 @@ def get_run_mode() -> None:
         do_something = True
     if args.sc:
         SPEC_OVERRIDE = True
+    if args.r:
+        RESUME_RUN = True
+        RUN_SIMS = True
+        do_something = True
     if args.p:
         CREATE_PLOTS = True
         do_something = True
@@ -248,7 +248,7 @@ def get_run_mode() -> None:
         py_run_util.log("Using these extra python flags:\n\t{}".format(PY_FLAGS))
 
     if do_something is False:
-        py_run_util.log("No run mode parameter provided, there is nothing to do!\n")
+        py_run_util.log("\nNo run mode parameter provided, there is nothing to do!\n")
         p.print_help()
         py_run_util.log("\n------------------------")
         exit(0)
@@ -270,21 +270,26 @@ def py_run(root: str, wd: str, use_mpi: bool, n_cores: int, spec_cycle: bool = F
     TODO: holy fuck this is complicated now.. sort it out Ed
     """
 
-    if spec_cycle:
-        py_run_util.log("Spectral cycles\n--------------\n")
-    else:
-        py_run_util.log("Ionisation cycles\n----------------\n")
+    # if spec_cycle:
+    #     py_run_util.log("Spectral cycles\n--------------\n")
+    # else:
+    #     py_run_util.log("Ionisation cycles\n----------------\n")
 
     pf = root + ".pf"
 
-    if spec_cycle:
-        py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "5", VERBOSE)
-        if RESUME_RUN:
-            py_run_util.change_parameter(wd + pf, "Photons_per_cycle", "5e6", VERBOSE)
-    else:
-        if not spec_cycle:
-            py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "0", VERBOSE)
-        py_run_util.change_parameter(wd + pf, "Photons_per_cycle", "1e7", VERBOSE)
+    # just_spec = False
+    # if spec_cycle:
+    #     py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "5", VERBOSE)
+    #     if RESUME_RUN:
+    #         py_run_util.change_parameter(wd + pf, "Photons_per_cycle", "1e5", VERBOSE)
+    #         just_spec = True
+    #     else:
+    #         py_run_util.change_parameter(wd + pf, "Photons_per_cycle", "1e2", VERBOSE)
+    # else:
+    #     if not spec_cycle:
+    #         py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "0", VERBOSE)
+
+
 
     outf_name = "{}/{}_{}{:02d}{:02d}.txt".format(wd, root, DATE.year, int(DATE.month), int(DATE.day))
     outf = open(outf_name, "a")
@@ -451,22 +456,27 @@ def run_python_etc(pf_paths: List[str], n_sims: int, use_mpi: bool, n_cores: int
         py_run_util.log("Working directory ......... {}".format(wd))
         py_run_util.log("Python root name .......... {}\n".format(root))
 
+        run_spec_cycles = False
         if RUN_SIMS:
             py_run_util.log("Running the simulation: {}\n".format(root))
-            py_run(root, wd, use_mpi, n_cores)
+            py_run(root, wd, use_mpi, n_cores, SPEC_OVERRIDE)
+
+            # if SPEC_OVERRIDE:
+            #     run_spec_cycles = True
 
         if CHECK_CONVERGENCE:
             py_run_util.log("Checking the convergence of the simulation:\n")
             convergence_fraction = check_python_convergence(root, wd)
-            if convergence_fraction >= CLIM and RUN_SIMS:
-                py_run(root, wd, use_mpi, n_cores, True)
-            elif convergence_fraction < CLIM and RUN_SIMS:
-                if SPEC_OVERRIDE:
-                    py_run_util.log("As the simulation hasn't converged, but SPEC_OVERRIDE is True, spec cycles will be"
-                                    " run as normal\n")
-                    py_run(root, wd, use_mpi, n_cores, True)
-                else:
-                    py_run_util.log("As the simulation hasn't converged, no spectrum cycles will be run\n")
+
+            # if convergence_fraction >= CLIM and RUN_SIMS and not run_spec_cycles:
+            #     py_run(root, wd, use_mpi, n_cores, True)
+            # elif convergence_fraction < CLIM and RUN_SIMS:
+            #     if SPEC_OVERRIDE and not run_spec_cycles:
+            #         py_run_util.log("As the simulation hasn't converged, but SPEC_OVERRIDE is True, spec cycles will be"
+            #                         " run as normal\n")
+            #         py_run(root, wd, use_mpi, n_cores, True)
+            #     elif RUN_SIMS:
+            #         py_run_util.log("As the simulation hasn't converged, no spectrum cycles will be run\n")
 
         if CREATE_PLOTS:
             py_run_util.log("Creating plots for the simulation\n")
@@ -523,10 +533,12 @@ def main() -> None:
 
     py_run_util.log("")
 
+    py_run_util.log("The following parameter files were found:\n")
+    for i in range(len(pf_paths)):
+        py_run_util.log("{}".format(pf_paths[i]))
+    py_run_util.log("")
+
     if DRY_RUN:
-        py_run_util.log("The following parameter files were found:\n")
-        for i in range(len(pf_paths)):
-            py_run_util.log("{}".format(pf_paths[i]))
         py_run_util.log("\n------------------------")
         return
 
