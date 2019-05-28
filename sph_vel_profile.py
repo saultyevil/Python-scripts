@@ -41,22 +41,22 @@ def plot_power_law():
 
     plt.figure(figsize=(12, 8))
    
-    betas = [0.1, 0.2, 0.4, 0.8, 1.0, 2.0, 5.0, 10.0]
+    betas = [0.1, 0.2, 0.4, 0.8, 1.0, 2.0, 3.0, 5.0, 10.0]
    
     vinf = 1
     mobj = 3e7 * MSOL
     rin = 2.65e13
     rout = 1e17
     v0 = 2.73e6
-    vinf *= 0.1 * np.sqrt(2 * G * mobj / rin)
+    vinf *= 0.065 * np.sqrt(2 * G * mobj / rin)
 
     nres = int(1e5)
     rgrid = np.linspace(rin, rout, nres)
     for beta in betas:
         v_r = cl_velocity(rgrid, v0, vinf, rin, beta)
-        plt.semilogx(rgrid / rin, v_r / vinf, label=r"$\beta$ = " + str(beta))
+        plt.semilogx(rgrid, v_r / vinf, label=r"$\beta$ = " + str(beta))
   
-    plt.xlim(1, rout / rin)
+    #plt.xlim(1, rout)
     plt.ylim(0, 1)
     plt.xlabel(r"r/$R_{*}$", fontsize=14)
     plt.ylabel(r"v(r)/$v_{\infty}$", fontsize=14)

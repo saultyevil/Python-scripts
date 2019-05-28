@@ -32,7 +32,7 @@ PLOTS = "all"
 POLAR_PROJECTION = False
 VERBOSE = False
 SHOW_PLOT = False
-SPEC_LOGLOG = False
+PLOT_LOG = False
 WMIN = None
 WMAX = None
 FILETYPE = "png"
@@ -55,7 +55,7 @@ def get_script_arguments() -> Tuple[str, str]:
     global POLAR_PROJECTION
     global VERBOSE
     global SHOW_PLOT
-    global SPEC_LOGLOG
+    global PLOT_LOG
     global WMIN
     global WMAX
     global FILETYPE
@@ -75,7 +75,7 @@ def get_script_arguments() -> Tuple[str, str]:
     p.add_argument("-p", "--polar", action="store_true", help="Project the wind on polar axes")
     p.add_argument("-v", "--verbose", action="store_true", help="Increase output to screen")
     p.add_argument("-s", "--show", action="store_true", help="Show the plots on screen")
-    p.add_argument("-loglog", action="store_true", help="Enable log log axes")
+    p.add_argument("-log", action="store_true", help="Enable log log axes")
     args = p.parse_args()
 
     # Assign the optional arguments to their global vars
@@ -85,8 +85,8 @@ def get_script_arguments() -> Tuple[str, str]:
         VERBOSE = True
     if args.show:
         SHOW_PLOT = True
-    if args.loglog:
-        SPEC_LOGLOG = True
+    if args.log:
+        PLOT_LOG = True
     if args.wmin:
         WMIN = args.wmin
     if args.wmax:
@@ -310,7 +310,7 @@ def plot_wind(root_name: str, output_name: str, path: str = "./", vars: List[str
     return
 
 
-def plot_spec_comps(spec_patch: str, output_name: str, loglog_scale: bool = False, smooth: int = 15,
+def plot_spec_comps(spec_patch: str, output_name: str, semilogy_scale: bool = False, smooth: int = 15,
                     filetype: str = "png", verbose: bool = False) -> None:
     """
     Plot the different integrated flux components within a Python spec file.
@@ -358,8 +358,8 @@ def plot_spec_comps(spec_patch: str, output_name: str, loglog_scale: bool = Fals
         flux = py_plot_util.smooth_1d_array(np.array(spec[1:, spec[0, :] == headers_top[i]], dtype=float), smooth,
                                             verbose)
         # I'm using plot by default as semilogy can make some very ugly plots
-        if loglog_scale:
-            ax[0].loglog(wavelength, flux, label=headers_top[i])
+        if semilogy_scale:
+            ax[0].semilogy(wavelength, flux, label=headers_top[i])
         else:
             ax[0].plot(wavelength, flux, label=headers_top[i])
     ax[0].set_xlim(wavelength.min(), wavelength.max())
@@ -372,11 +372,16 @@ def plot_spec_comps(spec_patch: str, output_name: str, loglog_scale: bool = Fals
         print("\tPlotting {}".format(headers_bot[i]))
         flux = py_plot_util.smooth_1d_array(np.array(spec[1:, spec[0, :] == headers_bot[i]], dtype=float), smooth,
                                             verbose)
-        if loglog_scale:
-            ax[1].loglog(wavelength, flux, label=headers_bot[i])
+        if len(flux[flux < 1e-10]) > 0.7 * len(flux):
+            print("\t\t!!Skipping {}".format(headers_bot[i]))
+            continue
+
+        if semilogy_scale:
+            ax[1].semilogy(wavelength, flux, label=headers_bot[i])
         else:
             ax[1].plot(wavelength, flux, label=headers_bot[i])
     ax[1].set_xlim(wavelength.min(), wavelength.max())
+    ax[1].set_ylim(1e-10)
     ax[1].set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
     ax[1].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)", fontsize=17)
     ax[1].legend()
@@ -539,7 +544,7 @@ def main() -> None:
         root, path = py_plot_util.parse_root_name_and_path(spec_files[0])
         if PLOTS == "spec_comp" or PLOTS == "all":
             print("\nPlotting spectrum components")
-            plot_spec_comps(spec_files[0], outname, loglog_scale=SPEC_LOGLOG, smooth=SMOOTH, filetype=FILETYPE,
+            plot_spec_comps(spec_files[0], outname, semilogy_scale=PLOT_LOG, smooth=SMOOTH, filetype=FILETYPE,
                             verbose=VERBOSE)
 
         # Run windsave2table to extract data from the wind_save file
@@ -552,7 +557,7 @@ def main() -> None:
         # Plot some wind quantities first
         if PLOTS == "wind" or PLOTS == "all":
             print("\nPlotting wind quantities")
-            vars = ["t_e", "t_r", "ne", "converge", "w", "ntot", "ip", "c4"]
+            vars = ["t_e", "t_r", "ne", "rho", "w", "converge", "ip", "c4"]
             var_types = ["wind"] * len(vars)
             plot_wind(root, outname + "_wind", path, vars, var_types, projection=projection, filetype=FILETYPE,
                       verbose=VERBOSE)
@@ -560,13 +565,13 @@ def main() -> None:
         # Now plot some ions
         if PLOTS == "ions" or PLOTS == "all":
             print("\nPlotting wind ions")
-            vars = ["H_i01", "H_i02", "C_i03", "C_i04", "C_i05", "Si_i04", "N_i05", "O_i06"]
+            vars = ["H_i01", "H_i02", "He_i01", "He_i02", "He_i03", "Si_i04", "N_i05", "C_i04"]
             var_types = ["ion"] * len(vars)
             plot_wind(root, outname + "_ions", path, vars, var_types, projection=projection, filetype=FILETYPE,
                       verbose=VERBOSE)
 
-        print("")  # spacer :-)
         py_rm_data.remove_data_dir(path)
+    print("")  # spacer :-)
 
     print("--------------------------")
 

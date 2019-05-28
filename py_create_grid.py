@@ -22,6 +22,7 @@ import numpy as np
 import py_run_util
 from sys import argv
 from typing import List
+from consts import *
 
 
 def create_grid(pf: str, parameter: str, grid: List[str]) -> List[str]:
@@ -54,8 +55,8 @@ def create_grid(pf: str, parameter: str, grid: List[str]) -> List[str]:
         pf += ".pf"
 
     sl = 0
-    for i, letter in enumerate(pf):  # This iterates over the pf file path
-        if letter == "/":
+    for i, line in enumerate(pf):  # This iterates over the pf file path
+        if line == "/":
             sl = i  # This will find the index of the final /
     pl = pf.find(".pf")
     root = pf[sl:pl]  # Now we can extract just the root name from the file path
@@ -65,20 +66,20 @@ def create_grid(pf: str, parameter: str, grid: List[str]) -> List[str]:
         pf_lines = f.readlines()
 
     base = []
-    for letter in pf_lines:
-        if letter[0] == "#" or letter[0] == "\n" or letter[0] == "\r":
+    for line in pf_lines:
+        if line[0] == "#" or line[0] == "\n" or line[0] == "\r":
             continue
-        letter = letter.replace("\n", "").split()
-        base.append([letter[0], letter[1]])
+        line = line.replace("\n", "").split()
+        base.append([line[0], line[1]])
 
     # This bit creates the grid of pfs
     pfs = []
     npfs = len(grid)
     for i in range(npfs):
         new_pf = base.copy()
-        for letter in range(len(new_pf)):
-            if new_pf[letter][0] == parameter:
-                new_pf[letter][1] = grid[i]
+        for line in range(len(new_pf)):
+            if new_pf[line][0] == parameter:
+                new_pf[line][1] = grid[i]
         try:
             os.mkdir(grid[i])
         except OSError:  # if the directory already exists an OS error is raised
@@ -120,13 +121,14 @@ def run_grid() -> None:
 
     # This is the parameter which will be changed
     root = "tde_spherical.pf"
-    parameter = "Stellar_wind.mdot(msol/yr)"
+    parameter = "Stellar_wind.v_infinity(cm)"
 
     grid = []
     # tmp = np.linspace(0.0, 2.0, 10)
-    tmp = [1.1, 1.2, 1.5, 2.0, 3.5, 5.0, 7.5, 10.0]
+    tmp = [0.07, 0.075, 0.08, 0.085, 0.090, 0.095]
+    esc_vel = np.sqrt(2 * G * 3e7 * MSOL / 2.65e13)
     for i in range(len(tmp)):
-        grid.append("{:.4e}".format(2e-2 * tmp[i]))
+        grid.append("{:.4e}".format(esc_vel * tmp[i]))
 
     print("Running grid of {} simulations:".format(len(grid)))
     print("Parameter: {}".format(parameter))

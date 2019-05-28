@@ -177,6 +177,13 @@ def spec_plot_multiple(root: str) -> None:
     nrows, ncols = py_plot_util.subplot_dims(n_spec)
     fig, ax = plt.subplots(nrows, ncols, figsize=(12, 12), squeeze=False, sharex="col")
 
+    disk_spectrum = None
+    #try:
+    #    disk_spectrum = py_plot_util.read_spec_file(
+    #        "/home/saultyevil/PySims/TDE/spherical_model_grids/disk_spec/tde_spherical.spec", pandas_table=True)
+    #except IOError:
+    #    print("Can't find disk spectrum....")
+
     index = 0
     for i in range(nrows):
         for j in range(ncols):
@@ -193,6 +200,18 @@ def spec_plot_multiple(root: str) -> None:
             raw_flux = spectrum[inc].values.astype(float)
             flux = py_plot_util.smooth_1d_array(raw_flux, SMOOTH, VERBOSE)
             flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
+
+            if disk_spectrum is not None:
+                disk_wavelength = disk_spectrum["Lambda"].values.astype(float)
+                try:
+                    disk_flux = disk_spectrum[inc].values.astype(float)
+                    disk_flux = py_plot_util.smooth_1d_array(disk_flux, SMOOTH, VERBOSE)
+                    disk_flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
+                except KeyError:
+                    print("Could not find disk spectrum for inclination {}".format(inc))
+                    continue
+                ax[i, j].semilogy(disk_wavelength, disk_flux, label="Accretion disk")
+
             ymax, ymin = py_plot_util.get_ylimits(wavelength, flux, WMIN, WMAX)
 
             # Plot the TDE spectrum
@@ -255,13 +274,14 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
         print("\t- {}".format(spec_files[i]))
 
     observe_dist = 1
-    if TDE_OBJ:
+    if TDE_OBJ and TDE_OBJ != "None".lower():
         tde, observe_dist, ref = get_tde_spectrum()
 
     # Figure out the inclinations in the spec files for the simulations
     if inc:
         inclination = inc
         size = (12, 8)
+        n_specs = 1
     else:
         inclination = []
         for f in spec_files:
@@ -269,10 +289,17 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
             inclination += py_plot_util.spec_inclinations_pandas(spec)
         inclination = sorted(list(dict.fromkeys(inclination)))
         size = (20, 12)
-
-    n_specs = len(inclination)
+        n_specs = len(inclination)
+        
     nrows, ncols = py_plot_util.subplot_dims(n_specs)
     fig, ax = plt.subplots(nrows, ncols, figsize=size, squeeze=False, sharex="col")
+
+    disk_spectrum = None
+    # try:
+    #     disk_spectrum = py_plot_util.read_spec_file(
+    #             "/home/saultyevil/PySims/TDE/spherical_model_grids/disk_spec/tde_spherical.spec", pandas_table=True)
+    # except IOError:
+    #     print("Can't find disk spectrum....")
 
     index = 0
     for i in range(nrows):
@@ -284,7 +311,7 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
             if index > n_specs - 1:
                 break
 
-            if TDE_OBJ:
+            if TDE_OBJ and TDE_OBJ != "None".lower():
                 ax[i, j].semilogy(tde[:, 0], tde[:, 1], label=TDE_OBJ)
 
             # If a specific inclination angle has been provided, then use this
@@ -292,6 +319,17 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
                 ii = inc
             else:
                 ii = inclination[index]
+
+            if disk_spectrum is not None:
+                disk_wavelength = disk_spectrum["Lambda"].values.astype(float)
+                try:
+                    disk_flux = disk_spectrum[ii].values.astype(float)
+                    disk_flux = py_plot_util.smooth_1d_array(disk_flux, SMOOTH, VERBOSE)
+                    disk_flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
+                except KeyError:
+                    print("Could not find disk spectrum for inclination {}".format(inc))
+                    continue
+                ax[i, j].semilogy(disk_wavelength, disk_flux, label="Accretion disk")
 
             ymin = +1e99
             ymax = -1e99
@@ -310,7 +348,7 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
                 flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
 
                 # Plot the spectrum for a model
-                ax[i, j].semilogy(wavelength, flux, label=r"$i$: {}".format(ii) + r"$^{\circ}$: " + dir)
+                ax[i, j].semilogy(wavelength, flux, label=r"{}/{}: $i$: {}".format(dir, root, ii) + r"$^{\circ}$")
 
                 tmax, tmin = py_plot_util.get_ylimits(wavelength, flux, WMIN, WMAX, scale=5)
                 if tmax == 0 or tmin == 0:

@@ -85,8 +85,10 @@ def main():
 
     py_ver = py_dir + "/bin/py"
     n_cores = py_run_util.get_num_procs()
-    regress = "cd {}; regression.py {} -np {}\n".format(regress_dir, py_ver, n_cores[1])
+
+    regress = "cd {}; regression.py -np {} {}\n".format(regress_dir, n_cores[1], py_ver)
     print(regress)
+
     cmd = Popen(regress, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
     stdout = stdout.decode("utf-8")

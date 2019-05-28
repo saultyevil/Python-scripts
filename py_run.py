@@ -245,7 +245,7 @@ def get_run_mode() -> None:
     py_run_util.log("Show Verbose Output .............. {}".format(VERBOSE))
 
     if PY_FLAGS:
-        py_run_util.log("Using these extra python flags:\n\t{}".format(PY_FLAGS))
+        py_run_util.log("\nUsing these extra python flags:\n\t{}".format(PY_FLAGS))
 
     if do_something is False:
         py_run_util.log("\nNo run mode parameter provided, there is nothing to do!\n")
@@ -456,7 +456,7 @@ def run_python_etc(pf_paths: List[str], n_sims: int, use_mpi: bool, n_cores: int
         py_run_util.log("Working directory ......... {}".format(wd))
         py_run_util.log("Python root name .......... {}\n".format(root))
 
-        run_spec_cycles = False
+        # run_spec_cycles = False
         if RUN_SIMS:
             py_run_util.log("Running the simulation: {}\n".format(root))
             py_run(root, wd, use_mpi, n_cores, SPEC_OVERRIDE)
@@ -539,7 +539,7 @@ def main() -> None:
     py_run_util.log("")
 
     if DRY_RUN:
-        py_run_util.log("\n------------------------")
+        py_run_util.log("------------------------")
         return
 
     # Now run Python, plotting and convergence procedures

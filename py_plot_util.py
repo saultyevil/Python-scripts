@@ -206,7 +206,7 @@ def find_spec_files() -> List[str]:
     return spec_files
 
 
-def find_pf(ignore_out_pf: bool = True):
+def find_pf(ignore_out_pf: bool = True, dir: str = "./"):
     """
     Find parameter files recursively from the directory this function is called in.
 
@@ -214,6 +214,8 @@ def find_pf(ignore_out_pf: bool = True):
     ----------
     ignore_out_pf           bool, optional
                             Ignore Python .out.pf files
+    dir                     str, optional
+                            The directory to search for pf files
 
     Returns
     -------
@@ -221,7 +223,7 @@ def find_pf(ignore_out_pf: bool = True):
                             The file path for any Python pf files founds
     """
 
-    command = "find . -type f -name '*.pf'"
+    command = "cd {};find . -type f -name '*.pf'".format(dir)
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
     out = stdout.decode("utf-8").split()
@@ -468,8 +470,6 @@ def get_ylimits(wavelength: np.array, flux: np.array, wmin: float, wmax: float,
         idx_wmin = wavelength < wmin
         idx_wmax = wavelength > wmax
         flux_lim_wav = np.where(idx_wmin == idx_wmax)[0]
-        # print(flux.shape, flux[np.array([10, 20])])
-        # print(flux_lim_wav.shape)
         yupper = np.max(flux[flux_lim_wav]) * scale
         ylower = np.min(flux[flux_lim_wav]) / scale
     else:
@@ -514,7 +514,7 @@ def get_common_line_ids() -> dict:
     return common_lines
 
 
-def plot_line_ids(ax: plt.axes, lines: dict, rotation: str = "horizontal") -> plt.axes:
+def plot_line_ids(ax: plt.axes, lines: dict, rotation: str = "horizontal", fontsize: int = 10) -> plt.axes:
     """
     Plot major absorption and emission line IDs onto a spectrum.
 
@@ -528,6 +528,8 @@ def plot_line_ids(ax: plt.axes, lines: dict, rotation: str = "horizontal") -> pl
                     A dictionary containing the line name and wavelength in Angstroms (ordered by wavelength)
     rotation        str, optional
                     Vertical or horizontal rotation for text ids
+    fontsize        int, optional
+                    The fontsize of the labels
 
     Returns
     -------
@@ -548,12 +550,14 @@ def plot_line_ids(ax: plt.axes, lines: dict, rotation: str = "horizontal") -> pl
             line = ax.axvline(lines[l], 0.8, 0.9, color="k")
             x, y = line.get_data()
             coords = ax.transLimits.transform((x[0], y[1]))
-            ax.text(coords[0], 0.95, l, transform=ax.transAxes, ha="center", va="center", rotation=rotation)
+            ax.text(coords[0], 0.95, l, transform=ax.transAxes, ha="center", va="center", rotation=rotation,
+                    fontsize=fontsize)
         else:
             line = ax.axvline(lines[l], 0.1, 0.2, color="k")
             x, y = line.get_data()
             coords = ax.transLimits.transform((x[0], y[0]))
-            ax.text(coords[0], 0.05, l, transform=ax.transAxes, ha="center", va="center", rotation=rotation)
+            ax.text(coords[0], 0.05, l, transform=ax.transAxes, ha="center", va="center", rotation=rotation,
+                    fontsize=fontsize)
 
     return ax
 
@@ -616,8 +620,8 @@ def run_windsave2table(path: str, root: str, verbose: bool = False) -> Union[int
         print(err)
 
     # Now create a "complete" file which is the master and heat put together into one csv
-    heat_file = "{}.0.heat.txt".format(root)
-    master_file = "{}.0.master.txt".format(root)
+    heat_file = "{}/{}.0.heat.txt".format(path, root)
+    master_file = "{}/{}.0.master.txt".format(path, root)
 
     try:
         heat = pd.read_table(heat_file, delim_whitespace=True)

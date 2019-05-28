@@ -183,7 +183,7 @@ def plot_power_law():
         print("r0 > wind.rmax")
         exit(1)
 
-    v0_sound_speed = 1
+    v0_sound_speed = 0
     if v0_sound_speed:
         print("SV93 v0 set to {} sound speed at {}rmin".format(v0_sound_speed, r0 / wind.rmin))
         teff = ss_disk.t_eff(r0, wind.mobj, wind.mdot, r_star)
@@ -191,7 +191,7 @@ def plot_power_law():
         wind.v0 *= v0_sound_speed
         print("teff = {:e}".format(teff))
     print("v0 = {:e}".format(wind.v0))
-    rad_max = 5e17  # 2 * wind.Rv
+    rad_max = 1e16  # 2 * wind.Rv
     l = np.linspace(wind.rmin, rad_max, n_resolution)
     for al in wind_alphas:
         wind.alpha = al
