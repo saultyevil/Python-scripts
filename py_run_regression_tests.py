@@ -81,13 +81,19 @@ def main():
     py_dir = get_latest_python()
 
     # Now we can run the regression script
+    print("Running regression tests...\n")
+
     def_cores = 3
+    py_ver = py_dir + "/bin/py"
     n_cores = py_run_util.get_num_procs(def_cores)
-    regress = "cd {}; regression.py -np {}".format(regress_dir, n_cores)
+    regress = "cd {}; regression.py {} -np {}\n".format(regress_dir, py_ver, n_cores[1])
+    print(regress)
     cmd = Popen(regress, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
     stdout = stdout.decode("utf-8")
     stderr = stderr.decode("utf-8")
+
+    print("Regression test return code: ", cmd.returncode)
 
     print(stdout)
     if stderr:
