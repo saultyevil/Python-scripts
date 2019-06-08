@@ -522,7 +522,7 @@ def main() -> None:
     if SIMS_FROM_FILE:
         pf_paths = get_pf_from_file()
     else:
-        pf_paths = py_plot_util.find_pf(ignore_out_pf=True)
+        pf_paths = py_plot_util.find_pf_files()
     n_sims = len(pf_paths)
     if not n_sims:
         py_run_util.log("No parameter files found, nothing to do!\n")

@@ -1,4 +1,5 @@
 #!/usr/bin/env python 
+# -*- coding: utf-8 -*-
 
 import sys
 from consts import *
@@ -17,8 +18,16 @@ def convert_to_frequency(wavelength):
 	The frequency of a photon of the given wavelength.
 	"""
 
+	if type(wavelength) != float:
+		try:
+			wavelength = float(wavelength)
+		except ValueError:
+			print("Could not convert the provided wavelength to a float!!! :-(")
+			sys.exit(1)
+
 	frequency = C / (wavelength * ANGSTROM)
-	print("Photon of wavelength {:.0f} A has frequency {} Hz".format(wavelength, frequency))
+
+	print("Photon of wavelength {:.0f} A has frequency {:e} Hz".format(wavelength, frequency))
 
 	return frequency
 

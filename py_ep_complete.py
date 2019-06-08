@@ -1,17 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-Wrapper script for run_windsave2table
-"""
 
 import py_plot_util
 
 
-def main():
+def create(root, path):
+    """
+    A basic wrapper function to run windsave2table and create one of my
+    root.ep.complete files :-)
 
-    path = "./"
-    root = "fiducial_agn"
+    Parameters
+    ----------
+    root           str
+                   The root name of the simulation
+    path           str
+                   The directory containing the simulation
+
+    Returns
+    -------
+    None
+    """
+
     verbose = False
     py_plot_util.run_windsave2table(path, root, verbose)
 
@@ -19,4 +29,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    root = "fiducial_agn.pf"
+    path = "./"
+    create(root, path)

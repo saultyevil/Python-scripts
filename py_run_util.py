@@ -69,8 +69,10 @@ def close_logfile(logfile=None) -> None:
 
     if logfile:
         logfile.close()
-    else:
+    elif LOGFILE:
         LOGFILE.close()
+    else:
+        print("No logfile to close?")
 
     return
 
@@ -93,6 +95,7 @@ def log(message: str, logfile=None) -> None:
     """
 
     print(message)
+
     if logfile:
         logfile.write("{}\n".format(message))
     elif LOGFILE:

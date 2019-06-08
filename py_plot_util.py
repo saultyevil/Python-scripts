@@ -15,6 +15,8 @@ from subprocess import Popen, PIPE
 from matplotlib import pyplot as plt
 from typing import Tuple, List, Union
 from scipy.signal import convolve, boxcar
+from pathlib import Path
+from consts import C, ANGSTROM
 
 
 def tests():
@@ -95,8 +97,6 @@ def parse_root_name_and_path(pf_path: str) -> Tuple[str, str]:
     """
     Split a path name into a directory path and root name for a Python simulation.
 
-    TODO: the loop could probably be replaced by a str.find() instead
-
     Parameters
     ----------
     pf_path         str
@@ -116,13 +116,17 @@ def parse_root_name_and_path(pf_path: str) -> Tuple[str, str]:
 
     dot = 0
     slash = 0
-    for l in range(len(pf_path)):
-        if pf_path[l] == "/":
-            slash = l + 1
-        if pf_path[l] == ".":
-            dot = l
+    for i in range(len(pf_path)):
+        l = pf_path[i]
+        if l == ".":
+            dot = i
+        elif l == "/":
+            slash = i
+
     root_name = pf_path[slash:dot]
     path = pf_path[:slash]
+    if path == "":
+        path = "./"
 
     return root_name, path
 
@@ -152,7 +156,7 @@ def read_spec_file(file_name: str, delim: str = " ", pandas_table: bool = False)
         with open(file_name, "r") as f:
             flines = f.readlines()
     except IOError:
-        print("Can't open file {}".format(file_name))
+        print("py_plot_util.read_spec_file: can't open file {}".format(file_name))
         exit(1)
 
     # Now read in the line one by one and append to the list, lines
@@ -168,7 +172,6 @@ def read_spec_file(file_name: str, delim: str = " ", pandas_table: bool = False)
             if line[0] == "Freq.":
                 for j in range(len(line)):
                     if line[j][0] == "A":
-                        # TODO: this will fail for other phase angles, maybe?
                         line[j] = line[j].replace("P0.50", "").replace("A", "")
             # Don't add lines which are comments
             if line[0][0] != "#":
@@ -181,10 +184,14 @@ def read_spec_file(file_name: str, delim: str = " ", pandas_table: bool = False)
     return np.array(lines)
 
 
-def find_spec_files() -> List[str]:
+def find_spec_files(path: str = "./") -> List[str]:
     """
-    Use the unix find command to find spec files in the current working directory
-    and in directories below.
+    Find root.spec files recursively in provided directory
+
+    Parameters
+    ----------
+    path            str
+                    The path to recusrively search from
 
     Returns
     -------
@@ -192,53 +199,37 @@ def find_spec_files() -> List[str]:
                     The file paths of various .spec files
     """
 
-    find = "find . -name '*.spec'"
-    stdout, stderr = Popen(find, stdout=PIPE, stderr=PIPE, shell=True).communicate()
-    spec_files = stdout.decode("utf-8").split()
-    err = stderr.decode("utf-8")
-    spec_files = sorted(spec_files, key=str.lower)
+    spec_files = []
 
-    if err:
-        print("Captured from stderr:")
-        print(err)
-        return []
+    for filename in Path(path).glob("**/*.spec"):
+        spec_files.append(str(filename))
 
     return spec_files
 
 
-def find_pf(ignore_out_pf: bool = True, dir: str = "./"):
+def find_pf_files(path: str = "./") -> List[str]:
     """
     Find parameter files recursively from the directory this function is called in.
 
     Parameters
     ----------
-    ignore_out_pf           bool, optional
-                            Ignore Python .out.pf files
-    dir                     str, optional
+    path                    str, optional
                             The directory to search for pf files
 
     Returns
     -------
-    pfs                     list
+    pfs                     List[str]
                             The file path for any Python pf files founds
     """
 
-    command = "cd {};find . -type f -name '*.pf'".format(dir)
-    cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
-    stdout, stderr = cmd.communicate()
-    out = stdout.decode("utf-8").split()
-    err = stderr.decode("utf-8")
-
-    if err:
-        print("Captured from stderr:")
-        print(err)
-        exit(1)
-
     pfs = []
-    if ignore_out_pf is True:
-        for file in out:
-            if file.find(".out.pf") == -1 and file is not "py_wind.pf":
-                pfs.append(file)
+
+    for filename in Path(path).glob("**/*.pf"):
+        if str(filename).find("out.pf") != -1:
+            continue
+        if str(filename) == "py_wind.pf":
+            continue
+        pfs.append(str(filename))
 
     pfs = sorted(pfs, key=str.lower)
 
@@ -248,8 +239,6 @@ def find_pf(ignore_out_pf: bool = True, dir: str = "./"):
 def spec_inclinations_numpy(spec_names: List[str], delim: str = " ") -> np.array:
     """
     Get all of the unique inclination angles for a set of Python .spec files.
-
-    TODO: add better support for binary system phase angles
 
     Parameters
     ----------
@@ -264,13 +253,13 @@ def spec_inclinations_numpy(spec_names: List[str], delim: str = " ") -> np.array
                     All of the unique inclination angles found in the Python .spec files
     """
 
-    # TODO: add some input error checking
-    # TODO: why did I write it like this? It's hideous - this is better for Pandas lol
-
     iangles = []
     # Find the viewing angles in each .spec file
     for i in range(len(spec_names)):
-        spec_data = read_spec_file(spec_names[i], delim)
+        spec_name = spec_names[i]
+        if spec_name.find(".spec") == -1:
+            spec_name = spec_name.replace(".pf", ".spec")
+        spec_data = read_spec_file(spec_name, delim)
         col_names = spec_data[0, :]
         # Go over the columns and look for viewing angles
         for i in range(len(col_names)):
@@ -319,13 +308,6 @@ def check_inclination_present(inclination: int, spec: np.array) -> bool:
     """
     Check that an inclination angle is in the spectrum array.
 
-    This is a terrible function.
-
-    In theory, this can probably be replaced by one line of Python code
-
-        if angle not in angles:
-            continue
-
     Parameters
     ----------
     inclination         int
@@ -339,14 +321,18 @@ def check_inclination_present(inclination: int, spec: np.array) -> bool:
                         If True, angle is a legal angle, otherise fault
     """
 
-    # TODO: add some input error checking
-
     allowed = False
     headers = spec[0, :]
-    for i in range(len(headers)):
-        if headers[i].isdigit() is True:
-            if float(inclination) == float(headers[i]):
-                allowed = True
+
+    if type(inclination) != str:
+        try:
+            inclination = str(inclination)
+        except ValueError:
+            print("py_plot_util.check_inclination_present: could not convert {} into str".format(inclination))
+            return allowed
+
+    if inclination in headers:
+        allowed = True
 
     return allowed
 
@@ -400,12 +386,10 @@ def smooth_1d_array(flux: np.array, smooth: Union[int, float], verbose: bool = F
     return smoothed
 
 
-def subplot_dims(n_plots: int) -> tuple:
+def subplot_dims(n_plots: int) -> Tuple[int, int]:
     """
     Determine the dimensions for a plot with multiple subplot panels. Two columns
      of subplots will always be used.
-
-    TODO: if n_plots is large, use 3 columns instead
 
     Parameters
     ----------
@@ -420,6 +404,9 @@ def subplot_dims(n_plots: int) -> tuple:
 
     if n_plots > 2:
         ncols = 2
+        nrows = (1 + n_plots) // ncols
+    elif n_plots > 9:
+        ncols = 3
         nrows = (1 + n_plots) // ncols
     else:
         ncols = 1
@@ -485,18 +472,16 @@ def get_common_line_ids() -> dict:
     Return a dictionary containing the major absorption and emission lines which I'm interested in. The wavelengths
     of the lines are in Angstrom.
 
-    Parameters
-    ----------
-    None
-
     Returns
     -------
-    common_lines        dict
-                        A dictionary where the keys are the line names and the values are the wavelength of the lines
-                        in Angstroms
+    line           dict
+                   A dictionary where the keys are the line names and the values are the wavelength of the lines
+                   in Angstroms
     """
 
-    common_lines = {
+    lines = {
+        "HeII Edge": 229,
+        "Lyman Edge": 912,
         "P V": 1118,
         r"L$_{\alpha}$": 1216,
         "N V": 1240,
@@ -507,12 +492,41 @@ def get_common_line_ids() -> dict:
         "Al III": 1854,
         "C III]": 1908,
         "Mg II": 2798,
+        "Balmer Edge": 3646,
         "He II": 4686,
         # "FeII": ,  # can't find a fucking value for this cunt
     }
 
-    return common_lines
+    return lines
 
+def get_common_absorption_edges (use_freq: bool = False) -> dict:
+    """
+    Return a dictionary containing major absorption edges which I am interested in. The wavelengths of the lines are in
+    Angstroms or in frequency in Hz if use_freq is True.
+
+    Parameters
+    ----------
+    use_freq           bool, optional
+                       If True, return the dict in frequency space
+
+    Returns
+    -------
+    edges              dict
+                       A dictionary where the keys are the line names and the values are the wavelength of the lines
+                       in Angstroms or in Hz if in frequency space
+    """
+    edges = {
+        "HeII Edge": 229,
+        "Lyman Edge": 912,
+        "Balmer Edge": 3646,
+        "Paschen Edge": 8204,
+    }
+
+    if use_freq:
+        for key, value in edges.items():
+            edges[key] = C / (value * ANGSTROM)
+
+    return edges
 
 def plot_line_ids(ax: plt.axes, lines: dict, rotation: str = "horizontal", fontsize: int = 10) -> plt.axes:
     """
@@ -745,7 +759,6 @@ def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./", coo
         else:  # for safety, I guess?
             print("py_util.get_wind_data: type {} not recognised".format(var_type))
             exit(1)
-            
     except KeyError:
         print("py_util.get_wind_data: could not find var {} or another key".format(var))
         exit(1)
