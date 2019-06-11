@@ -32,6 +32,8 @@ def get_tde_spectrum() -> Tuple[np.array, float, str]:
     Return an array containing the TDE spectrum as well as returning the distance
     of the object and a string containing the reference for the observation.
 
+    TODO: remove global variable and pass TDE_OBJ as a parameter
+
     Returns
     -------
     tde_spec            np.array

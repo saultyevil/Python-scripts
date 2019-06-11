@@ -8,20 +8,6 @@ import py_plot_util
 from typing import Tuple
 from consts import *
 
-EDGES_WAVELENGTH = {
-    "He II Edge": 229,
-    "Lyman Edge": 912,
-    "Balmer Edge": 3646,
-    "Paschen Edge": 8204,
-}
-
-EDGES_FREQUENCY = {
-    "He II Edge": C / (229 * ANGSTROM),
-    "Lyman Edge": C / (912 * ANGSTROM),
-    "Balmer Edge": C / (3646 * ANGSTROM),
-    "Paschen Edge": C / (8204 * ANGSTROM),
-}
-
 
 def plot_optical_depth_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edges: bool = True,
                             xlims: Tuple[int, int] = None, semilogy: bool = True, loglog: bool = False,
@@ -98,7 +84,7 @@ def plot_optical_depth_spec(root: str, dir: str = "./", plot_freq: bool = False,
     for i in range(nangles):
         the_label = r"$i$ = " + str(float(cols[i + 1][1:3])) + r"$^{\circ}$"
         if loglog:
-            ax.loglog(spec[:, 0], spec[:, i + 1], label=the_label)
+            ax.semilogy(np.log10(spec[:, 0]), spec[:, i + 1], label=the_label)
         elif semilogy:
             ax.semilogy(spec[:, 0], spec[:, i + 1], label=the_label)
         else:
@@ -113,7 +99,10 @@ def plot_optical_depth_spec(root: str, dir: str = "./", plot_freq: bool = False,
                 ymin = tymin
 
     if plot_freq:
-        ax.set_xlabel(r"Frequency, Hz")
+        if loglog:
+            ax.set_xlabel(r"Log(Frequency), Hz")
+        else:
+            ax.set_xlabel(r"Frequency, Hz")
     else:
         ax.set_xlabel(r"Wavelength, $\AA$", fontsize=15)
     ax.set_ylabel(r"Optical Depth, $\tau$", fontsize=15)
@@ -124,10 +113,7 @@ def plot_optical_depth_spec(root: str, dir: str = "./", plot_freq: bool = False,
     ax.legend()
 
     if plot_edges:
-        if plot_freq:
-            py_plot_util.plot_line_ids(ax, EDGES_FREQUENCY, "horizontal")
-        else:
-            py_plot_util.plot_line_ids(ax, EDGES_WAVELENGTH, "horizontal")
+        py_plot_util.plot_line_ids(ax, py_plot_util.get_common_absorption_edges(plot_freq, loglog), "horizontal")
 
     plt.savefig("{}_tau_spec.png".format(root))
 

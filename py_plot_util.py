@@ -225,11 +225,14 @@ def find_pf_files(path: str = "./") -> List[str]:
     pfs = []
 
     for filename in Path(path).glob("**/*.pf"):
-        if str(filename).find("out.pf") != -1:
+        fname = str(filename)
+        if fname.find("out.pf") != -1:
             continue
-        if str(filename) == "py_wind.pf":
+        if fname == "py_wind.pf":
             continue
-        pfs.append(str(filename))
+        if fname[0] == "/":
+            fname = fname[1:]
+        pfs.append(fname)
 
     pfs = sorted(pfs, key=str.lower)
 
@@ -467,10 +470,18 @@ def get_ylimits(wavelength: np.array, flux: np.array, wmin: float, wmax: float,
     return yupper, ylower
 
 
-def get_common_line_ids() -> dict:
+def get_common_line_ids(use_freq: bool = False, log_scale: bool = False) -> dict:
     """
     Return a dictionary containing the major absorption and emission lines which I'm interested in. The wavelengths
     of the lines are in Angstrom.
+
+    Parameters
+    ----------
+    use_freq           bool, optional
+                       If True, return the dict in frequency space
+    log_scale          bool, optional
+                       If this and use_freq are true, the lines will be returned
+                       to be plotted on a log10 scale
 
     Returns
     -------
@@ -494,12 +505,20 @@ def get_common_line_ids() -> dict:
         "Mg II": 2798,
         "Balmer Edge": 3646,
         "He II": 4686,
+        "Paschen Edge": 8204,
         # "FeII": ,  # can't find a fucking value for this cunt
     }
 
+    if use_freq:
+        for key, value in lines.items():
+            if log_scale:
+                lines[key] = np.log10(C / (value * ANGSTROM))
+            else:
+                lines[key] = C / (value * ANGSTROM)
+
     return lines
 
-def get_common_absorption_edges (use_freq: bool = False) -> dict:
+def get_common_absorption_edges (use_freq: bool = False, log_scale: bool = False) -> dict:
     """
     Return a dictionary containing major absorption edges which I am interested in. The wavelengths of the lines are in
     Angstroms or in frequency in Hz if use_freq is True.
@@ -508,6 +527,9 @@ def get_common_absorption_edges (use_freq: bool = False) -> dict:
     ----------
     use_freq           bool, optional
                        If True, return the dict in frequency space
+    log_scale          bool, optional
+                       If this and use_freq are true, the lines will be returned
+                       to be plotted on a log10 scale
 
     Returns
     -------
@@ -515,6 +537,7 @@ def get_common_absorption_edges (use_freq: bool = False) -> dict:
                        A dictionary where the keys are the line names and the values are the wavelength of the lines
                        in Angstroms or in Hz if in frequency space
     """
+
     edges = {
         "HeII Edge": 229,
         "Lyman Edge": 912,
@@ -524,7 +547,10 @@ def get_common_absorption_edges (use_freq: bool = False) -> dict:
 
     if use_freq:
         for key, value in edges.items():
-            edges[key] = C / (value * ANGSTROM)
+            if log_scale:
+                edges[key] = np.log10(C / (value * ANGSTROM))
+            else:
+                edges[key] = C / (value * ANGSTROM)
 
     return edges
 

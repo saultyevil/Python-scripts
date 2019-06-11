@@ -291,7 +291,7 @@ def plot_wind(root_name: str, output_name: str, path: str = "./", vars: List[str
     if projection not in allowed_projections:
         print(
                 "py_plot.plot_wind: projection {} not understood, allowed values: rectilinear or polar".format(
-                    projection))
+                        projection))
         return
 
     if projection == "rectilinear":
@@ -338,7 +338,8 @@ def plot_wind(root_name: str, output_name: str, path: str = "./", vars: List[str
 
 
 def plot_tau_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edges: bool = True,
-                  xlims: Tuple[int, int] = None, semilogy: bool = True, loglog: bool = False) -> plt.Axes:
+                  wmin: Union[float, bool] = None, wmax: Union[float, bool] = None,
+                  semilogy: bool = True, loglog: bool = False) -> plt.Axes:
     """
     Plot an optical depth spectrum of either optical depth vs wavelength (Angstroms) or
     optical depth vs frequency (Hz).
@@ -353,8 +354,10 @@ def plot_tau_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edge
                  If True, the optical depth will be printed in frequency space
     plot_edges   bool, optional
                  Label various absorption edges
-    xlims        (float, flot), optional
-                 The x-limits of the spectrum
+    wmin         float, optional
+                 The minimum wavelength to plot
+    wmax         float, optional
+                 The maximum wavelength to plot
     semilogy     bool, optional
                  If True, then the y axis will be log scaled
     loglog       bool, optional
@@ -393,9 +396,10 @@ def plot_tau_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edge
     else:
         xxlims = [spec[-1, 0], spec[0, 0]]
 
-    if xlims:
-        xxlims[0] = xlims[0]
-        xxlims[1] = xlims[1]
+    if wmin:
+        xxlims[0] = wmin
+    if wmax:
+        xxlims[1] = wmax
 
     ymin = 1e+99
     ymax = 1e-99
@@ -414,7 +418,7 @@ def plot_tau_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edge
             continue
 
         if loglog:
-            ax.loglog(spec[:, 0], spec[:, i + 1], label=the_label)
+            ax.semilogy(np.log10(spec[:, 0]), spec[:, i + 1], label=the_label)
         elif semilogy:
             ax.semilogy(spec[:, 0], spec[:, i + 1], label=the_label)
         else:
@@ -429,13 +433,16 @@ def plot_tau_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edge
                 ymin = tymin
 
     if plot_freq:
-        ax.set_xlabel(r"Frequency, Hz")
+        if loglog:
+            ax.set_xlabel(r"Log(Frequency), Hz")
+        else:
+            ax.set_xlabel(r"Frequency, Hz")
     else:
         ax.set_xlabel(r"Wavelength, $\AA$", fontsize=15)
     ax.set_ylabel(r"Optical Depth, $\tau$", fontsize=15)
 
-    if plot_edges or semilogy is False:
-        ax.set_ylim(ymin, ymax)
+    if plot_edges:
+        py_plot_util.plot_line_ids(ax, py_plot_util.get_common_absorption_edges(plot_freq, loglog), "horizontal")
 
     ax.legend()
 
@@ -453,7 +460,8 @@ def plot_tau_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edge
 
 
 def plot_spec_comps(spec_path: str, output_name: str, semilogy_scale: bool = False, smooth: int = 15,
-                    filetype: str = "png", verbose: bool = False) -> None:
+                    wmin: Union[float, bool] = None, wmax: Union[float, bool] = None, filetype: str = "png",
+                    verbose: bool = False) -> None:
     """
     Plot the different integrated flux components within a Python spec file.
 
@@ -470,6 +478,10 @@ def plot_spec_comps(spec_path: str, output_name: str, semilogy_scale: bool = Fal
                     numbers result in more smoothing
     filetype        str, optional
                     The file type of the plot saved to disk, by default this is
+    wmin            float, optional
+                    The minimum wavelength to plot
+    wmax            float, optional
+                    The maximum wavelength to plot
                     png
     verbose         bool, optional
                     Enable verbose logging
@@ -505,11 +517,20 @@ def plot_spec_comps(spec_path: str, output_name: str, semilogy_scale: bool = Fal
         print("\tPlotting {}".format(headers_top[i]))
         flux = py_plot_util.smooth_1d_array(np.array(spec[1:, spec[0, :] == headers_top[i]], dtype=float), smooth,
                                             verbose)
+        if len(flux[flux < MIN_FLUX]) > 0.7 * len(flux):
+            print("\t\t!!Skipping {}".format(headers_top[i]))
+            continue
         if semilogy_scale:
             ax[0].semilogy(wavelength, flux, label=headers_top[i])
         else:
             ax[0].plot(wavelength, flux, label=headers_top[i])
-    ax[0].set_xlim(wavelength.min(), wavelength.max())
+
+    xlims = [wavelength.min(), wavelength.max()]
+    if wmin:
+        xlims[0] = wmin
+    if wmax:
+        xlims[1] = wmax
+    ax[0].set_xlim(xlims[0], xlims[1])
     ax[0].set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
     ax[0].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)", fontsize=17)
     ax[0].legend()
@@ -527,7 +548,7 @@ def plot_spec_comps(spec_path: str, output_name: str, semilogy_scale: bool = Fal
         else:
             ax[1].plot(wavelength, flux, label=headers_bot[i])
 
-    ax[1].set_xlim(wavelength.min(), wavelength.max())
+    ax[1].set_xlim(xlims[0], xlims[1])
     ax[1].set_ylim(MIN_FLUX)
     ax[1].set_xlabel(r"Wavelength ($\AA$)", fontsize=17)
     ax[1].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)", fontsize=17)
@@ -694,7 +715,7 @@ def main() -> None:
 
     print("\n--------------------------")
 
-    # Plot spectra
+    # Plot spectra for inclination angles
     spec_angles = py_plot_util.spec_inclinations_numpy(files)
     if PLOTS == "spec" or PLOTS == "all":
         print("\nPlotting spectra".format(files))
@@ -704,14 +725,17 @@ def main() -> None:
     # If this is being run in an individual folder, then we can plot the spectrum components and wind parameters
     if len(files) == 1:
         root, path = py_plot_util.parse_root_name_and_path(files[0])
+
+        # Plot the spectrum components
         if PLOTS == "spec_comps" or PLOTS == "all":
             print("\nPlotting spectrum components")
             plot_spec_comps(files[0], outname, semilogy_scale=PLOT_LOG, smooth=SMOOTH, filetype=FILETYPE,
                             verbose=VERBOSE)
 
+        # Plot the optical depth spectrum
         if PLOTS == "tau_spec" or PLOTS == "all":
             print("\nPlotting optical depth spectrum")
-            plot_tau_spec(root, path)
+            plot_tau_spec(root, path, wmin=WMIN, wmax=WMAX)
 
         # Run windsave2table to extract data from the wind_save file
         if os.path.isfile("{}.ep.complete".format(root)) is False:
