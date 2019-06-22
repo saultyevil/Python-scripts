@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import sys
+import os
 import numpy as np
 import time
 from matplotlib import pyplot as plt
@@ -22,20 +24,26 @@ NEUTRAL_WEIGHT = 1
 MIN_WEIGHT = 1e-5 * NEUTRAL_WEIGHT
 MAX_WEIGHT = 1e5 * NEUTRAL_WEIGHT
 LMAX = 1
-SEED = 23165489
+randseed = np.random.randint(int(1e9))
+SEED = 349903800
+print(SEED)
 N_BINS = CHAND_SLAB_SOL.shape[0]
 VERBOSE = False
+WRITE_PHOT_INFO = False  # This will probably make things slowwwww
 
 # Parameters which control photon transport and path stretching, changing these
 # will alter the performance of the script and algorithms
 
-SCAT_ALBEDO = 1      # 1 == pure scattering, 0 == pure absorption
+SCAT_ALBEDO = 1.0      # 1 == pure scattering, 0 == pure absorption
 N_PHOTONS = int(1e7)
 P_KILL = 0.0
 TAU_MAX = 5
 SCAT_THRESHOLD = 0
 TAU_THRESHOLD = np.sqrt(SCAT_THRESHOLD)
 
+ALPHA = None
+if len(sys.argv) != 1:
+    ALPHA = float(sys.argv[1])
 
 print("")
 print("SCAT_ALBEDO", SCAT_ALBEDO)
@@ -115,11 +123,12 @@ class PhotonPacket:
     Contains all of the functions required to generate and transport a photon.
     """
 
-    def __init__(self):
+    def __init__(self, nphot):
         """
         Initialise a photon. Photons are initialised at the origin of the slab.
         """
 
+        self.nphot = nphot
         self.nrr = 0                # number of rr games
         self.cscat = 0              # number of scatters between stretched paths
         self.tau_path = 0           # optical depth to escape
@@ -135,6 +144,10 @@ class PhotonPacket:
         self.cosphi = np.cos(2 * np.pi * np.random.rand())
         self.sinphi = np.sqrt(1 - self.cosphi ** 2)
         self.inslab = True
+
+        self.weights = []           # track how the weight changes
+        self.tau_scats = []         # track the various tau_scats
+        self.tau_paths = []         # track the various tau_paths
 
         return
 
@@ -157,10 +170,20 @@ class PhotonPacket:
         """
 
         self.tau_path = 0
+
+        if self.tau_depth > TAU_MAX:
+            self.scatter_bottom_slab()
+
         if self.costheta > 0:
             self.tau_path = self.tau_depth / self.costheta
         elif self.costheta < 0:
             self.tau_path = (self.tau_depth - TAU_MAX) / self.costheta
+
+        if self.tau_path < 0:
+            print("tau_path < 0, setting tau_path to zero")
+            print(self.tau_path)
+            print(self.z, self.tau_depth, self.costheta)
+            self.tau_path = 0
 
         return self.tau_path
 
@@ -250,6 +273,28 @@ class PhotonPacket:
 
         return
 
+    def write_tracked_stats(self):
+        """
+        Print a bunch of the track stats to file.
+        """
+
+        try:
+            os.mkdir("phots")
+        except OSError:
+            pass
+
+        fname = "phots/phot{}_stats.txt"
+        f = open(fname, "w")
+
+        nscats = len(self.tau_scats)
+        for i in range(nscats):
+            line = "{} {} {}\n".format(self.weights[i], self.tau_scats[i], self.tau_paths[i])
+            f.write(line)
+
+        f.close()
+
+        return
+
 
 def write_phots(phots, pas):
     """
@@ -261,10 +306,15 @@ def write_phots(phots, pas):
                 if True, append filename with pas indicator
     """
 
+    if ALPHA is None:
+        name = "alpha_taupath"
+    else:
+        name = "alpha_{}".format(ALPHA)
+
     fname = "photon_statistics"
     if pas:
         fname += "_pas"
-    fname += ".txt"
+    fname += "{}_.txt".format(name)
     f = open(fname, "w")
 
     f.write("nrr\tnstretch\tweight\n")
@@ -291,6 +341,9 @@ def trans_phot(path_stretch_on):
         rr_on = False
 
     photstore = []
+    atau_scats = []
+    atau_paths = []
+    galpha = []
 
     spectrum = IntensitySpectrum(N_BINS)
     spectrum.init_bins()
@@ -302,29 +355,42 @@ def trans_phot(path_stretch_on):
 
     for iphot in range(N_PHOTONS):
 
-        phot = PhotonPacket()
+        phot = PhotonPacket(iphot)
         photstore.append(phot)
 
         # Keep iterating whilst the photon is in the slab
-        while phot.inslab:
+        while phot.inslab and phot.weight > 0:
+
             # Generate the optical depth to the next scattering event, this can
             # either be from the normal distribution or from the biased distribution
+            tau_path = -1
             tau_scat = phot.generate_tau_scat()
             if path_stretch_on and phot.cscat >= SCAT_THRESHOLD:
                 tau_path = phot.find_tau_path()
 
                 if tau_path >= TAU_THRESHOLD:
                     phot.cscat = 0
-                    alpha = 1 / (1 + tau_path)
+                    if ALPHA:
+                        alpha = ALPHA
+                    else:
+                        alpha = 1 / (1 + tau_path)
+                    galpha.append(alpha)
                     tau_scat = phot.generate_bias_tau_scat(alpha)
 
                     # Play RR if the photon weight is below the minimum weight
-                    if rr_on and phot.weight < MIN_WEIGHT:
+                    if rr_on and phot.weight <= MIN_WEIGHT:
                         phot.play_russian_roulette()
                         if phot.weight == -1:
                             phot.weight = 0
                             nkilled += 1
                             break
+
+            # Used for debugging how the weight of the photon changes
+            atau_paths.append(tau_path)
+            atau_scats.append(tau_scat)
+            phot.tau_scats.append(tau_scat)
+            phot.tau_paths.append(tau_path)
+            phot.weights.append(phot.weight)
 
             # Now that there is a value for tau_scat, move the photon to this
             # location
@@ -345,7 +411,10 @@ def trans_phot(path_stretch_on):
                     phot.cscat += 1
                 else:
                     phot.weight = 0
-                    phot.inslab = 0
+                    phot.inslab = False
+
+        if WRITE_PHOT_INFO:
+            phot.write_tracked_stats()
 
         if VERBOSE:
             print("photon {} nstretch {:5d} nrr {:5d}\n".format(iphot, phot.nstretch, phot.nrr))
@@ -360,7 +429,7 @@ def trans_phot(path_stretch_on):
 
     write_phots(photstore, path_stretch_on)
 
-    return spectrum
+    return spectrum, atau_scats, atau_paths, galpha
 
 
 def main():
@@ -372,35 +441,47 @@ def main():
 
     print("Running MCRT with path stretching enabled")
     start = time.time()
-    pasMCRT = trans_phot(path_stretch_on=True)
+    pasMCRT, pasMCRTtau_scats, pasMCRTtau_paths, pasMCRTalpha = trans_phot(path_stretch_on=True)
     end = time.time()
     print("Run time: {} seconds".format(int(end - start)))
 
+    if ALPHA is None:
+        name = "alpha_taupath"
+    else:
+        name = "alpha_{}".format(ALPHA)
+
+    np.savetxt("tau_paths_{}.txt".format(name), np.array(pasMCRTtau_paths))
+    np.savetxt("tau_scats_{}.txt".format(name), np.array(pasMCRTtau_scats))
+    np.savetxt("alphas_{}.txt".format(name), np.array(pasMCRTalpha))
+
     print("\nRunning MCRT without any acceleration")
     start = time.time()
-    MCRT = trans_phot(path_stretch_on=False)
+    MCRT, MCRTtau_scats, MCRTtau_paths, MCRTalpha = trans_phot(path_stretch_on=False)
     end = time.time()
     print("Run time: {} seconds".format(int(end - start)))
 
     print("\nOriginal photon weight before transport: {:2e}".format(N_PHOTONS * NEUTRAL_WEIGHT))
     print("\n{} photons contributed to pasMCRT spectrum".format(pasMCRT.nphot))
     print("Total weight in pasMCRT spectrum: {:.2e}".format(np.sum(pasMCRT.hist)))
+
     print("\n{} photons contributed to MCRT spectrum".format(MCRT.nphot))
     print("Total weight in MCRT spectrum: {:.2e}".format(np.sum(MCRT.hist)))
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 8))
     ax.semilogy(np.cos(np.deg2rad(CHAND_SLAB_SOL[:, 0])), CHAND_SLAB_SOL[:, 1], label="Analytic Soution")
     ax.semilogy(np.cos(pasMCRT.theta), pasMCRT.intensity, label="Path Stretching Enabled")
+
     ax.semilogy(np.cos(MCRT.theta), MCRT.intensity, label="Path Stretching Disabled")
+
     ax.set_xlabel(r"$\mu = cos(\theta)$")
     ax.set_ylabel(r"Normalised Intensity")
     ax.legend()
-
     fig.tight_layout()
-    plt.savefig("path_stretching_taumax_{}.png".format(TAU_MAX, P_KILL))
-    plt.show()
+    plt.savefig("path_stretching_taumax_{}_{}.png".format(TAU_MAX, P_KILL, name))
+    plt.close()
 
     pspw.plot_weight_file(True)
+    pspw.plot_tau_alpha_hists(pasMCRTtau_scats, pasMCRTtau_paths, pasMCRTalpha, name)
 
     return
 

@@ -30,9 +30,9 @@ def plot_weight_tau():
     ntau = int(1e4)
     tau = np.linspace(min_tau, max_tau, ntau)
 
-    ntau_path = 10
     min_tau_path = 0
     max_tau_path = max_tau
+    ntau_path = int((max_tau - min_tau) + 2)
     tau_path = np.linspace(min_tau_path, max_tau_path, ntau_path)
 
     weight_factors = np.zeros((ntau_path, ntau))
@@ -45,11 +45,10 @@ def plot_weight_tau():
         plt.semilogy(tau, weight_factors[i, :], label=r"$\tau_{path}$ = " + "{:.2f}".format(tau_path[i]))
 
     plt.legend()
-    # plt.xlim(min_tau, max_tau)
     plt.xlabel(r"$\tau_{scat}$")
     plt.ylabel(r"$W(\tau_{scat})$")
     plt.savefig("path_stretching_weight.png")
-    plt.show()
+    plt.close()
 
     return
 
@@ -74,21 +73,128 @@ def plot_weight_file(path_stretch_on):
             data.append(l)
     data = np.array(data, dtype=float)
 
+    header = header[2]
+    data = data[:, 2]
+    print(header)
+    print(data)
+    print(data[data != 0].min(), data.max())
+
     nbins = 20
-    nplots = data.shape[1]
-    fig, ax = plt.subplots(nplots, 1, figsize=(5, 12))
+
+    try:
+        nplots = data.shape[1]
+    except IndexError:
+        nplots = 1
+
+    size = (5, 12)
+    if nplots == 1:
+        size = (10, 5)
+
+    fig, ax = plt.subplots(nplots, 1, figsize=size)
     for i in range(nplots):
-        weights = np.ones_like(data[:, i])/float(len(data[:, i]))
-        ax[i].hist(data[:, i], nbins,  weights=weights, log=True)
-        ax[i].set_xlabel("{}".format(header[i]))
-        ax[i].set_ylabel("Count")
+        try:
+            weights = np.ones_like(data[:, i])/float(len(data[:, i]))
+            ax[i].hist(data[:, i], nbins,  weights=weights, log=True)
+            ax[i].set_xlabel("{}".format(header[i]))
+            ax[i].set_ylabel("Count")
+        except IndexError:
+            nbins = 200
+            weights = np.ones_like(data)/float(len(data))
+            logbins = np.logspace(np.log10(data[data!=0].min()), np.log10(data.max()), nbins)
+            # print(logbins)
+            ax.hist(data, bins=logbins,  weights=weights, log=True)
+            ax.set_xscale("log")
+            # ax.set_xlim(np.log10(data[data!=0].min()), np.log10(data.max()))
+            ax.set_xlabel("{}".format(header[i]))
+            ax.set_ylabel("Count")
 
     fig.tight_layout()
-    plt.show()
+    plt.savefig("photon_hists.png")
+    plt.close()
+
+    return
+
+
+def plot_tau_alpha_hists(tau_scat, tau_path, alpha, extra_name):
+    """
+    Plot histograms for the sampled tau_scats and the values of alpha and
+    tau_path.
+
+    pls ignore the ABSOLUTE state of this function
+
+    """
+
+    if type(tau_scat) != np.ndarray:
+        tau_scat = np.array(tau_scat, dtype=float)
+    if type(tau_path) != np.ndarray:
+        tau_path = np.array(tau_path, dtype=float)
+    if type(alpha) != np.ndarray:
+        alpha = np.array(alpha, dtype=float)
+
+    # print(tau_scat)
+    # print(tau_path)
+    # print(alpha)
+
+    print(alpha.min(), alpha.max())
+
+    nplots = 3
+    tmp = np.zeros((tau_scat.shape[0], nplots))
+    tmp[:, 0] = tau_scat
+    tmp[:, 1] = tau_path
+    tmp[:, 2] = alpha
+    name = ["tau_scat", "tau_path", "alpha"]
+    nbins = 200
+
+    fig, ax = plt.subplots(1, 1, figsize=(10, 5))
+
+    i = 0
+    print(name[i])
+    data = tmp[:, i]
+    weights = np.ones_like(data) / float(len(data))
+    logbins = np.logspace(np.log10(data[data != 0].min()), np.log10(data.max()), nbins)
+    ax.hist(data, bins=logbins, weights=weights, log=True)
+    ax.set_xscale("log")
+    ax.set_xlabel("{}".format(name[i]))
+    fig.tight_layout()
+    plt.savefig("{}_{}.png".format(name[i], extra_name))
+    plt.close()
+    fig.clf()
+    i += 1
+
+    fig, ax = plt.subplots(1, 1, figsize=(10, 5))
+
+    print(name[i])
+    data = tmp[:, i]
+    print(data, type(data), type(data[0]))
+    weights = np.ones_like(data) / float(len(data))
+    logbins = np.logspace(np.log10(data[data != 0].min()), np.log10(data.max()), nbins)
+    ax.hist(data, bins=logbins, weights=weights, log=True)
+    ax.set_xlabel("{}".format(name[i]))
+    ax.set_xscale("log")
+    fig.tight_layout()
+    plt.savefig("{}_{}.png".format(name[i], extra_name))
+    plt.close()
+    fig.clf()
+    i += 1
+
+    fig, ax = plt.subplots(1, 1, figsize=(10, 5))
+    print(name[i])
+    data = tmp[:, i]
+    weights = np.ones_like(data) / float(len(data))
+    logbins = np.logspace(np.log10(data[data != 0].min()), np.log10(data.max()), nbins)
+    ax.hist(data, log=True, weights=weights, bins=logbins)
+    ax.set_xlabel("{}".format(name[i]))
+    ax.set_xscale("log")
+    fig.tight_layout()
+    plt.savefig("{}_{}.png".format(name[i], extra_name))
+    plt.close()
+    fig.clf()
+    i += 1
 
     return
 
 
 if __name__ == "__main__":
-    # plot_weight_file(True)
+
+    plot_weight_file(True)
     plot_weight_tau()
