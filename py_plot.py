@@ -716,8 +716,8 @@ def main() -> None:
     print("\n--------------------------")
 
     # Plot spectra for inclination angles
-    spec_angles = py_plot_util.spec_inclinations_numpy(files)
     if PLOTS == "spec" or PLOTS == "all":
+        spec_angles = py_plot_util.spec_inclinations_numpy(files)
         print("\nPlotting spectra".format(files))
         plot_spectra(files, spec_angles, outname, wmin=WMIN, wmax=WMAX, smooth=SMOOTH, filetype=FILETYPE,
                      verbose=VERBOSE)
@@ -738,11 +738,12 @@ def main() -> None:
             plot_tau_spec(root, path, wmin=WMIN, wmax=WMAX)
 
         # Run windsave2table to extract data from the wind_save file
-        if os.path.isfile("{}.ep.complete".format(root)) is False:
-            rc = py_plot_util.run_windsave2table(path, root, VERBOSE)
-            if rc:
-                print("py_plot.main: windsave2table failed to run")
-                exit(1)
+        if PLOTS == "wind" or PLOTS == "ions" or PLOTS == "all":
+            if os.path.isfile("{}.ep.complete".format(root)) is False:
+                rc = py_plot_util.run_windsave2table(path, root, VERBOSE)
+                if rc:
+                    print("py_plot.main: windsave2table failed to run")
+                    exit(1)
 
         # Plot some wind quantities first
         if PLOTS == "wind" or PLOTS == "all":

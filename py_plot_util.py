@@ -518,6 +518,7 @@ def get_common_line_ids(use_freq: bool = False, log_scale: bool = False) -> dict
 
     return lines
 
+
 def get_common_absorption_edges (use_freq: bool = False, log_scale: bool = False) -> dict:
     """
     Return a dictionary containing major absorption edges which I am interested in. The wavelengths of the lines are in
@@ -553,6 +554,7 @@ def get_common_absorption_edges (use_freq: bool = False, log_scale: bool = False
                 edges[key] = C / (value * ANGSTROM)
 
     return edges
+
 
 def plot_line_ids(ax: plt.axes, lines: dict, rotation: str = "horizontal", fontsize: int = 10) -> plt.axes:
     """

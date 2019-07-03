@@ -290,7 +290,6 @@ def py_run(root: str, wd: str, use_mpi: bool, n_cores: int, spec_cycle: bool = F
     #         py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "0", VERBOSE)
 
 
-
     outf_name = "{}/{}_{}{:02d}{:02d}.txt".format(wd, root, DATE.year, int(DATE.month), int(DATE.day))
     outf = open(outf_name, "a")
 

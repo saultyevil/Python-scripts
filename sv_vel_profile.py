@@ -167,8 +167,8 @@ def plot_power_law():
     # the streamline originates from r_min where r0 is the launch radius of the
     # streamline
     n_resolution = 500
-    # wind_alphas = [0.1, 0.2, 0.4, 0.8, 1.0, 2.0, 4.0, 8.0, 10.0, 15.0]
-    wind_alphas = [0.5, 1.0, 2.0]
+    wind_alphas = [0.1, 0.2, 0.4, 0.8, 1.0, 2.0, 4.0, 8.0, 10.0, 15.0]
+    # wind_alphas = [0.5, 1.0, 2.0]
 
     print("Plotting SV93 polodial velocity power law for:")
     print(wind_alphas)
@@ -191,7 +191,7 @@ def plot_power_law():
         wind.v0 *= v0_sound_speed
         print("teff = {:e}".format(teff))
     print("v0 = {:e}".format(wind.v0))
-    rad_max = 1e16  # 2 * wind.Rv
+    rad_max = 5e17 # 2 * wind.Rv
     l = np.linspace(wind.rmin, rad_max, n_resolution)
     for al in wind_alphas:
         wind.alpha = al

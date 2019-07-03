@@ -52,7 +52,7 @@ def get_tde_spectrum() -> Tuple[np.array, float, str]:
         reference = "Blagorodnova et al. (2019)"
         observe_dist = 350 * 1e6 * PARSEC
         tde_spec = tde_util.iPTF15af_spec(SMOOTH, VERBOSE)
-    elif TDE_OBJ == "ASSASN14li" or TDE_OBJ == "assasn14li":
+    elif TDE_OBJ == "ASASSN14li" or TDE_OBJ == "asassn14li":
         z = 0.02058
         reference = "Cenko et al. (2016)"
         observe_dist = 90 * 1e6 * PARSEC
@@ -256,9 +256,9 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
 
     copypasta = \
         r"""
-    I have put you on a permanent ignore, public and private. I have found you disturbing, rude and generally 
-    not worth talking to. According to the channels you hang on, it strengtens  the effect of wanting to put 
-    you on ignore because of my lack of interest in you as a person. This message is not meant to be rude to 
+    I have put you on a permanent ignore, public and private. I have found you disturbing, rude and generally
+    not worth talking to. According to the channels you hang on, it strengtens  the effect of wanting to put
+    you on ignore because of my lack of interest in you as a person. This message is not meant to be rude to
     you, just to inform you that i won't see anything of what you type from now on.
         """
 
@@ -292,7 +292,7 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
         inclination = sorted(list(dict.fromkeys(inclination)))
         size = (20, 12)
         n_specs = len(inclination)
-        
+
     nrows, ncols = py_plot_util.subplot_dims(n_specs)
     fig, ax = plt.subplots(nrows, ncols, figsize=size, squeeze=False, sharex="col")
 

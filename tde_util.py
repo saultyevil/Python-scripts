@@ -119,3 +119,75 @@ def ASSASN14li_spec(smooth: int, verbose: bool = False) -> np.array:
     ASSASN_14li_spec[:, 1] = py_plot_util.smooth_1d_array(ASSASN_14li_spec[:, 1], smooth)
 
     return ASSASN_14li_spec
+
+
+def plot_iPTF15af_photometry(ax):
+    """
+    Plot photometric data for the UV spectrum of iPTF15af from Blagordnova et al. 2019.
+
+    Note that the Swift optical filters (U, B, V) are commented out due to contamination from the host galaxy.
+
+    Returns
+    -------
+
+    """
+
+    def mag2flux(mag, zero):
+        return zero * 10 ** (-mag / 2.5)
+
+    mags = np.array([
+        19.48,  # UVW1
+        19.42,  # UVM2
+        19.16,  # UVW2
+        # 19.27,   # U
+        # 18.81,   # B
+        # 17.91,   # V
+        20.09,  # g
+        20.39,  # r
+        20.31,  # i
+    ])
+
+    # Taken from http://svo2.cab.inta-csic.es/svo/theory/fps/
+    zero_points = np.array([
+        1.624e-8,
+        2.193e-8,
+        2.640e-8,
+        # 8.880e-9,
+        # 5.810e-9,
+        # 3.730e-9,
+        5.055e-9,
+        2.904e-9,
+        7.738e-9
+    ])
+
+    # Taken from http://svo2.cab.inta-csic.es/svo/theory/fps/
+    central_waves = np.array([
+        2604.57,
+        2246.00,
+        1941.22,
+        # 3463.14,
+        # 4371.22,
+        # 5441.20,
+        4700.33,
+        6174.48,
+        3684.29
+    ])
+
+    labels = [
+        "Swift (+52d): UVW1",
+        "Swift (+52d): UWM2",
+        "Swift (+52d): UVW2",
+        # "Swift (+52d): U",
+        # "Swift (+52d): B",
+        # "Swift (+52d): V",
+        "P60 (+53.9d): g",
+        "P60 (+53.9d): r",
+        "LasCumbres (+49.5d): I"
+    ]
+
+    fluxs = mag2flux(mags, zero_points)
+    for i in range(len(fluxs)):
+        leg_label = labels[i] + r" ({:4.0f} $\AA$)".format(central_waves[i])
+        ax.plot(central_waves[i], fluxs[i], "d", label=leg_label)
+
+    return ax
