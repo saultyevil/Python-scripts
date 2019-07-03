@@ -8,6 +8,7 @@ import time
 from matplotlib import pyplot as plt
 import path_stretching_plot_weights as pspw
 
+
 CHAND_SLAB_SOL = np.array(
     [[00.00, 1.26938], [18.19, 1.22945], [25.84, 1.18947], [31.79, 1.14943],
      [36.87, 1.10931], [41.41, 1.06911], [45.57, 1.02882], [49.46, 0.98842],
@@ -40,12 +41,20 @@ P_KILL = 0.0
 TAU_MAX = 5
 SCAT_THRESHOLD = 0
 TAU_THRESHOLD = np.sqrt(SCAT_THRESHOLD)
+ALPHA_FLOOR = 0.65
 
 ALPHA = None
-if len(sys.argv) != 1:
-    ALPHA = float(sys.argv[1])
+if len(sys.argv) == 2:
+    try:
+        ALPHA = float(sys.argv[1])
+    except ValueError:
+        print("Uh oh, something went wrong trying to convert input to a float: ", sys.argv[1])
+        exit(1)
 
 print("")
+print("PARAMETERS:")
+print("ALPHA", ALPHA)
+print("ALPHA_FLOOR", ALPHA_FLOOR)
 print("SCAT_ALBEDO", SCAT_ALBEDO)
 print("N_PHOTONS", N_PHOTONS)
 print("P_KILL", P_KILL)
@@ -71,7 +80,7 @@ class IntensitySpectrum:
 
         self.nphot = 0
         self.nbins = nbins
-        self.hist = np.zeros(nbins)
+        self.weight = np.zeros(nbins)
         self.theta = np.zeros(nbins)
         self.intensity = np.zeros(nbins)
 
@@ -89,21 +98,21 @@ class IntensitySpectrum:
 
         return
 
-    def bin_photon_direction(self, costheta, weight):
+    def bin_photon_direction(self, pcostheta, pweight):
         """
         Bin a photon weight into the appropriate theta bin.
 
-        costheta    float
-                    the escape direction of a photon packet
-        weight      float
-                    the weight of the photon
+        pcostheta    float
+                     the escape direction of a photon packet
+        pweight      float
+                     the weight of the photon
         """
 
-        if weight == 0:
+        if pweight == 0:
             return
 
-        bin = np.abs(int(costheta * self.nbins))
-        self.hist[bin] += weight
+        ibin = np.abs(int(pcostheta * self.nbins))
+        self.weight[ibin] += pweight
         self.nphot += 1
 
         return
@@ -113,7 +122,28 @@ class IntensitySpectrum:
         Calculate the intensity from the hist bins.
         """
 
-        self.intensity = (self.hist * self.nbins) / (2 * N_PHOTONS * np.cos(self.theta))
+        self.intensity = (self.weight * self.nbins) / (2 * N_PHOTONS * np.cos(self.theta))
+
+        return
+
+    def write(self, name):
+        """
+        Write the spectrum to file.
+
+        name        str
+                    the base name of the output file
+        """
+
+        fname = name + ".txt"
+        f = open(fname, "w")
+
+        f.write("theta\tcostheta\tw\tintensity\n")
+
+        for i in range(self.nbins):
+            f.write("{}\t{}\t{}\t{}\n".format(self.theta[i], np.cos(np.deg2rad(self.theta[i])),
+                    self.weight[i], self.intensity[i]))
+
+        f.close()
 
         return
 
@@ -157,9 +187,11 @@ class PhotonPacket:
         """
 
         self.nrr += 1
+
         if np.random.rand() <= P_KILL:
             self.weight = -1
             return
+
         self.weight *= 1 / (1 - P_KILL)
 
         return self.weight
@@ -171,6 +203,9 @@ class PhotonPacket:
 
         self.tau_path = 0
 
+        # Hacky function call which fixes negative alpha values. Doesn't seem
+        # to have an effect on the results, but a better way should be
+        # implemented to deal with the problem anyway
         if self.tau_depth > TAU_MAX:
             self.scatter_bottom_slab()
 
@@ -178,12 +213,6 @@ class PhotonPacket:
             self.tau_path = self.tau_depth / self.costheta
         elif self.costheta < 0:
             self.tau_path = (self.tau_depth - TAU_MAX) / self.costheta
-
-        if self.tau_path < 0:
-            print("tau_path < 0, setting tau_path to zero")
-            print(self.tau_path)
-            print(self.z, self.tau_depth, self.costheta)
-            self.tau_path = 0
 
         return self.tau_path
 
@@ -275,7 +304,7 @@ class PhotonPacket:
 
     def write_tracked_stats(self):
         """
-        Print a bunch of the track stats to file.
+        Print a bunch of the track stats to file for the single photon.
         """
 
         try:
@@ -296,9 +325,9 @@ class PhotonPacket:
         return
 
 
-def write_phots(phots, pas):
+def write_phots(phots, pas_on):
     """
-    Write out a bunch of data for all of the photons
+    Write out a bunch of things for all of the photons
 
     phots       list[PhotonPacket]
                 a list containing all of the photons
@@ -306,22 +335,20 @@ def write_phots(phots, pas):
                 if True, append filename with pas indicator
     """
 
-    if ALPHA is None:
-        name = "alpha_taupath"
+    if ALPHA is not None:
+        fname = "phots_tmax_{}_pkill_{}_alpha_{}".format(TAU_MAX, P_KILL, ALPHA)
     else:
-        name = "alpha_{}".format(ALPHA)
-
-    fname = "photon_statistics"
-    if pas:
-        fname += "_pas"
-    fname += "{}_.txt".format(name)
+        fname = "phots_tmax_{}_pkill_{}_tpath".format(TAU_MAX, P_KILL)
+    if pas_on:
+        fname += "_path_str"
+    fname += ".txt"
     f = open(fname, "w")
 
     f.write("nrr\tnstretch\tweight\n")
     for i in range(N_PHOTONS):
         phot = phots[i]
-        str = "{}\t{}\t{}".format(phot.nrr, phot.nstretch, phot.weight)
-        f.write("{}\n".format(str))
+        tmpstr = "{}\t{}\t{}".format(phot.nrr, phot.nstretch, phot.weight)
+        f.write("{}\n".format(tmpstr))
 
     f.close()
 
@@ -336,6 +363,9 @@ def trans_phot(path_stretch_on):
                         flag for enabling path stretching
     """
 
+    if SEED:
+        np.random.seed(SEED)
+
     rr_on = True
     if P_KILL == 0:
         rr_on = False
@@ -348,15 +378,12 @@ def trans_phot(path_stretch_on):
     spectrum = IntensitySpectrum(N_BINS)
     spectrum.init_bins()
 
-    if SEED:
-        np.random.seed(SEED)
-
     nkilled = 0  # Track the number of photons killed by RR
 
     for iphot in range(N_PHOTONS):
 
         phot = PhotonPacket(iphot)
-        photstore.append(phot)
+        photstore.append(phot)  # This can become very large for large N_PHOTONS :^)
 
         # Keep iterating whilst the photon is in the slab
         while phot.inslab and phot.weight > 0:
@@ -374,6 +401,9 @@ def trans_phot(path_stretch_on):
                         alpha = ALPHA
                     else:
                         alpha = 1 / (1 + tau_path)
+                    if alpha < ALPHA_FLOOR:
+                        alpha = ALPHA_FLOOR
+
                     galpha.append(alpha)
                     tau_scat = phot.generate_bias_tau_scat(alpha)
 
@@ -422,7 +452,15 @@ def trans_phot(path_stretch_on):
         if (iphot + 1) % (N_PHOTONS / 10) == 0:
             print("{:3.0f}% photons transported".format(iphot / N_PHOTONS * 100.0))
 
+    # Calculate the intensity and write the spectrum to file
+    if ALPHA is not None:
+        sname = "intens_tmax_{}_pkill_{}_alpha_{}".format(TAU_MAX, P_KILL, ALPHA)
+    else:
+        sname = "intens_tmax_{}_pkill_{}_tpath".format(TAU_MAX, P_KILL)
+    if path_stretch_on:
+        sname += "_path_str"
     spectrum.calculate_intensity()
+    spectrum.write(sname)
 
     if nkilled:
         print("{} photons killed by Russian Roulette".format(nkilled))
@@ -437,7 +475,11 @@ def main():
     Main control function - runs trans_phot with path stretching enabled first
     and then without path stretching. Plots the intensity as a function of angle
     for both simulations against some analytical solution for a slab.
+
+    Pls no judge the absolute state of this
     """
+
+# ############################################################################ #
 
     print("Running MCRT with path stretching enabled")
     start = time.time()
@@ -445,43 +487,54 @@ def main():
     end = time.time()
     print("Run time: {} seconds".format(int(end - start)))
 
-    if ALPHA is None:
-        name = "alpha_taupath"
+    if ALPHA is not None:
+        name = "mcrt_tmax_{}_pkill_{}_alpha_{}".format(TAU_MAX, P_KILL, ALPHA)
     else:
-        name = "alpha_{}".format(ALPHA)
+        name = "mcrt_tmax_{}_pkill_{}_tpath".format(TAU_MAX, P_KILL)
+    name += "_path_str"
 
-    np.savetxt("tau_paths_{}.txt".format(name), np.array(pasMCRTtau_paths))
-    np.savetxt("tau_scats_{}.txt".format(name), np.array(pasMCRTtau_scats))
-    np.savetxt("alphas_{}.txt".format(name), np.array(pasMCRTalpha))
+    np.savetxt("{}_tpaths.txt".format(name), np.array(pasMCRTtau_paths))
+    np.savetxt("{}_tscats.txt".format(name), np.array(pasMCRTtau_scats))
+    np.savetxt("{}_alpha.txt".format(name), np.array(pasMCRTalpha))
+
+    if ALPHA is not None:
+        fname = "phots_tmax_{}_pkill_{}_alpha_{}".format(TAU_MAX, P_KILL, ALPHA)
+    else:
+        fname = "phots_tmax_{}_pkill_{}_tpath".format(TAU_MAX, P_KILL)
+    fname += "_path_str"
+    fname += ".txt"
+
+    pspw.plot_weight_file(fname)
+    pspw.plot_tau_alpha_hists(pasMCRTtau_scats, pasMCRTtau_paths, pasMCRTalpha, name)
+
+# ############################################################################ #
 
     print("\nRunning MCRT without any acceleration")
+    # global N_PHOTONS
+    # N_PHOTONS = int(1e7)  # It's accurate enough with 1e5 photons :-)
     start = time.time()
     MCRT, MCRTtau_scats, MCRTtau_paths, MCRTalpha = trans_phot(path_stretch_on=False)
     end = time.time()
     print("Run time: {} seconds".format(int(end - start)))
 
+# ############################################################################ #
+
     print("\nOriginal photon weight before transport: {:2e}".format(N_PHOTONS * NEUTRAL_WEIGHT))
     print("\n{} photons contributed to pasMCRT spectrum".format(pasMCRT.nphot))
-    print("Total weight in pasMCRT spectrum: {:.2e}".format(np.sum(pasMCRT.hist)))
-
+    print("Total weight in pasMCRT spectrum: {:.2e}".format(np.sum(pasMCRT.weight)))
     print("\n{} photons contributed to MCRT spectrum".format(MCRT.nphot))
-    print("Total weight in MCRT spectrum: {:.2e}".format(np.sum(MCRT.hist)))
+    print("Total weight in MCRT spectrum: {:.2e}".format(np.sum(MCRT.weight)))
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 8))
     ax.semilogy(np.cos(np.deg2rad(CHAND_SLAB_SOL[:, 0])), CHAND_SLAB_SOL[:, 1], label="Analytic Soution")
     ax.semilogy(np.cos(pasMCRT.theta), pasMCRT.intensity, label="Path Stretching Enabled")
-
     ax.semilogy(np.cos(MCRT.theta), MCRT.intensity, label="Path Stretching Disabled")
-
     ax.set_xlabel(r"$\mu = cos(\theta)$")
     ax.set_ylabel(r"Normalised Intensity")
     ax.legend()
     fig.tight_layout()
-    plt.savefig("path_stretching_taumax_{}_{}.png".format(TAU_MAX, P_KILL, name))
+    plt.savefig("path_stretching_{}.png".format(name))
     plt.close()
-
-    pspw.plot_weight_file(True)
-    pspw.plot_tau_alpha_hists(pasMCRTtau_scats, pasMCRTtau_paths, pasMCRTalpha, name)
 
     return
 
