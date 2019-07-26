@@ -20,7 +20,7 @@ from sys import argv
 from shutil import copyfile
 
 
-def change_python_parameter(pf: str, parameter: str, value: str, verbose: bool = False):
+def change_python_parameter(pf: str, parameter: str, value: str, verbose: bool = False, bakup: bool = True):
     """
     Search a parameter file for a given parameter and replaces the current value
     with a new value. This script will change the parameter file, even if the
@@ -36,6 +36,8 @@ def change_python_parameter(pf: str, parameter: str, value: str, verbose: bool =
                     The new value of the parameter
     verbose         bool, optional
                     Enable verbose logging
+    bakup           bool, optional
+                    If True, save a back up of the parameter file prior to edit
 
     Returns
     -------
@@ -53,7 +55,8 @@ def change_python_parameter(pf: str, parameter: str, value: str, verbose: bool =
     new = ""
 
     # Create back up file, in case things go to shit
-    copyfile(pf, pf + ".bak")
+    if bakup:
+        copyfile(pf, pf + ".bak")
 
     # Open file, search for parameter and replace
     with open(pf, "r") as f:

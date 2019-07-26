@@ -26,6 +26,14 @@ FTYPE = "png"
 PLOT_LINE_IDS = True
 VERBOSE = False
 
+copypasta = \
+    r"""
+I have put you on a permanent ignore, public and private. I have found you disturbing, rude and generally
+not worth talking to. According to the channels you hang on, it strengtens  the effect of wanting to put
+you on ignore because of my lack of interest in you as a person. This message is not meant to be rude to
+you, just to inform you that i won't see anything of what you type from now on.
+"""
+
 
 def get_tde_spectrum() -> Tuple[np.array, float, str]:
     """
@@ -257,16 +265,8 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
     None
     """
 
-    copypasta = \
-        r"""
-    I have put you on a permanent ignore, public and private. I have found you disturbing, rude and generally
-    not worth talking to. According to the channels you hang on, it strengtens  the effect of wanting to put
-    you on ignore because of my lack of interest in you as a person. This message is not meant to be rude to
-    you, just to inform you that i won't see anything of what you type from now on.
-        """
-
-    print("USE WITH CAUTION. THIS SHITTY THING DOESN'T WORK SOMETIMES.")
-    print(copypasta)
+    print("DISCLAIMER: can sometimes not produce the desired plots :^).")
+    # print(copypasta)
 
     spec_files = py_plot_util.find_spec_files()
     if len(spec_files) == 0:

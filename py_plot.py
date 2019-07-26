@@ -688,7 +688,7 @@ def main() -> None:
     None
     """
 
-    allowed_plots = ["spec", "spec_comps", "wind", "ions", "tau_spec", "all"]
+    allowed_plots = ["spec", "spec_comps", "wind", "ions", "tau_spec", "all", "help"]
 
     # Parse the running options from the command line
     outname = get_script_arguments()
@@ -700,8 +700,12 @@ def main() -> None:
 
     print("--------------------------\n")
 
-    if PLOTS not in allowed_plots:
-        print("Don't know how to plot {}".format(PLOTS))
+    global PLOTS
+    PLOTS = PLOTS.lower()
+
+    if PLOTS not in allowed_plots or PLOTS == "help":
+        if PLOTS != "help":
+            print("Don't know how to plot {}".format(PLOTS))
         print("Allowed plots are: spec, spec_comp, wind, ion, tau_spec or all")
         print("\n--------------------------")
         return
@@ -769,10 +773,10 @@ def main() -> None:
         # Now plot some ions
         if PLOTS == "ions" or PLOTS == "all":
             print("\nPlotting wind ions")
-            # vars = ["H_i01", "H_i02", "He_i01", "He_i02", "He_i03", "Si_i04", "N_i05", "C_i04"]
             # vars = ["He_i01", "He_i02", "He_i03"]
             # vars = ["C_i01", "C_i02", "C_i03", "C_i04", "C_i05", "C_i06"]
-            vars = ["N_i01", "N_i02", "N_i03", "N_i04", "N_i05", "N_i06", "N_i07", "N_i08"]
+            # vars = ["N_i01", "N_i02", "N_i03", "N_i04", "N_i05", "N_i06", "N_i07", "N_i08"]
+            vars = ["H_i01", "H_i02", "He_i01", "He_i02", "He_i03", "Si_i04", "N_i05", "C_i04"]
             var_types = ["ion"] * len(vars)
             plot_wind(root, outname + "_ions", path, vars, var_types, projection=projection, filetype=FILETYPE,
                       data_ndims=DIMS, verbose=VERBOSE)

@@ -151,7 +151,7 @@ def run_grid() -> None:
         py_run.TDE_PLOT = True
         py_run.NOT_QUIET = True
         py_run.VERBOSE = False
-        py_run.SPEC_OVERRIDE = True
+        py_run.SPLIT_CYCLES = True
         # Run Python using py_run.py
         nsims = len(pfs)
         mpi, ncores = py_run_util.get_num_procs()
