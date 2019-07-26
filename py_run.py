@@ -397,6 +397,8 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
                 restore_bakup_pf(root, wd)
                 continue
 
+        putil.run_windsave2table(wd, root, VERBOSE)
+
         if CREATE_PLOTS:
             rutil.log("Creating plots for the simulation\n")
             plot_model(root, wd)
