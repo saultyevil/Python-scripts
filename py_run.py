@@ -392,7 +392,7 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
                 python(root, wd, use_mpi, n_cores, True, True, True)
                 restore_bakup_pf(root, wd)
             elif not c and SPLIT_CYCLES:
-                print("Simulation has no converged, hence no spectral cycles will be run.")
+                print("Simulation has not converged, hence no spectral cycles will be run.")
                 print("Use -sc to override this.\n")
                 restore_bakup_pf(root, wd)
                 continue
