@@ -36,12 +36,12 @@ WRITE_PHOT_INFO = False  # This will probably make things slowwwww
 # will alter the performance of the script and algorithms
 
 SCAT_ALBEDO = 1.0      # 1 == pure scattering, 0 == pure absorption
-N_PHOTONS = int(1e7)
+N_PHOTONS = int(1e5)
 P_KILL = 0.0
-TAU_MAX = 5
+TAU_MAX = 2
 SCAT_THRESHOLD = 0
 TAU_THRESHOLD = np.sqrt(SCAT_THRESHOLD)
-ALPHA_FLOOR = 0.65
+ALPHA_FLOOR = 0
 
 ALPHA = None
 if len(sys.argv) == 2:
@@ -158,6 +158,7 @@ class PhotonPacket:
         Initialise a photon. Photons are initialised at the origin of the slab.
         """
 
+        self.nscats = 0
         self.nphot = nphot
         self.nrr = 0                # number of rr games
         self.cscat = 0              # number of scatters between stretched paths
@@ -344,10 +345,10 @@ def write_phots(phots, pas_on):
     fname += ".txt"
     f = open(fname, "w")
 
-    f.write("nrr\tnstretch\tweight\n")
+    f.write("nrr nstretch weight nscats\n")
     for i in range(N_PHOTONS):
         phot = phots[i]
-        tmpstr = "{}\t{}\t{}".format(phot.nrr, phot.nstretch, phot.weight)
+        tmpstr = "{} {} {} {}".format(phot.nrr, phot.nstretch, phot.weight, phot.nscats)
         f.write("{}\n".format(tmpstr))
 
     f.close()
@@ -362,6 +363,8 @@ def trans_phot(path_stretch_on):
     path_stretch_on     bool
                         flag for enabling path stretching
     """
+
+    weights = np.zeros(N_PHOTONS)
 
     if SEED:
         np.random.seed(SEED)
@@ -392,6 +395,9 @@ def trans_phot(path_stretch_on):
             # either be from the normal distribution or from the biased distribution
             tau_path = -1
             tau_scat = phot.generate_tau_scat()
+            phot.nscats += 1
+
+
             if path_stretch_on and phot.cscat >= SCAT_THRESHOLD:
                 tau_path = phot.find_tau_path()
 
@@ -407,6 +413,7 @@ def trans_phot(path_stretch_on):
                     galpha.append(alpha)
                     tau_scat = phot.generate_bias_tau_scat(alpha)
 
+
                     # Play RR if the photon weight is below the minimum weight
                     if rr_on and phot.weight <= MIN_WEIGHT:
                         phot.play_russian_roulette()
@@ -414,6 +421,9 @@ def trans_phot(path_stretch_on):
                             phot.weight = 0
                             nkilled += 1
                             break
+
+            if phot.nscats == 1:
+                weights[iphot] = phot.weight
 
             # Used for debugging how the weight of the photon changes
             atau_paths.append(tau_path)
@@ -467,6 +477,8 @@ def trans_phot(path_stretch_on):
 
     write_phots(photstore, path_stretch_on)
 
+    np.savetxt("weights.txt", weights)
+
     return spectrum, atau_scats, atau_paths, galpha
 
 
@@ -493,9 +505,9 @@ def main():
         name = "mcrt_tmax_{}_pkill_{}_tpath".format(TAU_MAX, P_KILL)
     name += "_path_str"
 
-    np.savetxt("{}_tpaths.txt".format(name), np.array(pasMCRTtau_paths))
-    np.savetxt("{}_tscats.txt".format(name), np.array(pasMCRTtau_scats))
-    np.savetxt("{}_alpha.txt".format(name), np.array(pasMCRTalpha))
+    np.savetxt("{}_tpaths.txt".format(name), np.sort(np.array(pasMCRTtau_paths)))
+    np.savetxt("{}_tscats.txt".format(name), np.sort(np.array(pasMCRTtau_scats)))
+    np.savetxt("{}_alpha.txt".format(name), np.sort(np.array(pasMCRTalpha)))
 
     if ALPHA is not None:
         fname = "phots_tmax_{}_pkill_{}_alpha_{}".format(TAU_MAX, P_KILL, ALPHA)
@@ -509,26 +521,26 @@ def main():
 
 # ############################################################################ #
 
-    print("\nRunning MCRT without any acceleration")
+    # print("\nRunning MCRT without any acceleration")
     # global N_PHOTONS
     # N_PHOTONS = int(1e7)  # It's accurate enough with 1e5 photons :-)
-    start = time.time()
-    MCRT, MCRTtau_scats, MCRTtau_paths, MCRTalpha = trans_phot(path_stretch_on=False)
-    end = time.time()
-    print("Run time: {} seconds".format(int(end - start)))
+    # start = time.time()
+    # MCRT, MCRTtau_scats, MCRTtau_paths, MCRTalpha = trans_phot(path_stretch_on=False)
+    # end = time.time()
+    # print("Run time: {} seconds".format(int(end - start)))
 
 # ############################################################################ #
 
     print("\nOriginal photon weight before transport: {:2e}".format(N_PHOTONS * NEUTRAL_WEIGHT))
     print("\n{} photons contributed to pasMCRT spectrum".format(pasMCRT.nphot))
-    print("Total weight in pasMCRT spectrum: {:.2e}".format(np.sum(pasMCRT.weight)))
-    print("\n{} photons contributed to MCRT spectrum".format(MCRT.nphot))
-    print("Total weight in MCRT spectrum: {:.2e}".format(np.sum(MCRT.weight)))
+    print("Total weight in pasMCRT spectrum: {}".format(np.sum(pasMCRT.weight)))
+    # print("\n{} photons contributed to MCRT spectrum".format(MCRT.nphot))
+    # print("Total weight in MCRT spectrum: {:.2e}".format(np.sum(MCRT.weight)))
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 8))
     ax.semilogy(np.cos(np.deg2rad(CHAND_SLAB_SOL[:, 0])), CHAND_SLAB_SOL[:, 1], label="Analytic Soution")
     ax.semilogy(np.cos(pasMCRT.theta), pasMCRT.intensity, label="Path Stretching Enabled")
-    ax.semilogy(np.cos(MCRT.theta), MCRT.intensity, label="Path Stretching Disabled")
+    # ax.semilogy(np.cos(MCRT.theta), MCRT.intensity, label="Path Stretching Disabled")
     ax.set_xlabel(r"$\mu = cos(\theta)$")
     ax.set_ylabel(r"Normalised Intensity")
     ax.legend()

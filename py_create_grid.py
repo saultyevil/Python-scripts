@@ -146,7 +146,7 @@ def run_grid() -> None:
         py_run.RUN_SIMS = True
         py_run.RESUME_RUN = False
         py_run.CHECK_CONVERGENCE = True
-        py_run.CLIM = 0.85
+        py_run.CONV_LIMIT = 0.85
         py_run.CREATE_PLOTS = True
         py_run.TDE_PLOT = True
         py_run.NOT_QUIET = True
@@ -155,7 +155,7 @@ def run_grid() -> None:
         # Run Python using py_run.py
         nsims = len(pfs)
         mpi, ncores = py_run_util.get_num_procs()
-        py_run.run_python_etc(pfs, nsims, mpi, ncores)
+        py_run.go(pfs, mpi, ncores)
 
     return
 

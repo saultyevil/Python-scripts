@@ -20,13 +20,14 @@ TODO: flexible flag choices for py_plot.py - input option for the script
 
 import argparse
 import datetime
-import py_rm_data
-import py_run_util
-import py_plot_util
+import py_rm_data as prd
+import py_run_util as rutil
+import py_plot_util as putil
 from sys import exit
 from shutil import which
 from typing import Union, List
-from subprocess import Popen, PIPE, CalledProcessError
+from subprocess import Popen, PIPE
+import py_change_parameter as pcp
 
 CONVERGED = \
     r"""
@@ -89,6 +90,7 @@ NOT_CONVERGED = \
 
 ITS_A_MYSTERY = \
     r"""
+    -----------------------------------------------------------------
                                                               _
       ___ ___  _ ____   _____ _ __ __ _  ___ _ __   ___ ___  (_)___
      / __/ _ \| '_ \ \ / / _ \ '__/ _` |/ _ \ '_ \ / __/ _ \ | / __|
@@ -101,6 +103,7 @@ ITS_A_MYSTERY = \
            | (_| | | | | | | | |_| \__ \ ||  __/ |  | |_| |
             \__,_| |_| |_| |_|\__, |___/\__\___|_|   \__, |
                               |___/                  |___/
+    -----------------------------------------------------------------
     """
 
 DATE = datetime.datetime.now()
@@ -111,22 +114,29 @@ RUN_SIMS = False
 RESUME_RUN = False
 N_CORES = 0
 CHECK_CONVERGENCE = False
-CLIM = 0.85
+CONV_LIMIT = 0.85
 CREATE_PLOTS = False
 TDE_PLOT = False
 WMIN = None
 WMAX = None
 NOT_QUIET = True
 VERBOSE = False
-SPEC_OVERRIDE = False
+SPEC_OVERRIDE = True
 SIMS_FROM_FILE = False
 POLAR = True
 
 
 def get_run_mode() -> None:
     """
-    Parse the different run modes for the script from the command line. The run
-    options are returned via global variables, because why not? :^)
+    Determine the configuration to run the script in by parsing the command
+    line for flags given by the user.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     global VERBOSE
@@ -134,7 +144,7 @@ def get_run_mode() -> None:
     global RESUME_RUN
     global CHECK_CONVERGENCE
     global CREATE_PLOTS
-    global CLIM
+    global CONV_LIMIT
     global TDE_PLOT
     global PY_VERSION
     global PY_FLAGS
@@ -151,7 +161,7 @@ def get_run_mode() -> None:
     # Different run modes
     p.add_argument("-d", action="store_true", help="Run with -s -c -p")
     p.add_argument("-s", action="store_true", help="Run simulations")
-    p.add_argument("-sc", action="store_true", help="Run spectral cycles even if a simulation hasn't converged")
+    p.add_argument("-sc", action="store_false", help="Run spectral cycles even if a simulation hasn't converged")
     p.add_argument("-r", action="store_true", help="Restart a previous run")
     p.add_argument("-c", action="store_true", help="Check the convergence of runs - calls convergence.py")
     p.add_argument("-p", action="store_true", help="Run plotting scripts")
@@ -202,16 +212,17 @@ def get_run_mode() -> None:
     if args.tde:
         TDE_PLOT = True
         do_something = True
+
     # Set up script parameters
     if args.py_ver:
         PY_VERSION = args.py_ver
     if args.py_flags:
         PY_FLAGS = args.py_flags
-    if args.clim:  # Bad variable names here :-) clim is from the arg list
+    if args.clim:
         if 0 < args.clim < 1:
-            CLIM = args.clim
+            CONV_LIMIT = args.clim
         else:
-            py_run_util.log("Invalid value of c_value {}".format(args.c_value))
+            rutil.log("Invalid value for convergence limit {}".format(args.clim))
             exit(1)
     if args.dry:
         DRY_RUN = True
@@ -220,114 +231,119 @@ def get_run_mode() -> None:
         NOT_QUIET = False
     if args.n_cores:
         N_CORES = int(args.n_cores)
+
     # Set up plotting parameters
-    if args.wmin:
-        WMIN = args.wmin
-    if args.wmax:
-        WMAX = args.wmax
     if args.polar:
         POLAR = True
 
-    py_run_util.log("------------------------\n")
-    py_run_util.log("Python version ................... {}".format(PY_VERSION))
-    py_run_util.log("Run simulations .................. {}".format(RUN_SIMS))
-    py_run_util.log("Spectral cycles .................. {}".format(SPEC_OVERRIDE))
-    py_run_util.log("Resume run ....................... {}".format(RESUME_RUN))
-    py_run_util.log("Convergence limit ................ {}".format(CLIM))
-    py_run_util.log("Number of cores .................. {}".format(N_CORES))
-    py_run_util.log("Show convergence ................. {}".format(CHECK_CONVERGENCE))
-    py_run_util.log("Create plots ..................... {}".format(CREATE_PLOTS))
-    py_run_util.log("Polar projection ................. {}".format(POLAR))
-    py_run_util.log("wmin ............................. {}".format(WMIN))
-    py_run_util.log("wmax ............................. {}".format(WMAX))
-    py_run_util.log("Plot TDE ......................... {}".format(TDE_PLOT))
-    py_run_util.log("Don't suppress Python output ..... {}".format(NOT_QUIET))
-    py_run_util.log("Show Verbose Output .............. {}".format(VERBOSE))
+    rutil.log("------------------------\n")
+    rutil.log("Python version ................... {}".format(PY_VERSION))
+    rutil.log("Run simulations .................. {}".format(RUN_SIMS))
+    rutil.log("Spectral cycles .................. {}".format(SPEC_OVERRIDE))
+    rutil.log("Resume run ....................... {}".format(RESUME_RUN))
+    rutil.log("Convergence limit ................ {}".format(CONV_LIMIT))
+    rutil.log("Number of cores .................. {}".format(N_CORES))
+    rutil.log("Show convergence ................. {}".format(CHECK_CONVERGENCE))
+    rutil.log("Create plots ..................... {}".format(CREATE_PLOTS))
+    rutil.log("Polar projection ................. {}".format(POLAR))
+    rutil.log("Plot TDE ......................... {}".format(TDE_PLOT))
+    rutil.log("Don't suppress Python output ..... {}".format(NOT_QUIET))
+    rutil.log("Show Verbose Output .............. {}".format(VERBOSE))
 
     if PY_FLAGS:
-        py_run_util.log("\nUsing these extra python flags:\n\t{}".format(PY_FLAGS))
+        rutil.log("\nUsing these extra python flags:\n\t{}".format(PY_FLAGS))
 
     if do_something is False:
-        py_run_util.log("\nNo run mode parameter provided, there is nothing to do!\n")
+        rutil.log("\nNo run mode parameter provided, there is nothing to do!\n")
         p.print_help()
-        py_run_util.log("\n------------------------")
+        rutil.log("\n------------------------")
         exit(0)
 
     return
 
 
-def py_run(root: str, wd: str, use_mpi: bool, n_cores: int, spec_cycle: bool = False) -> None:
+def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = False, restart_spec: bool = False,
+           pars_spec: bool  = False) -> None:
     """
-    Function to control running and py_run_util.logging a Python simulation.
+    The purpose of this function is to use the Subprocess library to call
+    Python. Unfortunately, to cover a wide range of situations with how one
+    may want to run Python, this function has become rather complicated and
+    could benefit from being modularised further.
 
-    If spec_cycle is False, then the script will assume that Python is being run
-    for just the ionisation cycles therefore the number of spectrum cycles is
-    set to 0. However, if it is True, then it is assumed that all ionisation
-    cycles have been completed and the model is converged. Hence the model will
-    be restarted from the spectrum cycles and the photon number will be normally
-    be reduced to 1e6.
+    Parameters
+    ----------
+    root: str
+        The root name of the Python simulation.
+    wd: str
+        The working directory to run the Python simulation in.
+    use_mpi: bool
+        If True, Python will be run using mpirun.
+    n_cores: int
+        If use_mpi is True, then Python will be run using the number of cores
+        provided.
+    restart_run: bool, optional
+        If True, the -r flag will be passed to Python to restart a run from the
+        previous cycle
+    restart_spec: bool, optional
+        If True, the -r flag will be passed to Python to restart a run from the
+        first spectrum cycle with a reduced photon sample
+    pars_spec: bool, optional
+        If True, TODO
 
-    TODO: holy fuck this is complicated now.. sort it out Ed
+    Returns
+    -------
+
     """
 
-    # if spec_cycle:
-    #     py_run_util.log("Spectral cycles\n--------------\n")
-    # else:
-    #     py_run_util.log("Ionisation cycles\n----------------\n")
-
+    logfile_name = "{}/{}_{}{:02d}{:02d}.txt".format(wd, root, DATE.year, int(DATE.month), int(DATE.day))
+    logfile = open(logfile_name, "a")
     pf = root + ".pf"
 
-    # just_spec = False
-    # if spec_cycle:
-    #     py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "5", VERBOSE)
-    #     if RESUME_RUN:
-    #         py_run_util.change_parameter(wd + pf, "Photons_per_cycle", "1e5", VERBOSE)
-    #         just_spec = True
-    #     else:
-    #         py_run_util.change_parameter(wd + pf, "Photons_per_cycle", "1e2", VERBOSE)
-    # else:
-    #     if not spec_cycle:
-    #         py_run_util.change_parameter(wd + pf, "Spectrum_cycles", "0", VERBOSE)
-
-
-    outf_name = "{}/{}_{}{:02d}{:02d}.txt".format(wd, root, DATE.year, int(DATE.month), int(DATE.day))
-    outf = open(outf_name, "a")
-
     # Construct shell command to run Python and use subprocess to run
-    command = ""
-    command += "cd {}; Setup_Py_Dir; ".format(wd)
+    command = "cd {}; Setup_Py_Dir; ".format(wd)
     if use_mpi:
         command += "mpirun -n {} ".format(n_cores)
     command += "{} ".format(PY_VERSION)
-    if RESUME_RUN:
+
+    if restart_run or restart_spec:
         command += "-r "
+
     if PY_FLAGS:
         if type(PY_FLAGS) != str:
-            py_run_util.log("PY_FLAGS is not a string")
+            rutil.log("The provided additional flags for Python is not a string")
             exit(1)
         command += " {} ".format(PY_FLAGS)
-    command += "{} ".format(pf)
-    cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
-    py_run_util.log("{}\n".format(command))
 
-    # Real time output of Python
-    pcycle = False
+    # Add the root name at the end of the call to Python
+    command += "{}".format(pf)
+    rutil.log("{}\n".format(command))
+
+    # Use Popen to create a new Python process
+    cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
+
+    # This next bit provides real time output of Python's output...
+    if restart_spec:
+        pcycle = True
+    else:
+        pcycle = False
     for stdout_line in iter(cmd.stdout.readline, ""):
         if not stdout_line:
             break
         line = stdout_line.decode("utf-8").replace("\n", "")
-        outf.write("{}\n".format(line))
-        pcycle = py_run_util.process_line_output(line, pcycle, n_cores, NOT_QUIET, VERBOSE)
-    py_run_util.log("")
+        logfile.write("{}\n".format(line))
+        pcycle = rutil.process_line_output(line, pcycle, n_cores, NOT_QUIET, VERBOSE)
 
-    outf.close()
+    rutil.log("")
+    logfile.close()
 
-    # Have to do this in case the buffer is too large and causes a deadlock
+    # Sometimes with Subprocess, if the output buffer is too large then subprocess
+    # breaks and causes a deadlock. To get around this, one can use .communicate()
+    # to flush the buffer or s/t
     pystdout, pystderr = cmd.communicate()
     err = pystderr.decode("utf-8")
     if err:
-        py_run_util.log("Captured from stderr:")
-        py_run_util.log(err)
+        rutil.log("Captured from stderr:")
+        rutil.log(err)
         errfname = "{}/err_{}{:02d}{:02d}.out".format(wd, root, DATE.year, int(DATE.month), int(DATE.day))
         with open(errfname, "a") as f:
             f.writelines(err)
@@ -336,55 +352,80 @@ def py_run(root: str, wd: str, use_mpi: bool, n_cores: int, spec_cycle: bool = F
         print("Python exited with non-zero exit code: {}".format(rc))
         # raise CalledProcessError(rc, command)
 
-    # Append a file containing the Python version and commit hash
-    version, hash = py_plot_util.get_python_version(PY_VERSION, VERBOSE)
+    # Create a file containing the Python version and commit hash - helpful when
+    # trying to figure out what version you need for py_wind or windsave2table
+    version, hash = putil.get_python_version(PY_VERSION, VERBOSE)
     with open("version", "w") as f:
         f.write("{}\n{}".format(version, hash))
+
+    if restart_spec:
+        pcp.change_python_parameter(pf, "Spectrum_cycles", "5", VERBOSE)
+        pcp.change_python_parameter(pf, "Photon_per_cycle", "1e6", VERBOSE)
 
     return
 
 
 def check_python_convergence(root: str, wd: str) -> Union[float, int]:
     """
-    Check the convergence of a Python simulation by reading the diag file.
+    Check the convergence of a Python simulation by parsing the master diag file.
+
+    Parameters
+    ----------
+    root: str
+        The root name of the Python simulation
+    wd: str
+        The working directory containing the Python simulation
+
+    Returns
+    -------
+
     """
 
-    if 0 > CLIM > 1:
-        py_run_util.log("py_run.check_python_convergence: convergence_limit {} should be between 0 and 1".format(CLIM))
-        return -1
+    c_fraction = rutil.check_run_convergence(root, wd)
 
-    convergence_fraction = py_run_util.check_convergence(root, wd)
-    py_run_util.log("convergence limit ............ {}".format(CLIM))
-    py_run_util.log("actual convergence ........... {}\n".format(convergence_fraction))
+    rutil.log("convergence limit ............ {}".format(CONV_LIMIT))
+    rutil.log("actual convergence ........... {}\n".format(c_fraction))
 
-    if convergence_fraction < 0:
-        py_run_util.log(ITS_A_MYSTERY)
-    elif convergence_fraction > 1:
-        py_run_util.log(ITS_A_MYSTERY)
-    elif convergence_fraction < CLIM:
-        py_run_util.log(NOT_CONVERGED)
+    if 0 > c_fraction > 1:
+        rutil.log(ITS_A_MYSTERY)
+    elif c_fraction < CONV_LIMIT:
+        rutil.log(NOT_CONVERGED)
         with open("not_converged.txt", "a") as f:
-            f.write("{}\t{}.pf\t{}\n".format(wd, root, convergence_fraction))
-    elif convergence_fraction >= CLIM:
-        py_run_util.log(CONVERGED)
-    else:
-        py_run_util.log(ITS_A_MYSTERY)
-    py_run_util.log("")
+            f.write("{}\t{}.pf\t{}\n".format(wd, root, c_fraction))
+    elif c_fraction >= CONV_LIMIT:
+        rutil.log(CONVERGED)
 
-    return convergence_fraction
+    rutil.log("")
+
+    return c_fraction
 
 
-def plot_python_output(root_name: str, wd: str, extra_commands: str = None) -> None:
+def plot_model(root: str, wd: str, extra_commands: str = None) -> None:
     """
-    Call py_plot.py and plot the output from a Python simulation.
+    Use py_plot.py to create plots of the synthetic spectra and wind variables
+    for a Python model.
+
+    Parameters
+    ----------
+    root: str
+        The root name of the Python simulation.
+    wd: str
+        The working directory for the Python simulation.
+    extra_commands: str, optional
+        Any extra command line flags to give to py_plot.py
+
+    Returns
+    -------
+
     """
 
     path = which("py_plot.py")
-    if not path:
-        py_run_util.log("py_plot.py not in $PATH and executable")
+    if path == "":
+        rutil.log("py_plot.py not in $PATH and executable")
         return
 
-    commands = "cd {}; py_plot.py {}".format(wd, root_name)
+    commands = "cd {}; py_plot.py {}".format(wd, root)
+
     if WMIN:
         commands += " -wmin {}".format(WMIN)
     if WMAX:
@@ -393,7 +434,8 @@ def plot_python_output(root_name: str, wd: str, extra_commands: str = None) -> N
         commands += " -p"
     if extra_commands:
         commands += "{}".format(extra_commands)
-    py_run_util.log(commands)
+
+    rutil.log(commands)
 
     cmd = Popen(commands, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
@@ -401,27 +443,39 @@ def plot_python_output(root_name: str, wd: str, extra_commands: str = None) -> N
     err = stderr.decode("utf-8")
 
     if VERBOSE:
-        py_run_util.log("\n{}".format(output))
+        rutil.log("\n{}".format(output))
     if err:
-        py_run_util.log("\nCaptured from stderr:")
-        py_run_util.log(err)
-    py_run_util.log("")
+        rutil.log("\nCaptured from stderr:")
+        rutil.log(err)
+
+    rutil.log("")
 
     return
 
 
-def plot_tde(root: str, wd: str) -> None:
+def plot_spec_tde(root: str, wd: str) -> None:
     """
-    Do some tde plotting :-)
+    Use tde_spec_plot.py to create a comparison plot to the TDE iPTF15af.
+
+    Parameters
+    ----------
+    root: str
+        The root name of the Python simulation.
+    wd: str
+        The working directory for the Python simulation.
+
+    Returns
+    -------
+
     """
 
     path = which("tde_spec_plot.py")
-    if not path:
-        py_run_util.log("tde_spec_plot.py not in $PATH and executable")
+    if path == "":
+        rutil.log("tde_spec_plot.py not in $PATH and executable")
         return
 
     command = "cd {}; tde_spec_plot.py {} -tde iPTF15af -l".format(wd, root)
-    py_run_util.log(command)
+    rutil.log(command)
 
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
@@ -429,63 +483,66 @@ def plot_tde(root: str, wd: str) -> None:
     err = stderr.decode("utf-8")
 
     if VERBOSE:
-        py_run_util.log("\n{}".format(out))
+        rutil.log("\n{}".format(out))
     if err:
-        py_run_util.log("Captured from stderr:")
-        py_run_util.log(err)
-    py_run_util.log("")
+        rutil.log("Captured from stderr:")
+        rutil.log(err)
+
+    rutil.log("")
 
     return
 
 
-def run_python_etc(pf_paths: List[str], n_sims: int, use_mpi: bool, n_cores: int) -> None:
+def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
     """
-    Execute all of the different commands to run a Python simulation
+    Run the parts of the scripts requested to by run by the user.
+
+    Parameters
+    ----------
+    roots: List[str]
+        A list containing the root names of the Python simulations to run.
+    use_mpi: bool
+        If True, MPI will be used to run Python.
+    n_cores: int
+        If use_mpi is True, this will be the number of cores to run Python with.
+
+    Returns
+    -------
+
     """
+
+    n_sims = len(roots)
 
     if CHECK_CONVERGENCE:
         open("not_converged.txt", "w").close()
 
-    for i, path in enumerate(pf_paths):
-        root, wd = py_plot_util.parse_root_name_and_path(path)
+    for i, path in enumerate(roots):
+        root, wd = putil.parse_root_name_and_path(path)
 
-        py_run_util.log("------------------------\n")
-        py_run_util.log("     Simulation {}/{}".format(i + 1, n_sims))
-        py_run_util.log("\n------------------------\n")
-        py_run_util.log("Working directory ......... {}".format(wd))
-        py_run_util.log("Python root name .......... {}\n".format(root))
+        rutil.log("------------------------\n")
+        rutil.log("     Simulation {}/{}".format(i + 1, n_sims))
+        rutil.log("\n------------------------\n")
+        rutil.log("Working directory ......... {}".format(wd))
+        rutil.log("Python root name .......... {}\n".format(root))
 
-        # run_spec_cycles = False
         if RUN_SIMS:
-            py_run_util.log("Running the simulation: {}\n".format(root))
-            py_run(root, wd, use_mpi, n_cores, SPEC_OVERRIDE)
-
-            # if SPEC_OVERRIDE:
-            #     run_spec_cycles = True
+            rutil.log("Running the simulation: {}\n".format(root))
+            python(root, wd, use_mpi, n_cores, RESUME_RUN, SPEC_OVERRIDE)
 
         if CHECK_CONVERGENCE:
-            py_run_util.log("Checking the convergence of the simulation:\n")
-            convergence_fraction = check_python_convergence(root, wd)
-
-            # if convergence_fraction >= CLIM and RUN_SIMS and not run_spec_cycles:
-            #     py_run(root, wd, use_mpi, n_cores, True)
-            # elif convergence_fraction < CLIM and RUN_SIMS:
-            #     if SPEC_OVERRIDE and not run_spec_cycles:
-            #         py_run_util.log("As the simulation hasn't converged, but SPEC_OVERRIDE is True, spec cycles will be"
-            #                         " run as normal\n")
-            #         py_run(root, wd, use_mpi, n_cores, True)
-            #     elif RUN_SIMS:
-            #         py_run_util.log("As the simulation hasn't converged, no spectrum cycles will be run\n")
+            rutil.log("Checking the convergence of the simulation:\n")
+            check_python_convergence(root, wd)
 
         if CREATE_PLOTS:
-            py_run_util.log("Creating plots for the simulation\n")
-            plot_python_output(root, wd, None)
+            rutil.log("Creating plots for the simulation\n")
+            plot_model(root, wd, None)
 
         if TDE_PLOT:
-            py_run_util.log("Creating TDE specific plot for simulation\n")
-            plot_tde(root, wd)
+            rutil.log("Creating TDE specific plot for simulation\n")
+            plot_spec_tde(root, wd)
 
-        py_rm_data.remove_data_dir(wd, VERBOSE)
+        rutil.log("Removing the data directory\n")
+        prd.remove_data_dir(wd, VERBOSE)
 
     return
 
@@ -494,59 +551,77 @@ def get_pf_from_file() -> List[str]:
     """
     Read in a list of Python simulations to run from a file provided as a command
     line argument.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    roots: List[str]
+        A list containing all of the root names of the Python simulations
+        to run.
     """
 
     assert(type(SIMS_FROM_FILE) == str)
 
-    pf_paths = []
+    roots = []
+
     with open(SIMS_FROM_FILE, "r") as f:
         tmp = f.readlines()
+
     nsims = len(tmp)
     for i in range(nsims):
-        pf_paths.append(tmp[i].replace("\r", "n").replace("\n", ""))
+        roots.append(tmp[i].replace("\r", "n").replace("\n", ""))
 
-    return pf_paths
+    return roots
 
 
 def main() -> None:
     """
-    Main control function of the script
+    Main control function of the script.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     outfname = "py_{}{:02d}{:02d}.txt".format(DATE.year, int(DATE.month), int(DATE.day))
-    py_run_util.init_logfile(outfname)
+    rutil.init_logfile(outfname)
 
     # Determine which routines to run for each simulation
     get_run_mode()
     if SIMS_FROM_FILE:
         pf_paths = get_pf_from_file()
     else:
-        pf_paths = py_plot_util.find_pf_files()
+        pf_paths = putil.find_pf_files()
     n_sims = len(pf_paths)
     if not n_sims:
-        py_run_util.log("No parameter files found, nothing to do!\n")
-        py_run_util.log("------------------------")
+        rutil.log("No parameter files found, nothing to do!\n")
+        rutil.log("------------------------")
         exit(0)
 
-    use_mpi, n_procs = py_run_util.get_num_procs(N_CORES)
+    use_mpi, n_procs = rutil.get_num_procs(N_CORES)
 
-    py_run_util.log("")
+    rutil.log("")
 
-    py_run_util.log("The following parameter files were found:\n")
+    rutil.log("The following parameter files were found:\n")
     for i in range(len(pf_paths)):
-        py_run_util.log("{}".format(pf_paths[i]))
-    py_run_util.log("")
+        rutil.log("{}".format(pf_paths[i]))
+    rutil.log("")
 
     if DRY_RUN:
-        py_run_util.log("------------------------")
+        rutil.log("------------------------")
         return
 
     # Now run Python, plotting and convergence procedures
-    run_python_etc(pf_paths, n_sims, use_mpi, n_procs)
+    go(pf_paths, use_mpi, n_procs)
 
-    py_run_util.log("------------------------")
+    rutil.log("------------------------")
 
-    py_run_util.close_logfile()
+    rutil.close_logfile()
 
     return
 

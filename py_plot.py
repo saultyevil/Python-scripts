@@ -39,6 +39,7 @@ SMOOTH = 15
 DEFAULT_DIST = 100 * PARSEC
 OBSERVE_DIST = 100 * PARSEC
 MIN_FLUX = 1e-20
+ROOT = False
 
 
 def get_script_arguments() -> Tuple[str, str]:
@@ -62,6 +63,7 @@ def get_script_arguments() -> Tuple[str, str]:
     global SMOOTH
     global OBSERVE_DIST
     global DIMS
+    global ROOT
 
     p = argparse.ArgumentParser(description="")
     p.add_argument("output_name", type=str, help="The base name for the output")
@@ -76,6 +78,7 @@ def get_script_arguments() -> Tuple[str, str]:
     p.add_argument("-v", "--verbose", action="store_true", help="Increase output to screen")
     p.add_argument("-s", "--show", action="store_true", help="Show the plots on screen")
     p.add_argument("-log", action="store_true", help="Enable log log axes")
+    p.add_argument("-r", "--root", action="store_true", help="Enables providing a root name instead")
     args = p.parse_args()
 
     # Assign the optional arguments to their global vars
@@ -101,6 +104,8 @@ def get_script_arguments() -> Tuple[str, str]:
         POLAR_PROJECTION = True
     if args.dim_1d:
         DIMS = "1d"
+    if args.root:
+        ROOT = True
 
     return args.output_name
 
@@ -207,7 +212,7 @@ def plot_polar_wind(r, theta, qoi, index, var, var_t, subplot_dims):
 
     plt.colorbar(im, ax=ax)
     ax.set_thetamin(0)
-    ax.set_thetamax(90)
+    ax. set_thetamax(90)
     rmin = r[1][0]
     rmax = r[-2][0]
     ax.set_rlim(np.log10(rmin), np.log10(rmax))
@@ -508,6 +513,9 @@ def plot_spec_comps(spec_path: str, output_name: str, semilogy_scale: bool = Fal
     headers_top = ["Created", "Emitted"]
     headers_bot = ["CenSrc", "Disk", "Wind", "HitSurf", "Scattered"]
 
+    if spec_path.find(".spec") == -1:
+        spec_path += ".spec"
+
     # Get the spectrum for the model
     spec = py_plot_util.read_spec_file(spec_path, " ")
     wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
@@ -615,6 +623,8 @@ def plot_spectra(spec_path: List[str], inclinations: Union[List, np.array], outp
         ymin = +1e99
         ymax = -1e99
         for file in spec_path:
+            if file.find(".spec") == -1:
+                file += ".spec"
             root, filepath = py_plot_util.parse_root_name_and_path(file)
             legend = filepath + root
             if verbose:
@@ -696,18 +706,21 @@ def main() -> None:
         print("\n--------------------------")
         return
 
-    if PLOTS == "spec" or PLOTS == "spec_comps":
-        files = py_plot_util.find_spec_files()
-        if len(files) == 0:
-            print("No spec files found")
-            print("\n--------------------------")
-            exit(1)
+    if ROOT:
+        files = [outname]
     else:
-        files = py_plot_util.find_pf_files()
-        if len(files) == 0:
-            print("No pf files found")
-            print("\n--------------------------")
-            exit(1)
+        if PLOTS == "spec" or PLOTS == "spec_comps":
+            files = py_plot_util.find_spec_files()
+            if len(files) == 0:
+                print("No spec files found")
+                print("\n--------------------------")
+                exit(1)
+        else:
+            files = py_plot_util.find_pf_files()
+            if len(files) == 0:
+                print("No pf files found")
+                print("\n--------------------------")
+                exit(1)
 
     print("Creating {} plots for the following simulations:\n".format(PLOTS))
     for i in range(len(files)):
@@ -748,7 +761,7 @@ def main() -> None:
         # Plot some wind quantities first
         if PLOTS == "wind" or PLOTS == "all":
             print("\nPlotting wind quantities")
-            vars = ["t_e", "t_r", "ne", "rho", "w", "converge", "ip", "c4"]
+            vars = ["t_e", "t_r", "ne", "rho", "w", "converge", "ip", "ntot"]
             var_types = ["wind"] * len(vars)
             plot_wind(root, outname + "_wind", path, vars, var_types, projection=projection, filetype=FILETYPE,
                       data_ndims=DIMS, verbose=VERBOSE)
@@ -756,12 +769,17 @@ def main() -> None:
         # Now plot some ions
         if PLOTS == "ions" or PLOTS == "all":
             print("\nPlotting wind ions")
-            vars = ["H_i01", "H_i02", "He_i01", "He_i02", "He_i03", "Si_i04", "N_i05", "C_i04"]
+            # vars = ["H_i01", "H_i02", "He_i01", "He_i02", "He_i03", "Si_i04", "N_i05", "C_i04"]
+            # vars = ["He_i01", "He_i02", "He_i03"]
+            # vars = ["C_i01", "C_i02", "C_i03", "C_i04", "C_i05", "C_i06"]
+            vars = ["N_i01", "N_i02", "N_i03", "N_i04", "N_i05", "N_i06", "N_i07", "N_i08"]
             var_types = ["ion"] * len(vars)
             plot_wind(root, outname + "_ions", path, vars, var_types, projection=projection, filetype=FILETYPE,
                       data_ndims=DIMS, verbose=VERBOSE)
 
         py_rm_data.remove_data_dir(path)
+    elif len(files) > 1 and PLOTS != "spec":
+        print("Can only plot {} when one root in folder :^)".format(PLOTS))
     print("")  # spacer :-)
 
     print("--------------------------")

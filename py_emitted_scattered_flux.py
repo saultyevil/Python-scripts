@@ -25,7 +25,7 @@ def plot_emitted_scattered_flux():
     spec_file = spec_file[0]  # as find_spec_files returns a list
 
     rootname, filepath = py_plot_util.parse_root_name_and_path(spec_file)
-    con_frac = py_run_util.check_convergence(filepath, rootname)
+    con_frac = py_run_util.check_run_convergence(filepath, rootname)
     with open(spec_file, "r") as f:
         ver = []
         nlines = 2

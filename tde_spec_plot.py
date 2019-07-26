@@ -114,10 +114,13 @@ def spec_plot_inclination(root: str, inc: str) -> None:
 
     # Uncomment if you want to include a crude accretion disk spectrum :-)
     # TODO: put this into a separate function
-    # mobj = 1e7
-    # mdot = 1e-1
+    # min = 1000
+    # max = 3000
     # rin = 2.65e13
-    # rout = 3.5e14 # 3.3e14
+    # rout = 1e15
+    # mobj = 5e7
+    # mdot = 1e-2
+    # nu_or_lambda = "lambda"
     # disk = ss_disk.disk_spectrum(WMIN, WMAX, mobj, mdot, rin, rout, verbose=VERBOSE)
     # if VERBOSE:
     #     print("np.sum(disk[:, 1]) = {:e}".format(np.sum(disk[:, 1])))

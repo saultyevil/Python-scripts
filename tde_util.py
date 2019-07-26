@@ -34,15 +34,15 @@ def iPTF15af_spec(smooth: int, verbose: bool = False) -> np.array:
     spec_dir = ""
     hostname = gethostname()
     if hostname == "ASTRO-REX":
-        spec_dir = "/home/saultyevil/PySims/TDE/Blagorodnova_iPTF15af.dat"
+        spec_dir = "/home/saultyevil/PySims/tde/Blagorodnova_iPTF15af.dat"
     elif hostname == "excession":
-        spec_dir = "/home/ejp1n17/PySims/TDE/Blagorodnova_iPTF15af.dat"
-    elif hostname == "REXBOOK-AIR" or hostname == "REXBOOK-AIR.local":
-        spec_dir = "/Users/saultyevil/Dropbox/DiskWinds/PySims/TDE/Blagorodnova_iPTF15af.dat"
+        spec_dir = "/home/ejp1n17/PySims/tde/Blagorodnova_iPTF15af.dat"
+    elif hostname == "ASTROBOOK-AIR" or hostname == "ASTROBOOK-AIR.local":
+        spec_dir = "/Users/saultyevil/Dropbox/DiskWinds/PySims/tde/Blagorodnova_iPTF15af.dat"
     elif hostname == "REXBUNTU":
-        spec_dir = "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/Blagorodnova_iPTF15af.dat"
+        spec_dir = "/home/saultyevil/Dropbox/DiskWinds/PySims/tde/Blagorodnova_iPTF15af.dat"
     elif hostname == "REX":
-        spec_dir = "/home/saultyevil/PySims/TDE/Blagorodnova_iPTF15af.dat"
+        spec_dir = "/home/saultyevil/PySims/tde/Blagorodnova_iPTF15af.dat"
     else:
         print("Unknown hostname, update py_util with directory for the Blagordnova spectrum")
         exit(1)
@@ -92,15 +92,15 @@ def ASSASN14li_spec(smooth: int, verbose: bool = False) -> np.array:
     cenk_dir = ""
     hostname = gethostname()
     if hostname == "ASTRO-REX":
-        cenk_dir = "/home/saultyevil/PySims/TDE/ASASSN-14li_spec_Cenko.dat"
+        cenk_dir = "/home/saultyevil/PySims/tde/ASASSN-14li_spec_Cenko.dat"
     elif hostname == "excession":
-        cenk_dir = "/home/ejp1n17/PySims/TDE/ASASSN-14li_spec_Cenko.dat"
-    elif hostname == "REXBOOK-AIR" or hostname == "REXBOOK-AIR.local":
-        cenk_dir = "/Users/saultyevil/Dropbox/DiskWinds/PySims/TDE/ASASSN-14li_spec_Cenko.dat"
+        cenk_dir = "/home/ejp1n17/PySims/tde/ASASSN-14li_spec_Cenko.dat"
+    elif hostname == "ASTROBOOK-AIR" or hostname == "ASTROBOOK-AIR.local":
+        cenk_dir = "/Users/saultyevil/Dropbox/DiskWinds/PySims/tde/ASASSN-14li_spec_Cenko.dat"
     elif hostname == "REXBUNTU":
-        cenk_dir = "/home/saultyevil/Dropbox/DiskWinds/PySims/TDE/ASASSN-14li_spec_Cenko.dat"
+        cenk_dir = "/home/saultyevil/Dropbox/DiskWinds/PySims/tde/ASASSN-14li_spec_Cenko.dat"
     elif hostname == "REX":
-        cenk_dir = "/home/saultyevil/PySims/TDE/ASASSN-14li_spec_Cenko.dat"
+        cenk_dir = "/home/saultyevil/PySims/tde/ASASSN-14li_spec_Cenko.dat"
     else:
         print("Unknown hostname, update py_util with directory for the Cenko spectrum")
         exit(1)

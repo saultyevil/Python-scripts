@@ -104,7 +104,7 @@ def parse_root_name_and_path(pf_path: str) -> Tuple[str, str]:
 
     Returns
     -------
-    root_name       str
+    root       str
                     The root name of the Python simulation
     path            str
                     The directory path containing the provided Python .pf file
@@ -121,14 +121,14 @@ def parse_root_name_and_path(pf_path: str) -> Tuple[str, str]:
         if l == ".":
             dot = i
         elif l == "/":
-            slash = i
+            slash = i + 1
 
-    root_name = pf_path[slash:dot]
+    root = pf_path[slash:dot]
     path = pf_path[:slash]
     if path == "":
         path = "./"
 
-    return root_name, path
+    return root, path
 
 
 def read_spec_file(file_name: str, delim: str = " ", pandas_table: bool = False) -> Union[np.array, pd.DataFrame]:
@@ -505,6 +505,8 @@ def get_common_line_ids(use_freq: bool = False, log_scale: bool = False) -> dict
         "Mg II": 2798,
         "Balmer Edge": 3646,
         "He II": 4686,
+        r"H$_{\beta}$": 4861,
+        r"H$_{\alpha}$": 6564,
         "Paschen Edge": 8204,
         # "FeII": ,  # can't find a fucking value for this cunt
     }
@@ -666,8 +668,8 @@ def run_windsave2table(path: str, root: str, verbose: bool = False) -> Union[int
     master_file = "{}/{}.0.master.txt".format(path, root)
 
     try:
-        heat = pd.read_table(heat_file, delim_whitespace=True)
-        master = pd.read_table(master_file, delim_whitespace=True)
+        heat = pd.read_csv(heat_file, delim_whitespace=True)
+        master = pd.read_csv(master_file, delim_whitespace=True)
     except IOError:
         print("py_util.run_windsave2table: Could not find master or heat file for Python simulation")
         return 1
@@ -739,7 +741,7 @@ def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./", coo
 
     # Try to open the data file
     try:
-        data = pd.read_table(file, delim_whitespace=True)
+        data = pd.read_csv(file, delim_whitespace=True)
         # Due to how r-theta grids are coded up in Python, sometimes the theta
         # which is spit out will be > 90. Here, all of the wind values are ~0
         # and it makes a mess with colour scales, so remove these rows :-)

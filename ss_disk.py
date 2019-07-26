@@ -179,13 +179,13 @@ def main():
         rout = rin * 1e5
         nu_or_lambda = "nu"
     elif object == "tde":
-        min = 1e11
-        max = 1e18
+        min = 1000
+        max = 3000
         rin = 2.65e13
-        rout = 1e4 * rin
+        rout = 1e15
         m = 3e7
-        mdot = 4e-2
-        nu_or_lambda = "nu"
+        mdot = 2e-2
+        nu_or_lambda = "lambda"
     else:
         print("Unknown object")
         exit(1)
@@ -199,9 +199,10 @@ def main():
 
     # Plot spectrum
     fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-    ax.plot(np.log10(lamda), np.log10(lamda*flux))
-    ax.set_ylim(10, 50)
-    ax.set_xlim(11, 18)
+    ax.semilogy(lamda, flux)
+    # ax.plot(np.log10(lamda), np.log10(lamda*flux))
+    # ax.set_ylim(10, 50)
+    # ax.set_xlim(11, 18)
     ax.set_xlabel(r"log[$\nu$]", fontsize=15)
     ax.set_ylabel(r"log[$\nu$L$_{\nu}$]", fontsize=15)
     plt.show()
