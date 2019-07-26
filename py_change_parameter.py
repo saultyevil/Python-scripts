@@ -16,7 +16,7 @@ Usage
 """
 
 
-from sys import argv
+from sys import argv, exit
 from shutil import copyfile
 
 
