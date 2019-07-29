@@ -12,7 +12,7 @@ import sys
 import time
 import datetime
 from platform import system
-from typing import Tuple, Union
+from typing import Tuple, Union, List
 from shutil import which, copyfile
 from subprocess import Popen, PIPE
 from multiprocessing import cpu_count
@@ -364,3 +364,65 @@ def change_parameter(pf: str, parameter: str, value: str, verbose: bool = False)
         f.writelines(lines)
 
     return
+
+
+def print_error_summary(root: str, wd: str, logfile=None) -> List[str]:
+    """
+    Print the error summary from a completed or crashed Python run.
+
+    Parameters
+    ----------
+    root: str
+        The root name of the Python simulation.
+    wd: str
+        The working directory to run the Python simulation in.
+    logfile: io.TextIO, optional
+        An open file object which is the logfile to log to. If this is None,
+        the global LOGFILE in this file will be used instead
+
+    Returns
+    -------
+    error_summary: List[str]
+        A list of strings where each string is an error summary output from
+        Python
+    """
+
+    diag_file = "{}/diag_{}/{}_0.diag".format(wd, root, root)
+    with open(diag_file, "r") as f:
+        diag = f.readlines()
+
+    py_error_idx = 0
+    error_start_idx = 0
+    diaglen = len(diag)
+
+    for i in range(diaglen):
+        line = diag[-(i + 1)]
+        if line == "Run py_error.py for full error report.\n":
+            py_error_idx = diaglen - i
+        if line == "Error summary: End of program, Thread 0 only\n":
+            error_start_idx = diaglen - i - 1
+            break
+
+    error_summary = diag[error_start_idx:py_error_idx]
+    n_unique_errors = len(error_summary) - 3
+    n_total_errors = 0
+
+    for i in range(2, n_unique_errors):
+        error_summary[i] = error_summary[i].replace("\n", "").lstrip()
+        line = error_summary[i]
+        line_len = len(line)
+        j = 0
+        for j in range(line_len):
+            if line[j].isdigit() is False:
+                break
+        if j != line_len - 1:
+            n = int(line[0:j])
+            n_total_errors += n
+
+    log("Unique error messages ........ {}".format(n_unique_errors), logfile)
+    log("Total error messages ......... {}".format(n_total_errors), logfile)
+    log("\nError summary:\n")
+    for i in range(2, n_unique_errors):
+        log("\t{}".format(error_summary[i]), logfile)
+
+    return error_summary

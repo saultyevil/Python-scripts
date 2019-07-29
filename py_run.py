@@ -233,7 +233,7 @@ def check_python_convergence(root: str, wd: str) -> Union[float, int]:
 
 
 def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = False, split_cycles: bool = False,
-           restart_from_spec: bool = False) -> None:
+           restart_from_spec: bool = False) -> int:
     """
     The purpose of this function is to use the Subprocess library to call
     Python. Unfortunately, to cover a wide range of situations with how one
@@ -260,6 +260,11 @@ def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = 
     restart_from_spec: bool, optional
         If True, Python will probably run just the spectral cycles with a reduced
         photon number.
+
+    Returns
+    -------
+    rc: int
+        The return code from the Python simulation
     """
 
     logfile_name = "{}/{}_{}{:02d}{:02d}.txt".format(wd, root, DATE.year, int(DATE.month), int(DATE.day))
@@ -323,6 +328,7 @@ def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = 
     rc = cmd.returncode
     if rc:
         print("Python exited with non-zero exit code: {}\n".format(rc))
+        rutil.print_error_summary(root, wd)
         # raise CalledProcessError(rc, command)
 
     # Create a file containing the Python version and commit hash - helpful when
@@ -331,7 +337,7 @@ def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = 
     with open("version", "w") as f:
         f.write("{}\n{}".format(version, hash))
 
-    return
+    return rc
 
 
 def restore_bakup_pf(root: str, wd: str):
@@ -373,8 +379,8 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
         open("not_converged.txt", "w").close()
 
     for i, path in enumerate(roots):
+        rc = 0
         root, wd = putil.parse_root_name_and_path(path)
-
         rutil.log("------------------------\n")
         rutil.log("     Simulation {}/{}".format(i + 1, n_sims))
         rutil.log("\n------------------------\n")
@@ -383,13 +389,13 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
 
         if RUN_SIMS:
             rutil.log("Running the simulation: {}\n".format(root))
-            python(root, wd, use_mpi, n_cores, RESUME_RUN, SPLIT_CYCLES)
+            rc = python(root, wd, use_mpi, n_cores, RESUME_RUN, SPLIT_CYCLES)
 
         if CHECK_CONVERGENCE:
             rutil.log("Checking the convergence of the simulation:\n")
             c = check_python_convergence(root, wd)
             if c and SPLIT_CYCLES:
-                python(root, wd, use_mpi, n_cores, True, True, True)
+                rc = python(root, wd, use_mpi, n_cores, True, True, True)
                 restore_bakup_pf(root, wd)
             elif not c and SPLIT_CYCLES:
                 print("Simulation has not converged, hence no spectral cycles will be run.")
@@ -397,6 +403,8 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
                 restore_bakup_pf(root, wd)
                 continue
 
+        if rc == 0:
+            rutil.print_error_summary(root, wd)
         putil.run_windsave2table(wd, root, VERBOSE)
 
         if CREATE_PLOTS:
