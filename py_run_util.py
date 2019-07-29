@@ -407,9 +407,10 @@ def print_error_summary(root: str, wd: str, logfile=None) -> List[str]:
     n_unique_errors = len(error_summary) - 3
     n_total_errors = 0
 
-    for i in range(2, n_unique_errors):
-        error_summary[i] = error_summary[i].replace("\n", "").lstrip()
-        line = error_summary[i]
+    for i in range(n_unique_errors):
+        idx = i + 2
+        error_summary[idx] = error_summary[idx].replace("\n", "").lstrip()
+        line = error_summary[idx]
         line_len = len(line)
         j = 0
         for j in range(line_len):
@@ -422,7 +423,9 @@ def print_error_summary(root: str, wd: str, logfile=None) -> List[str]:
     log("Unique error messages ........ {}".format(n_unique_errors), logfile)
     log("Total error messages ......... {}".format(n_total_errors), logfile)
     log("\nError summary:\n")
-    for i in range(2, n_unique_errors):
-        log("\t{}".format(error_summary[i]), logfile)
+    for i in range(n_unique_errors):
+        idx = i + 2
+        log("\t{}".format(error_summary[idx]), logfile)
+    log("")
 
     return error_summary

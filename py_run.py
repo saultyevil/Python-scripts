@@ -400,6 +400,7 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
             elif not c and SPLIT_CYCLES:
                 print("Simulation has not converged, hence no spectral cycles will be run.")
                 print("Use -sc to override this.\n")
+                rutil.print_error_summary(root, wd)
                 restore_bakup_pf(root, wd)
                 continue
 
