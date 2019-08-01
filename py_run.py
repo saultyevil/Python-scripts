@@ -13,6 +13,7 @@ To see usage instructions and a list of switches, I think you can type..
 """
 
 import argparse
+from os import access, R_OK
 import datetime
 import py_rm_data as prd
 import py_run_util as rutil
@@ -437,13 +438,25 @@ def get_pf_from_file() -> List[str]:
     assert(type(SIMS_FROM_FILE) == str)
 
     roots = []
+    broken = []
 
     with open(SIMS_FROM_FILE, "r") as f:
         tmp = f.readlines()
 
     nsims = len(tmp)
     for i in range(nsims):
-        roots.append(tmp[i].replace("\r", "n").replace("\n", ""))
+        file = tmp[i].replace("\r", "").replace("\n", "")
+        if access(file, R_OK):
+            roots.append(file)
+        else:
+            broken.append(file)
+
+    if broken:
+        rutil.log("\nSome provided parameter files could not be opened:")
+        for i in range(len(broken)):
+            print("\t- {}".format(broken[i]))
+        rutil.log("\n------------------------")
+        exit(1)
 
     return roots
 
