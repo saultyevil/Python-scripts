@@ -68,7 +68,7 @@ def plot_convergence(root: str, converged: List[float], converging: List[float])
     return
 
 
-def get_convergence(filename: str) -> Tuple[np.ndarray[float], np.ndarray[float]]:
+def get_convergence(filename: str) -> Tuple[np.ndarray, np.ndarray]:
     """
     Grep the convergence fractions from the diag file given by filename.
 
