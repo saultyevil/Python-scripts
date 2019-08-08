@@ -330,10 +330,6 @@ def main():
     Main function
     """
 
-    print("Welcome to the degenerate code Jack 'Oliver' Cuthbertson\n")
-    print("We will be splicing together two opacity tables together to create")
-    print("one large temperature range table\n")
-
     parse_inputs()
 
     # Read in the tables into file. I assume that the opacity tables are within the current directory or within a

@@ -59,7 +59,7 @@ def plot_comparison(grid_name, root, i_to_plot, subplots, sim_dirs, tde_obj="iPT
     
     tde_spec_plot.TDE_OBJ = tde_obj  # hacky fix
     tde, dist, reference = tde_spec_plot.get_tde_spectrum()
-    line_ids = py_plot_util.get_common_line_ids()
+    line_ids = py_plot_util.common_lines()
 
     index = 0 
     for i in range(nrows):
@@ -96,7 +96,7 @@ def plot_comparison(grid_name, root, i_to_plot, subplots, sim_dirs, tde_obj="iPT
                 flux *= DEFAULT_DIST ** 2 / dist ** 2
                 ax[i, j].semilogy(wavelength, flux, label=spec_filename)
                 
-                tmp_max, tmp_min = py_plot_util.get_ylimits(wavelength, flux, wmin, wmax)
+                tmp_max, tmp_min = py_plot_util.define_ylims(wavelength, flux, wmin, wmax)
                 if tmp_max > ymax:
                     ymax = tmp_max
                 if tmp_min < ymin:
@@ -106,7 +106,7 @@ def plot_comparison(grid_name, root, i_to_plot, subplots, sim_dirs, tde_obj="iPT
             ax[i, j].set_ylim(ymin, ymax)
             ax[i, j].set_xlim(wmin, wmax)
             ax[i, j].set_title("i = " + i_to_plot[index])
-            
+
             py_plot_util.plot_line_ids(ax[i, j], line_ids)
             
             # increment index counter

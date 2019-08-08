@@ -5,7 +5,7 @@
 Plots the PDF of the weight due to a single stretched path.
 
 Usage:
-    [python] path_stretching_weight_pdf.py fname alpha nscats
+    [python] stretchy_plot_weight_pdf.py fname alpha nscats
 
         - fname: the filename of the data to read in
         - alpha: the value of the stretching parameter
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     # try:
     #     phots = sim[sim["nscats"] == nscats]
     # except KeyError:
-    #     print("Invalid table format, generated from path_stretching.py pls")
+    #     print("Invalid table format, generated from stretchy.py pls")
     #     sys.exit(1)
 
     pweight = sim.values.astype(float)

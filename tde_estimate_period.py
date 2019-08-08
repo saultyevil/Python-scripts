@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+"""
+The purpose of this script is to make some real crude approximation of the
+period of the orbiting body in a Tidal Disruption Event.
+"""
+
 import numpy as np
 from astropy import constants as c
 
@@ -26,10 +31,11 @@ class SecondaryStar:
         self._M = M * Msun
         self._R = R * Rsun
 
-bh = BlackHole(3e7)
-star = SecondaryStar(1.6, 1)
-Rd = DisruptionRadius(star._R, bh._M, star._M)
-period_seconds = KeplerPeriod(bh._M, Rd ** 3)
-period_hours = period_seconds / 60
-print("Disruption radius = {:e} cm".format(Rd * 100))
-print("Period = {:.2f} hrs".format(period_hours))
+if __name__ == "__main__":
+    bh = BlackHole(3e7)
+    star = SecondaryStar(1.6, 1)
+    Rd = DisruptionRadius(star._R, bh._M, star._M)
+    period_seconds = KeplerPeriod(bh._M, Rd ** 3)
+    period_hours = period_seconds / 60
+    print("Disruption radius = {:e} cm".format(Rd * 100))
+    print("Period = {:.2f} hrs".format(period_hours))

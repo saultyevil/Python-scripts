@@ -105,8 +105,8 @@ ax.set_ylim(1e-18, 1e-13)
 
 # ##################
 
-lines = py_plot_util.get_common_line_ids()
-ax = py_plot_util.plot_line_ids(ax, lines, rotation="vertical")
+lines = py_plot_util.common_lines()
+ax = py_plot_util.plot_line_ids(ax, lines)
 
 # #################
 

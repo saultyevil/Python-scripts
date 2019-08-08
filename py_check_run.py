@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 """
 Check the progress and convergence of a Python simulation. This script parses
 out text from the diag file of the Python simulation.
+
+NOTE: this script will only work if grep is installed and callable from the
+      command line - who knows if this works with Powershell or cmd.
 
 Usage
     py_check_run.py [-h] [-filetype [FILETYPE]] [-show] root
@@ -16,8 +20,6 @@ Usage
       -h, --help            show this help message and exit
       -filetype [FILETYPE]  The filetype for the output plot
       -show                 Show the plot to screen
-
-
 """
 
 from os import access, R_OK
@@ -102,7 +104,7 @@ def get_convergence(filename: str) -> Tuple[np.ndarray, np.ndarray]:
     if len(cycle_out) == 0:
         print("No cycle output from grep")
         sys.exit(1)
-    ncycles = int(cycle_out[5])
+    ncycles = int(cycle_out[-4])
 
     # Loop over the grep output and separate converged and converging fractions
     # into lists
@@ -111,10 +113,10 @@ def get_convergence(filename: str) -> Tuple[np.ndarray, np.ndarray]:
     converging = []
     for i in range(len(conv_out)):
         if conv_out[i] == "converged":
-            n_converged = conv_out[i-1].replace("(", "").replace(")", "")
+            n_converged = conv_out[i - 1].replace("(", "").replace(")", "")
             converged.append([cycle, float(n_converged)])
         elif conv_out[i] == "converging":
-            n_converging = conv_out[i-1].replace("(", "").replace(")", "")
+            n_converging = conv_out[i - 1].replace("(", "").replace(")", "")
             converging.append([cycle, float(n_converging)])
             cycle += 1
 
@@ -156,14 +158,6 @@ def parse_rootname() -> str:
 def main():
     """
     The main steering routine of the script.
-
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    None
     """
 
     root = parse_rootname()

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from sys import exit
 import numpy as np
 import py_plot_util
 from socket import gethostname
@@ -34,15 +35,7 @@ def iPTF15af_spec(smooth: int, verbose: bool = False) -> np.array:
     spec_dir = ""
     hostname = gethostname()
     if hostname == "ASTRO-REX":
-        spec_dir = "/home/saultyevil/PySims/tde/Blagorodnova_iPTF15af.dat"
-    elif hostname == "excession":
-        spec_dir = "/home/ejp1n17/PySims/tde/Blagorodnova_iPTF15af.dat"
-    elif hostname == "ASTROBOOK-AIR" or hostname == "ASTROBOOK-AIR.local":
-        spec_dir = "/Users/saultyevil/Dropbox/DiskWinds/PySims/tde/Blagorodnova_iPTF15af.dat"
-    elif hostname == "REXBUNTU":
-        spec_dir = "/home/saultyevil/Dropbox/DiskWinds/PySims/tde/Blagorodnova_iPTF15af.dat"
-    elif hostname == "REX":
-        spec_dir = "/home/saultyevil/PySims/tde/Blagorodnova_iPTF15af.dat"
+        spec_dir = "/home/saultyevil/PySims/tde/observed_spec/Blagorodnova_iPTF15af.dat"
     else:
         print("Unknown hostname, update py_util with directory for the Blagordnova spectrum")
         exit(1)
@@ -92,15 +85,7 @@ def ASSASN14li_spec(smooth: int, verbose: bool = False) -> np.array:
     cenk_dir = ""
     hostname = gethostname()
     if hostname == "ASTRO-REX":
-        cenk_dir = "/home/saultyevil/PySims/tde/ASASSN-14li_spec_Cenko.dat"
-    elif hostname == "excession":
-        cenk_dir = "/home/ejp1n17/PySims/tde/ASASSN-14li_spec_Cenko.dat"
-    elif hostname == "ASTROBOOK-AIR" or hostname == "ASTROBOOK-AIR.local":
-        cenk_dir = "/Users/saultyevil/Dropbox/DiskWinds/PySims/tde/ASASSN-14li_spec_Cenko.dat"
-    elif hostname == "REXBUNTU":
-        cenk_dir = "/home/saultyevil/Dropbox/DiskWinds/PySims/tde/ASASSN-14li_spec_Cenko.dat"
-    elif hostname == "REX":
-        cenk_dir = "/home/saultyevil/PySims/tde/ASASSN-14li_spec_Cenko.dat"
+        cenk_dir = "/home/saultyevil/PySims/tde/observed_spec/ASASSN-14li_spec_Cenko.dat"
     else:
         print("Unknown hostname, update py_util with directory for the Cenko spectrum")
         exit(1)
@@ -119,6 +104,58 @@ def ASSASN14li_spec(smooth: int, verbose: bool = False) -> np.array:
     ASSASN_14li_spec[:, 1] = py_plot_util.smooth_1d_array(ASSASN_14li_spec[:, 1], smooth)
 
     return ASSASN_14li_spec
+
+
+def iPTF16fnl_spec(smooth: int, verbose: bool = False) -> np.array:
+    """
+    Parameters
+    ----------
+    smooth              int
+                        The size of the window for the boxcar filter
+    verbose             bool, optional
+                        Enable verbose logging
+    """
+
+    try:
+        smooth = int(smooth)
+    except ValueError:
+        print("py_util.get_ASSASN_14li_spec: Unable to convert smooth into an integer")
+        exit(1)
+
+    fdir = ""
+    hostname = gethostname()
+    if hostname == "ASTRO-REX":
+        fdir = "/home/saultyevil/PySims/tde/observed_spec/iPTF16fnl_52d.dat"
+    else:
+        print("Unknown hostname, update py_util with directory for the iPTF16fnl spectrum")
+        exit(1)
+
+    if verbose:
+        print("Hostname: {}".format(hostname))
+        print("iPTF16fnl spectra being read in from {}".format(fdir))
+
+    try:
+        iPTF16fnl_spec = np.loadtxt(fdir)
+    except IOError:
+        print("py_util.iPTF16fnl_spec: Unable to open the iPTF16fnl spectrum from the following path {}. "
+              "Update the directories in the script".format(fdir))
+        exit(1)
+
+    iPTF16fnl_spec[:, 1] = py_plot_util.smooth_1d_array(iPTF16fnl_spec[:, 1], smooth)
+
+    return iPTF16fnl_spec
+
+
+def AT2018zr_spec(smooth: int, verbose: bool = False) -> np.array:
+    """
+    Parameters
+    ----------
+    smooth              int
+                        The size of the window for the boxcar filter
+    verbose             bool, optional
+                        Enable verbose logging
+    """
+    return
 
 
 def plot_iPTF15af_photometry(ax):

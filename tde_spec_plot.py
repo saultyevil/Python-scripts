@@ -8,7 +8,7 @@ as additionally plotting emission and absorption line IDs for common lines we
 would expect in TDE spectrum with high velocity wind outflows.
 """
 
-import ss_disk
+from sys import exit
 import argparse
 import tde_util
 import numpy as np
@@ -18,7 +18,7 @@ from typing import Tuple
 from matplotlib import pyplot as plt
 
 SMOOTH = 15
-WMIN = 800
+WMIN = 700
 WMAX = 3500
 TDE_OBJ = "iPTF15af"
 DEFAULT_DIST = 100 * PARSEC
@@ -115,31 +115,15 @@ def spec_plot_inclination(root: str, inc: str) -> None:
         return
     flux = py_plot_util.smooth_1d_array(raw_flux, SMOOTH, VERBOSE)
     flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
-    ymax, ymin = py_plot_util.get_ylimits(wavelength, flux, WMIN, WMAX)
+    ymax, ymin = py_plot_util.define_ylims(wavelength, flux, WMIN, WMAX)
 
     # Plot the TDE spectrum for the specific inclination angle
     ax.semilogy(wavelength, flux, label="Model at i = {}".format(inc) + r"$^{\circ}$")
 
-    # Uncomment if you want to include a crude accretion disk spectrum :-)
-    # TODO: put this into a separate function
-    # min = 1000
-    # max = 3000
-    # rin = 2.65e13
-    # rout = 1e15
-    # mobj = 5e7
-    # mdot = 1e-2
-    # nu_or_lambda = "lambda"
-    # disk = ss_disk.disk_spectrum(WMIN, WMAX, mobj, mdot, rin, rout, verbose=VERBOSE)
-    # if VERBOSE:
-    #     print("np.sum(disk[:, 1]) = {:e}".format(np.sum(disk[:, 1])))
-    #     print("L_disk = {:e}".format(0.5 * G * (mobj * MSOL) * (mdot * MSOL_PER_YEAR) / rin))
-    # disk[:, 1] /= (4 * np.pi * observe_dist ** 2)
-    # ax.semilogy(disk[:, 0], disk[:, 1], label="accretion disk")
-
     ax.set_xlim(WMIN, WMAX)
     ax.set_ylim(ymin, ymax)
     if PLOT_LINE_IDS:
-        py_plot_util.plot_line_ids(ax, py_plot_util.get_common_line_ids())
+        py_plot_util.plot_line_ids(ax, py_plot_util.common_lines())
     ax.set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)")
     ax.set_xlabel(r"Wavelength ($\AA$)")
     ax.legend(loc="lower right")
@@ -190,13 +174,6 @@ def spec_plot_multiple(root: str) -> None:
     nrows, ncols = py_plot_util.subplot_dims(n_spec)
     fig, ax = plt.subplots(nrows, ncols, figsize=(12, 12), squeeze=False, sharex="col")
 
-    disk_spectrum = None
-    #try:
-    #    disk_spectrum = py_plot_util.read_spec_file(
-    #        "/home/saultyevil/PySims/TDE/spherical_model_grids/disk_spec/tde_spherical.spec", pandas_table=True)
-    #except IOError:
-    #    print("Can't find disk spectrum....")
-
     index = 0
     for i in range(nrows):
         for j in range(ncols):
@@ -214,25 +191,14 @@ def spec_plot_multiple(root: str) -> None:
             flux = py_plot_util.smooth_1d_array(raw_flux, SMOOTH, VERBOSE)
             flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
 
-            if disk_spectrum is not None:
-                disk_wavelength = disk_spectrum["Lambda"].values.astype(float)
-                try:
-                    disk_flux = disk_spectrum[inc].values.astype(float)
-                    disk_flux = py_plot_util.smooth_1d_array(disk_flux, SMOOTH, VERBOSE)
-                    disk_flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
-                except KeyError:
-                    print("Could not find disk spectrum for inclination {}".format(inc))
-                    continue
-                ax[i, j].semilogy(disk_wavelength, disk_flux, label="Accretion disk")
-
-            ymax, ymin = py_plot_util.get_ylimits(wavelength, flux, WMIN, WMAX)
+            ymax, ymin = py_plot_util.define_ylims(wavelength, flux, WMIN, WMAX)
 
             # Plot the TDE spectrum
             ax[i, j].semilogy(wavelength, flux, label=r"$i$ = {}".format(inc) + r"$^{\circ}$")
             ax[i, j].set_ylim(ymin, ymax)
             ax[i, j].set_xlim(WMIN, WMAX)
             if PLOT_LINE_IDS:
-                ax[i, j] = py_plot_util.plot_line_ids(ax[i, j], py_plot_util.get_common_line_ids())
+                ax[i, j] = py_plot_util.plot_line_ids(ax[i, j], py_plot_util.common_lines())
             ax[i, j].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)")
             ax[i, j].legend(loc="upper right")
 
@@ -248,7 +214,7 @@ def spec_plot_multiple(root: str) -> None:
     return
 
 
-def spec_plot_multiple_comparison(name: str, inc: str = None):
+def spec_plot_comparison(name: str, inc: str = None):
     """
     Create a comparison plot similar to spec_plot for multiple spectra which are
     search for recursively in the working directory.
@@ -266,7 +232,6 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
     """
 
     print("DISCLAIMER: can sometimes not produce the desired plots :^).")
-    # print(copypasta)
 
     spec_files = py_plot_util.find_spec_files()
     if len(spec_files) == 0:
@@ -284,8 +249,11 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
 
     # Figure out the inclinations in the spec files for the simulations
     if inc:
+        if inc.isdigit() is False:
+            print("Provided inclination angle is not a number: {}".format(inc))
+            exit(1)
         inclination = inc
-        size = (12, 8)
+        size = (12, 5)
         n_specs = 1
     else:
         inclination = []
@@ -293,18 +261,11 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
             spec = py_plot_util.read_spec_file(f, pandas_table=True)
             inclination += py_plot_util.spec_inclinations_pandas(spec)
         inclination = sorted(list(dict.fromkeys(inclination)))
-        size = (20, 12)
+        size = (20, 20)
         n_specs = len(inclination)
 
     nrows, ncols = py_plot_util.subplot_dims(n_specs)
     fig, ax = plt.subplots(nrows, ncols, figsize=size, squeeze=False, sharex="col")
-
-    disk_spectrum = None
-    # try:
-    #     disk_spectrum = py_plot_util.read_spec_file(
-    #             "/home/saultyevil/PySims/TDE/spherical_model_grids/disk_spec/tde_spherical.spec", pandas_table=True)
-    # except IOError:
-    #     print("Can't find disk spectrum....")
 
     index = 0
     for i in range(nrows):
@@ -325,17 +286,6 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
             else:
                 ii = inclination[index]
 
-            if disk_spectrum is not None:
-                disk_wavelength = disk_spectrum["Lambda"].values.astype(float)
-                try:
-                    disk_flux = disk_spectrum[ii].values.astype(float)
-                    disk_flux = py_plot_util.smooth_1d_array(disk_flux, SMOOTH, VERBOSE)
-                    disk_flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
-                except KeyError:
-                    print("Could not find disk spectrum for inclination {}".format(inc))
-                    continue
-                ax[i, j].semilogy(disk_wavelength, disk_flux, label="Accretion disk")
-
             ymin = +1e99
             ymax = -1e99
             # Loop over each spectrum from each simulation
@@ -355,7 +305,7 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
                 # Plot the spectrum for a model
                 ax[i, j].semilogy(wavelength, flux, label=r"{}/{}: $i$: {}".format(dir, root, ii) + r"$^{\circ}$")
 
-                tmax, tmin = py_plot_util.get_ylimits(wavelength, flux, WMIN, WMAX, scale=5)
+                tmax, tmin = py_plot_util.define_ylims(wavelength, flux, WMIN, WMAX, scale=13)
                 if tmax == 0 or tmin == 0:
                     ymin = None
                     ymax = None
@@ -369,7 +319,7 @@ def spec_plot_multiple_comparison(name: str, inc: str = None):
             ax[i, j].set_xlim(WMIN, WMAX)
             ax[i, j].set_ylim(ymin, ymax)
             if PLOT_LINE_IDS:
-                py_plot_util.plot_line_ids(ax[i, j], py_plot_util.get_common_line_ids())
+                py_plot_util.plot_line_ids(ax[i, j], py_plot_util.common_lines())
             ax[i, j].legend(loc="upper right")
 
             # Increment inclination index
@@ -438,9 +388,9 @@ def main() -> None:
     elif args.comparison:
         print("Plotting comparison spectrum")
         if args.inclination:
-            spec_plot_multiple_comparison(root, args.inclination)
+            spec_plot_comparison(root, args.inclination)
         else:
-            spec_plot_multiple_comparison(root)
+            spec_plot_comparison(root)
     else:
         print("Plotting {} spectra for all inclination angles".format(root))
         spec_plot_multiple(root)

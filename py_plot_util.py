@@ -6,6 +6,7 @@ Various functions used throughout plotting the output from Python. This script
 should be imported into other scripts rather than being itself run.
 """
 
+
 import os
 import numpy as np
 import pandas as pd
@@ -31,7 +32,7 @@ def tests():
     None
     """
 
-    print("This script is not designed to be run. Instead, import it using import py_util.")
+    print("This script is not designed to be run. Instead, import it using import py_plot_util.")
     get_python_version(verbose=True)
 
     return
@@ -61,7 +62,7 @@ def get_python_version(py: str = "py", verbose: bool = False) -> Tuple[str, str]
 
     path = which(py)
     if not path:
-        print("py_util.get_python_version: {} is not in $PATH".format(py))
+        print("py_plot_util.get_python_version: {} is not in $PATH".format(py))
         return version, commit_hash
 
     command = "{} --version".format(py)
@@ -71,7 +72,7 @@ def get_python_version(py: str = "py", verbose: bool = False) -> Tuple[str, str]
     err = stderr.decode("utf-8")
 
     if err:
-        print("py_util.get_python_version: captured from stderr")
+        print("py_plot_util.get_python_version: captured from stderr")
         print(stderr)
 
     for i in range(len(out)):
@@ -81,9 +82,9 @@ def get_python_version(py: str = "py", verbose: bool = False) -> Tuple[str, str]
             commit_hash = out[i + 1]
 
     if version == "" and verbose:
-        print("py_util.get_python_version: couldn't find version for {}".format(py))
+        print("py_plot_util.get_python_version: couldn't find version for {}".format(py))
     if commit_hash == "" and verbose:
-        print("py_util.get_python_version: couldn't find commit hash for {}".format(py))
+        print("py_plot_util.get_python_version: couldn't find commit hash for {}".format(py))
 
     if verbose and version and commit_hash:
         print("{} version {}".format(py, version))
@@ -111,7 +112,7 @@ def parse_root_name_and_path(pf_path: str) -> Tuple[str, str]:
     """
 
     if type(pf_path) != str:
-        print("py_util.get_root_name_and_path: Provided a {} when expecting a string".format(type(pf_path)))
+        print("py_plot_util.get_root_name_and_path: Provided a {} when expecting a string".format(type(pf_path)))
         exit(1)
 
     dot = 0
@@ -360,27 +361,27 @@ def smooth_1d_array(flux: np.array, smooth: Union[int, float], verbose: bool = F
     """
 
     if type(flux) is not list and type(flux) is not np.ndarray:
-        print("py_util.smooth_spectra: data to be smoothed is not a Python list or numpy ndarray")
-        print("py_util.smooth_spectra: type(flux) = {}".format(type(flux)))
+        print("py_plot_util.smooth_spectra: data to be smoothed is not a Python list or numpy ndarray")
+        print("py_plot_util.smooth_spectra: type(flux) = {}".format(type(flux)))
         return flux
 
     if type(flux) is list:
         if verbose:
-            print("py_util.smooth_spectra: Converting Python list to numpy ndarray")
+            print("py_plot_util.smooth_spectra: Converting Python list to numpy ndarray")
         flux = np.array(flux, dtype=float)
 
     if len(flux.shape) > 2:
-        print("py_util.smooth_spectra: The data to be smoothed should be one dimensional and not of dimension "
+        print("py_plot_util.smooth_spectra: The data to be smoothed should be one dimensional and not of dimension "
               "{}".format(flux.shape))
         return flux
 
     if type(smooth) is not int:
         try:
             if verbose:
-                print("py_util.smooth_spectra: Converting smooth to an int")
+                print("py_plot_util.smooth_spectra: Converting smooth to an int")
             smooth = int(smooth)
         except ValueError:
-            print("py_util.smooth_spectra: could not convert smooth {} into an integer".format(smooth))
+            print("py_plot_util.smooth_spectra: could not convert smooth {} into an integer".format(smooth))
             return flux
 
     flux = np.reshape(flux, (len(flux),))
@@ -420,8 +421,8 @@ def subplot_dims(n_plots: int) -> Tuple[int, int]:
     return dims
 
 
-def get_ylimits(wavelength: np.array, flux: np.array, wmin: float, wmax: float,
-                scale: float = 10, verbose: bool = False) -> Tuple[float, float]:
+def define_ylims(wavelength: np.array, flux: np.array, wmin: float, wmax: float, scale: float = 10,
+                 verbose: bool = False) -> Tuple[float, float]:
     """
     Find more appropriate y limits to use when the wavelength range has been limited.
 
@@ -470,7 +471,7 @@ def get_ylimits(wavelength: np.array, flux: np.array, wmin: float, wmax: float,
     return yupper, ylower
 
 
-def get_common_line_ids(use_freq: bool = False, log_scale: bool = False) -> dict:
+def common_lines(use_freq: bool = False, log_scale: bool = False) -> dict:
     """
     Return a dictionary containing the major absorption and emission lines which I'm interested in. The wavelengths
     of the lines are in Angstrom.
@@ -521,7 +522,7 @@ def get_common_line_ids(use_freq: bool = False, log_scale: bool = False) -> dict
     return lines
 
 
-def get_common_absorption_edges (use_freq: bool = False, log_scale: bool = False) -> dict:
+def absorption_edges(use_freq: bool = False, log_scale: bool = False) -> dict:
     """
     Return a dictionary containing major absorption edges which I am interested in. The wavelengths of the lines are in
     Angstroms or in frequency in Hz if use_freq is True.
@@ -561,9 +562,7 @@ def get_common_absorption_edges (use_freq: bool = False, log_scale: bool = False
 def plot_line_ids(ax: plt.axes, lines: dict, rotation: str = "horizontal", fontsize: int = 10) -> plt.axes:
     """
     Plot major absorption and emission line IDs onto a spectrum.
-
     Note, this should be used after setting the x limits on a figure.
-
     Parameters
     ----------
     ax              plt.axes
@@ -574,7 +573,6 @@ def plot_line_ids(ax: plt.axes, lines: dict, rotation: str = "horizontal", fonts
                     Vertical or horizontal rotation for text ids
     fontsize        int, optional
                     The fontsize of the labels
-
     Returns
     -------
     ax              plt.axes
@@ -608,17 +606,18 @@ def plot_line_ids(ax: plt.axes, lines: dict, rotation: str = "horizontal", fonts
 
 def run_windsave2table(path: str, root: str, verbose: bool = False) -> Union[int, None]:
     """
-    Run windsave2table in the directory given by path. This function will also create a *.ep.complete file which
-    combines both the heat and master data tables together.
+    Run windsave2table in the directory given by path. This function will also
+    create a *.ep.complete file which combines both the heat and master data
+    tables together.
 
     Parameters
     ----------
-    path                str
-                        The directory of the Python simulation where windsave2table will be run
-    root                str
-                        The root name of the Python simulation
-    verbose             bool, optional
-                        Enable verbose logging
+    path: str
+        The directory of the Python simulation where windsave2table will be run
+    root: str
+        The root name of the Python simulation
+    verbose: bool, optional
+        Enable verbose logging
 
     Returns
     -------
@@ -628,28 +627,26 @@ def run_windsave2table(path: str, root: str, verbose: bool = False) -> Union[int
     # Look for a version file in the directory to see if windsave2table is the
     # on the correct git hash to read the wind_save file
     try:
-        wind_version, wind_hash = get_python_version("windsave2table", verbose)
+        version, hash = get_python_version("windsave2table", verbose)
         with open("version", "r") as f:
             lines = f.readlines()
         run_version = lines[0]
         run_hash = lines[1]
         if verbose:
             print("wind_save: version {} hash {}".format(run_version, run_hash))
-            print("windsave2table: version {} hash {}".format(wind_version, wind_hash))
-        if run_version != wind_version and run_hash != wind_hash:
-            print("py_util.run_windsave2table: windsave2table version and the wind_save version file are different. "
-                  "Results may be garbage!")
+            print("windsave2table: version {} hash {}".format(version, hash))
+        if run_version != version and run_hash != hash:
+            print("py_plot_util.run_windsave2table: windsave2table version and the wind_save version file are"
+                  "different. Output may be garbage!")
     except IOError:
         if verbose:
-            print("py_util.run_windsave2table: no version file assuming everything will be a-ok")
+            print("py_plot_util.run_windsave2table: no version file assuming everything will be a-ok")
 
-    # Check that windsave2table can be used
     in_path = which("windsave2table")
     if not in_path:
-        print("py_util.run_windsave2table: windsave2table not in $PATH and executable")
-        return 1
+        print("py_plot_util.run_windsave2table: windsave2table not in $PATH and executable")
+        return -1
 
-    # Run windsave2table
     command = "cd {}; Setup_Py_Dir; windsave2table {}".format(path, root)
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
@@ -658,9 +655,8 @@ def run_windsave2table(path: str, root: str, verbose: bool = False) -> Union[int
 
     if verbose:
         print(output)
-
     if err:
-        print("py_util.get_wind_details: the following was sent to stderr:")
+        print("py_plot_util.get_wind_details: the following was sent to stderr:")
         print(err)
 
     # Now create a "complete" file which is the master and heat put together into one csv
@@ -671,56 +667,55 @@ def run_windsave2table(path: str, root: str, verbose: bool = False) -> Union[int
         heat = pd.read_csv(heat_file, delim_whitespace=True)
         master = pd.read_csv(master_file, delim_whitespace=True)
     except IOError:
-        print("py_util.run_windsave2table: Could not find master or heat file for Python simulation")
-        return 1
+        print("py_plot_util.run_windsave2table: Could not find master or heat file for {}".format(root))
+        return -1
 
-    # Terrible hack to append the columns I want to the end of the table :-)
+    # This merges the heat and master table together :-)
     append = heat.columns.values[14:]
     for i, col in enumerate(append):
         master[col] = pd.Series(heat[col])
-
     master.to_csv("{}/{}.ep.complete".format(path, root), sep=" ")
 
     return
 
 
-def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./", coord: str = "rectilinear") -> Tuple[np.array, np.array, np.array]:
+def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./", coord: str = "rectilinear") -> Tuple[
+    np.array, np.array, np.array]:
     """
-    Read in variables contained within a windsave2table file. Requires the user to have already run windsave2table
-    already so the data is in the directory.
+    Read in variables contained within a windsave2table file. Requires the user
+    to have already run windsave2table so the data is in the directory. This
+    also assumes that a .ep.complete file exists which contains both the
+    heat and master data. This will also only work for 2d models :^).
 
     Parameters
     ----------
-    root_name           str
-                        The root name of the Python simulation
-    var                 str
-                        The name of the quantity from the Python simulation
-    var_type            str
-                        The type of quantity, this can be wind or ion
-    path                str, optional
-                        The directory containing the Python simulation
+    root_name: str
+        The root name of the Python simulation
+    var: str
+        The name of the quantity from the Python simulation
+    var_type: str
+        The type of quantity to extract, this can either be wind or ion
+    path: str, optional
+        The directory containing the Python simulation
+    coord: str
+        The coordinate system in use. Currently this only works for polar
+        and rectilinear coordinate systems
 
     Returns
     -------
-    x                   np.array[float]
-                        The x coordinates of the wind in the Python simulation
-    z                   np.array[float]
-                        The z coordinates of the wind in the Python simulation
-    qoi_mask            np.array[float]
-                        A numpy masked array for the quantity defined in var
+    x: np.array[float]
+        The x coordinates of the wind in the Python simulation
+    z: np.array[float]
+        The z coordinates of the wind in the Python simulation
+    qoi_mask: np.array[float]
+        A numpy masked array for the quantity defined in var
     """
 
-    if type(root_name) is not str:
-        print("py_util.get_wind_data: the root name provided is not a string")
-        exit(1)
-    if type(var_type) is not str:
-        print("py_util.get_wind_data: the type of data is not a string")
-        exit(1)
-    if type(var) is not str:
-        print("py_util.get_wind_data: the type of var is not a string")
-        exit(1)
+    assert(type(root_name) == str)
+    assert(type(var_type) == str)
+    assert(type(var) == str)
 
-    # Construct the name of the data file
+    # First, we have to construct the name of the data file
     if var_type.lower() == "ion":
         ele_idx = var.find("_")
         element = var[:ele_idx]
@@ -729,32 +724,25 @@ def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./", coo
     elif var_type.lower() == "wind":
         file = "{}/{}.ep.complete".format(path, root_name)
     else:
-        print("py_util.get_wind_data: type {} not recognised for var {}".format(var_type, var))
+        print("py_plot_util.get_wind_data: type {} not recognised for var {}".format(var_type, var))
         exit(1)
 
-    # Check if the file already exists -- to avoid using windsave2table on wind_saves from different versions
     file_exists = os.path.isfile(file)
     if not file_exists:
-        print("py_util.get_wind_data: file {} doesn't exist for var {}".format(file, var))
+        print("py_plot_util.get_wind_data: file {} doesn't exist for var {}".format(file, var))
         rc = np.zeros(1)
         return rc, rc, rc
 
-    # Try to open the data file
+    # Open the file and remove any garbage cells for theta grids
     try:
         data = pd.read_csv(file, delim_whitespace=True)
-        # Due to how r-theta grids are coded up in Python, sometimes the theta
-        # which is spit out will be > 90. Here, all of the wind values are ~0
-        # and it makes a mess with colour scales, so remove these rows :-)
-        # Currently, windsave2table only output ions on a rectilinear grid, hence
-        # this will crash so the cartesian coordinates have to be converted to
-        # polar later on in this function
         if coord == "polar" and var_type != "ion":
             data = data[~(data["theta"] > 90)]
     except IOError:
-        print("py_util.get_wind_data: could not open file {} for var {}".format(file, var))
+        print("py_plot_util.get_wind_data: could not open file {}: var {}".format(file, var))
         exit(1)
 
-    # Read the wind data out of the file
+    # Now we can try and read the data out of the file...
     try:
         xi = data["i"]
         zj = data["j"]
@@ -765,8 +753,7 @@ def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./", coo
             x = data["x"].values.reshape(nx_cells, nz_cells)
             z = data["z"].values.reshape(nx_cells, nz_cells)
         elif coord == "polar":
-            # Transform from cartesian to polar coordinates
-            if var_type.lower() == "ion":
+            if var_type.lower() == "ion":  # Transform from cartesian to polar coordinates
                 x = data["x"].values.reshape(nx_cells, nz_cells)
                 z = data["z"].values.reshape(nx_cells, nz_cells)
                 r = np.sqrt(x ** 2 + z ** 2)
@@ -774,23 +761,23 @@ def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./", coo
                 x = r
                 z = theta
             else:
-                x = data["r"].values.reshape(nx_cells, nz_cells)
-                z = data["theta"].values.reshape(nx_cells, nz_cells)
+                try:
+                    x = data["r"].values.reshape(nx_cells, nz_cells)
+                    z = data["theta"].values.reshape(nx_cells, nz_cells)
+                except KeyError:
+                    print("py_plot_util.get_wind_data: trying to read r, theta in non-polar model")
         else:
-            print("py_util.get_wind_data: projection {} not understood, allowed values: rectilinear or polar"
-                  .format(coord))
+            print("py_plot_util.get_wind_data: can't do projection {}: use rectilinear or polar".format(coord))
             rc = np.zeros(1)
             return rc, rc, rc
-        
+
         if var_type.lower() == "ion":
             qoi = data[ion_level].values.reshape(nx_cells, nz_cells)
         elif var_type.lower() == "wind":
             qoi = data[var].values.reshape(nx_cells, nz_cells)
-        else:  # for safety, I guess?
-            print("py_util.get_wind_data: type {} not recognised".format(var_type))
-            exit(1)
+
     except KeyError:
-        print("py_util.get_wind_data: could not find var {} or another key".format(var))
+        print("py_plot_util.get_wind_data: could not find var {} or another key".format(var))
         exit(1)
 
     # Construct mask for data wanted

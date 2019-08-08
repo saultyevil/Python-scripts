@@ -8,7 +8,6 @@ script should be imported into other scripts rather than being itself run.
 """
 
 
-import sys
 import time
 import datetime
 from platform import system
@@ -16,7 +15,6 @@ from typing import Tuple, Union, List
 from shutil import which, copyfile
 from subprocess import Popen, PIPE
 from multiprocessing import cpu_count
-
 
 LOGFILE = None
 
@@ -107,7 +105,8 @@ def log(message: str, logfile=None) -> None:
     return
 
 
-def process_line_output(line: str, pcycle: bool, n_cores: int = 1, print_crap: bool = True, verbose: bool = False) -> bool:
+def process_line_output(line: str, pcycle: bool, n_cores: int = 1, print_crap: bool = True,
+                        verbose: bool = False) -> bool:
     """
     Process the output from a Python simulation and print something to screen.
     Very ugly! Very sad!
@@ -327,9 +326,9 @@ def change_parameter(pf: str, parameter: str, value: str, verbose: bool = False)
     Returns a non-zero integer on non-successful exit.
     """
 
-    assert(type(pf) == str)
-    assert(type(parameter) == str)
-    assert(type(value) == str)
+    assert (type(pf) == str)
+    assert (type(parameter) == str)
+    assert (type(value) == str)
 
     if pf.find(".pf") == -1:
         pf += ".pf"
@@ -420,6 +419,7 @@ def print_error_summary(root: str, wd: str, logfile=None) -> List[str]:
             n = int(line[0:j])
             n_total_errors += n
 
+    log("Process 0:")
     log("Unique error messages ........ {}".format(n_unique_errors), logfile)
     log("Total error messages ......... {}".format(n_total_errors), logfile)
     log("\nError summary:\n")

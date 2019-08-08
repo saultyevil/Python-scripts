@@ -29,7 +29,7 @@ from typing import List, Tuple, Union
 PLOTS = "all"
 POLAR_PROJECTION = False
 VERBOSE = False
-SHOW_PLOT = False
+CREATE_PLOT = False
 PLOT_LOG = False
 DIMS = "2d"
 WMIN = None
@@ -55,7 +55,7 @@ def get_script_arguments() -> Tuple[str, str]:
     global PLOTS
     global POLAR_PROJECTION
     global VERBOSE
-    global SHOW_PLOT
+    global CREATE_PLOT
     global PLOT_LOG
     global WMIN
     global WMAX
@@ -334,7 +334,7 @@ def plot_wind(root_name: str, output_name: str, path: str = "./", vars: List[str
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.savefig("{}/{}.{}".format(path, output_name, filetype))
 
-    if SHOW_PLOT:
+    if CREATE_PLOT:
         plt.show()
     else:
         plt.close()
@@ -431,7 +431,7 @@ def plot_tau_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edge
         ax.tick_params(axis="both", which="major", labelsize=13)
 
         if plot_edges or semilogy is False:
-            tymax, tymin = py_plot_util.get_ylimits(spec[:, 0], spec[:, i + 1], xxlims[0], xxlims[1], scale=scale)
+            tymax, tymin = py_plot_util.define_ylims(spec[:, 0], spec[:, i + 1], xxlims[0], xxlims[1], scale=scale)
             if tymax > ymax:
                 ymax = tymax
             if tymin < ymin and tymin != 0:
@@ -447,16 +447,16 @@ def plot_tau_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edge
     ax.set_ylabel(r"Optical Depth, $\tau$", fontsize=15)
 
     if plot_edges:
-        py_plot_util.plot_line_ids(ax, py_plot_util.get_common_absorption_edges(plot_freq, loglog), "horizontal")
+        py_plot_util.plot_line_ids(ax, py_plot_util.absorption_edges(plot_freq, loglog))
 
     ax.legend()
 
     if plot_edges:
-        py_plot_util.plot_line_ids(ax, py_plot_util.get_common_absorption_edges(plot_freq), "horizontal")
+        py_plot_util.plot_line_ids(ax, py_plot_util.absorption_edges(plot_freq))
 
     plt.savefig("{}_tau_spec.png".format(root))
 
-    if SHOW_PLOT:
+    if CREATE_PLOT:
         plt.show()
     else:
         plt.close()
@@ -564,7 +564,7 @@ def plot_spec_comps(spec_path: str, output_name: str, semilogy_scale: bool = Fal
 
     plt.savefig("{}_spec_comps.{}".format(output_name, filetype))
 
-    if SHOW_PLOT:
+    if CREATE_PLOT:
         plt.show()
     else:
         plt.close()
@@ -650,7 +650,7 @@ def plot_spectra(spec_path: List[str], inclinations: Union[List, np.array], outp
             flux = py_plot_util.smooth_1d_array(np.array(spec[1:, idx], dtype=float), smooth, verbose)
             flux *= (DEFAULT_DIST ** 2 / OBSERVE_DIST ** 2)
             ax.semilogy(wavelength, flux, label=legend)
-            tymax, tymin = py_plot_util.get_ylimits(wavelength, flux, wmin, wmax, scale=5)
+            tymax, tymin = py_plot_util.define_ylims(wavelength, flux, wmin, wmax, scale=5)
 
             if tymin == 0 or tymax == 0:
                 ymin = None
@@ -671,7 +671,7 @@ def plot_spectra(spec_path: List[str], inclinations: Union[List, np.array], outp
         fig.tight_layout(rect=[0, 0.03, 1, 0.95])
         plt.savefig("{}_{}.{}".format(output_name, angle, filetype))
 
-        if SHOW_PLOT:
+        if CREATE_PLOT:
             plt.show()
         else:
             plt.close()

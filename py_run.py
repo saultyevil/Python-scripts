@@ -8,8 +8,33 @@ execute a number of commands depending on what is requested by the user.
 
 The script can also be run in a directory containing only one Python pf.
 
-To see usage instructions and a list of switches, I think you can type..
-    [python] py_run.py -h
+usage: py_run.py [-h] [-d] [-s] [-sc] [-r] [-c] [-p] [-tde] [-path PATH]
+                 [-py_ver PY_VER] [-f PY_FLAGS] [-clim CLIM] [-v] [--dry] [-q]
+                 [-n_cores N_CORES] [-polar]
+
+General script to run Python simulations
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d                    Run with -s -c -p
+  -s                    Run simulations
+  -sc                   Run spectral cycles even if a simulation hasn't
+                        converged
+  -r                    Restart a previous run
+  -c                    Check the convergence of runs - calls convergence.py
+  -p                    Run plotting scripts
+  -tde                  Enable TDE plotting
+  -path PATH            Provide a list of directories of Python parameter
+                        files to run
+  -py_ver PY_VER        Name of the Python executable
+  -f PY_FLAGS, --py_flags PY_FLAGS
+                        Runtime flags to pass to Python
+  -clim CLIM            The convergence limit: c_value < 1
+  -v, --verbose         Verbose outputting
+  --dry                 Print the simulations found and exit
+  -q                    Enable quiet mode
+  -n_cores N_CORES      The number of processor cores to run Python with
+  -polar                Plot using a polar projection
 """
 
 import argparse
@@ -85,7 +110,7 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 ITS_A_MYSTERY = \
     r"""
------------------------------------------------------------------
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ __ _ _ _ _ _ _ _ _
                                                           _
   ___ ___  _ ____   _____ _ __ __ _  ___ _ __   ___ ___  (_)___
  / __/ _ \| '_ \ \ / / _ \ '__/ _` |/ _ \ '_ \ / __/ _ \ | / __|
@@ -98,7 +123,7 @@ ITS_A_MYSTERY = \
        | (_| | | | | | | | |_| \__ \ ||  __/ |  | |_| |
         \__,_| |_| |_| |_|\__, |___/\__\___|_|   \__, |
                           |___/                  |___/
------------------------------------------------------------------
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ __ _ _ _ _ _ _ _ _
 """
 
 DATE = datetime.datetime.now()
@@ -142,7 +167,6 @@ def plot_model(root: str, wd: str) -> None:
         commands += " -p"
 
     rutil.log(commands)
-
     cmd = Popen(commands, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
     output = stdout.decode("utf-8")
@@ -177,8 +201,8 @@ def plot_spec_tde(root: str, wd: str) -> None:
         return
 
     command = "cd {}; tde_spec_plot.py {}".format(wd, root)
-    rutil.log(command)
 
+    rutil.log(command)
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
     out = stdout.decode("utf-8")
@@ -407,6 +431,9 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
 
         if rc == 0:
             rutil.print_error_summary(root, wd)
+        else:
+            continue
+
         putil.run_windsave2table(wd, root, VERBOSE)
 
         if CREATE_PLOTS:

@@ -6,7 +6,7 @@ from os import mkdir, path
 from matplotlib import pyplot as plt
 
 plot_show = False
-filetype = "png"
+FILE_TYPE = "png"
 dirname = "sout"  # change to . to output into the current directory
 
 
@@ -92,7 +92,7 @@ def plot_each_var_and_cycle(sgrid):
                 ax[j, k].set_xlabel("Height, $z$", fontsize=13)
                 ax[j, k].set_ylabel(ylabs[j][k], fontsize=13)
         fig.suptitle("Snake: cycle {}".format(i), y=0.95, fontsize=25)
-        plt.savefig("{}/cycle_{}.{}".format(dirname, i, filetype))
+        plt.savefig("{}/cycle_{}.{}".format(dirname, i, FILE_TYPE))
         if plot_show:
             plt.show()
         else:
@@ -144,7 +144,7 @@ def plot_comparsion():
     ax.set_ylabel("Temperature, $T$", fontsize=13)
     ax.legend()
     fig.suptitle(r"$\rho = 10^{-8}$ g/cm$^{3}$ Vs. $\rho = 10^{-5}$ g/cm$^{3}$")
-    plt.savefig("temperature_comparison.{}".format(filetype))
+    plt.savefig("temperature_comparison.{}".format(FILE_TYPE))
     if plot_show:
         plt.show()
     else:
