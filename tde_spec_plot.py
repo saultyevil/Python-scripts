@@ -59,12 +59,12 @@ def get_tde_spectrum() -> Tuple[np.array, float, str]:
         z = 0.07897
         reference = "Blagorodnova et al. (2019)"
         observe_dist = 350 * 1e6 * PARSEC
-        tde_spec = tde_util.iPTF15af_spec(SMOOTH, VERBOSE)
+        tde_spec = tde_util.iptf15af_spec(SMOOTH, VERBOSE)
     elif TDE_OBJ == "ASASSN14li" or TDE_OBJ == "asassn14li":
         z = 0.02058
         reference = "Cenko et al. (2016)"
         observe_dist = 90 * 1e6 * PARSEC
-        tde_spec = tde_util.ASSASN14li_spec(SMOOTH, VERBOSE)
+        tde_spec = tde_util.asassn14li_spec(SMOOTH, VERBOSE)
     else:
         print("tde_spec_plot.get_tde_spectrum: can't find spectrum for object {}".format(TDE_OBJ))
         exit(1)

@@ -43,7 +43,7 @@ def parse_arguments():
     """
 
     p = argparse.ArgumentParser(description="Deredden spectra given Av, Rv and E(B-V)")
-    p.add_argument("fname", type=str, help="The filename of the spectrum to reredden")
+    p.add_argument("fname", type=str, help="The filename of the spectrum to deredden")
     p.add_argument("Rv", type=float, help="The selective extinction parameter")
     p.add_argument("Ebv", type=float, help="The colour excess parameter")
     p.add_argument("-ext_curve", type=str, help="The extinction curve to use")
@@ -112,7 +112,7 @@ def main():
     fig, ax = plt.subplots(1, 1, figsize=(12, 8))
     ax.semilogy(spec[:, 0], ppu.smooth_1d_array(spec[:, 1], SMOOTH), label="Original spectrum")
     ax.semilogy(dered[:, 0], ppu.smooth_1d_array(dered[:, 1], SMOOTH), label="The dereddened spectrum")
-    ax.set_xlabel(r"Observed Wavelength [$\AA$]")
+    ax.set_xlabel(r"Observed Wavelength")
     ax.set_ylabel(r"Flux")
     ax.legend()
     plt.show()

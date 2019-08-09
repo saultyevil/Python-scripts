@@ -7,7 +7,7 @@ import py_plot_util
 from socket import gethostname
 
 
-def iPTF15af_spec(smooth: int, verbose: bool = False) -> np.array:
+def iptf15af_spec(smooth: int, verbose: bool = False) -> np.array:
     """
     Return an array containing the UV spectrum for iPTF15af as in Blagordonova et al. (2019)
 
@@ -56,7 +56,7 @@ def iPTF15af_spec(smooth: int, verbose: bool = False) -> np.array:
     return iPTF15af_spec
 
 
-def ASSASN14li_spec(smooth: int, verbose: bool = False) -> np.array:
+def asassn14li_spec(smooth: int, verbose: bool = False) -> np.array:
     """
     Return an array containing the UV spectrum for ASSASN14li as in Cenko et al. (2016)
 
@@ -106,7 +106,7 @@ def ASSASN14li_spec(smooth: int, verbose: bool = False) -> np.array:
     return ASSASN_14li_spec
 
 
-def iPTF16fnl_spec(smooth: int, verbose: bool = False) -> np.array:
+def iptf16fnl_spec(smooth: int, verbose: bool = False) -> np.array:
     """
     Parameters
     ----------
@@ -146,7 +146,7 @@ def iPTF16fnl_spec(smooth: int, verbose: bool = False) -> np.array:
     return iPTF16fnl_spec
 
 
-def AT2018zr_spec(smooth: int, verbose: bool = False) -> np.array:
+def at2018zr_spec(smooth: int, verbose: bool = False) -> np.array:
     """
     Parameters
     ----------
@@ -184,6 +184,36 @@ def AT2018zr_spec(smooth: int, verbose: bool = False) -> np.array:
     AT2018zr_spec[:, 1] = py_plot_util.smooth_1d_array(AT2018zr_spec[:, 1], smooth)
 
     return AT2018zr_spec
+
+
+def sdss_qso_spec(verbose: bool = False) -> np.array:
+    """
+    Parameters
+    ----------
+    verbose             bool, optional
+                        Enable verbose logging
+    """
+
+    fdir = ""
+    hostname = gethostname()
+    if hostname == "ASTRO-REX":
+        fdir = "/home/saultyevil/PySims/tde/observed_spec/sdss_composite_qso.dat"
+    else:
+        print("Unknown hostname, update py_util with directory for the SDSS QSO spectrum")
+        exit(1)
+
+    if verbose:
+        print("Hostname: {}".format(hostname))
+        print("SDSS QSO spectra being read in from {}".format(fdir))
+
+    try:
+        return np.loadtxt(fdir)
+    except IOError:
+        print("py_util.SDSS_QSO: Unable to open the SDSS QSO spectrum from the following path {}. "
+              "Update the directories in the script".format(fdir))
+        exit(1)
+
+    return
 
 
 def plot_iPTF15af_photometry(ax):

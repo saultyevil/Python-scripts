@@ -100,16 +100,17 @@ def plot_uv_observations():
     """
 
     # Load the spectra into memory
-    iptf15af = tu.iPTF15af_spec(SMOOTH, VERBOSE)
-    asassn14li = tu.ASSASN14li_spec(SMOOTH, VERBOSE)
-    iptf16fnl = tu.iPTF16fnl_spec(SMOOTH, VERBOSE)
-    at2018zr = tu.AT2018zr_spec(SMOOTH, VERBOSE)
-    composite_qso = np.loadtxt("/home/saultyevil/PySims/tde/observed_spec/sdss_composite_qso.dat")
+    iptf15af = tu.iptf15af_spec(SMOOTH, VERBOSE)
+    asassn14li = tu.asassn14li_spec(SMOOTH, VERBOSE)
+    iptf16fnl = tu.iptf16fnl_spec(SMOOTH, VERBOSE)
+    at2018zr = tu.at2018zr_spec(SMOOTH, VERBOSE)
+    composite_qso = tu.sdss_qso_spec(VERBOSE)
 
     # Book keeping lists for plotting the spectra in a loop
     nspec = 5
     spec_list = [composite_qso, asassn14li, iptf15af, iptf16fnl, at2018zr]
     spec_names = ["SDSS Composite QSO", "ASASSN14li: 60d", "iPTF15af: 52d",  "iPTF16fnl: 51d", "AT2018zr: 59d"]
+    name_x = [0.28, 1.25, 2.23, 3.25, 4.35]
     spec_z = [0,  0.02058, 0.07897, 0.0163, 0.071]
 
     fig, ax = plt.subplots(1, 1, figsize=(9.5, 11))
@@ -120,7 +121,8 @@ def plot_uv_observations():
         wlength = spec_list[i][:, 0] / (1 + spec_z[i])
         flux = normalise_flux(ppu.smooth_1d_array(spec_list[i][:, 1], SMOOTH, VERBOSE))
         ax.plot(wlength, flux + offset, label=spec_names[i])
-    ax.legend(loc="lower right")
+        ax.text(2300, name_x[i], spec_names[i])
+    # ax.legend(loc="lower right")
     ax.set_ylim(0, nspec + 0.55)
     ax.set_xlabel(r"Rest Wavelength [$\AA$]")
     ax.set_ylabel(r"Normalised Flux $F_{\lambda}$ + Offset")

@@ -30,7 +30,7 @@ flux2 = py_plot_util.smooth_1d_array(np.array(spec[1:, 13], dtype=float), smooth
 flux2 *= 3.08567758128e20 ** 2 / 1.079987153448e+27 ** 2
 
 # load iPTF15af and put into rest frame
-blag = tde_util.iPTF15af_spec(smooth, verbose)
+blag = tde_util.iptf15af_spec(smooth, verbose)
 blag[:, 0] /= (Z + 1)
 
 mags = np.array([

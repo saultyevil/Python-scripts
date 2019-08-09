@@ -3,6 +3,7 @@
 
 from sys import exit
 
+
 def tests():
     """
     Simple testing function. Currently informs the user not to run this script

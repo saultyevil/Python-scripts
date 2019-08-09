@@ -29,7 +29,7 @@ def plot_3_inclinations(files, titles, suptitle, inds, labels, ncols, nrows, out
 
     fig, ax = plt.subplots(nrows, ncols, figsize=figsi, squeeze=False)
 
-    blag = tde_util.iPTF15af_spec(SMOOTH, VERBOSE)
+    blag = tde_util.iptf15af_spec(SMOOTH, VERBOSE)
     blag[:, 0] /= (0.07897 + 1)
     fmax = np.max(blag[:, 1])
     blag[:, 1] /= fmax

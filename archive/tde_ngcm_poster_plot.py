@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 SMOOTH = 11
 VERBOSE = False
 spec_files = py_plot_util.find_spec_files()
-blag_spec = tde_util.iPTF15af_spec(SMOOTH, VERBOSE)
+blag_spec = tde_util.iptf15af_spec(SMOOTH, VERBOSE)
 
 fig, ax = plt.subplots(1, 1, figsize=(12,8))
 Z = 0.07897
