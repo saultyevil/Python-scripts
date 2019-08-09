@@ -119,7 +119,7 @@ def iPTF16fnl_spec(smooth: int, verbose: bool = False) -> np.array:
     try:
         smooth = int(smooth)
     except ValueError:
-        print("py_util.get_ASSASN_14li_spec: Unable to convert smooth into an integer")
+        print("py_util.iPTF16fnl_spec: Unable to convert smooth into an integer")
         exit(1)
 
     fdir = ""
@@ -155,7 +155,35 @@ def AT2018zr_spec(smooth: int, verbose: bool = False) -> np.array:
     verbose             bool, optional
                         Enable verbose logging
     """
-    return
+
+    try:
+        smooth = int(smooth)
+    except ValueError:
+        print("py_util.AT2018zr_spec: Unable to convert smooth into an integer")
+        exit(1)
+
+    fdir = ""
+    hostname = gethostname()
+    if hostname == "ASTRO-REX":
+        fdir = "/home/saultyevil/PySims/tde/observed_spec/at2018zr_59d.dat"
+    else:
+        print("Unknown hostname, update py_util with directory for the AT2018zr spectrum")
+        exit(1)
+
+    if verbose:
+        print("Hostname: {}".format(hostname))
+        print("AT2018zr spectra being read in from {}".format(fdir))
+
+    try:
+        AT2018zr_spec = np.loadtxt(fdir)
+    except IOError:
+        print("py_util.AT2018zr_spec: Unable to open the AT2018zr spectrum from the following path {}. "
+              "Update the directories in the script".format(fdir))
+        exit(1)
+
+    AT2018zr_spec[:, 1] = py_plot_util.smooth_1d_array(AT2018zr_spec[:, 1], smooth)
+
+    return AT2018zr_spec
 
 
 def plot_iPTF15af_photometry(ax):
