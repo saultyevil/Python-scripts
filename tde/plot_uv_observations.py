@@ -2,7 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import sys
-sys.path.append("..")
+from platform import system
+
+if system() == "Darwin":
+    sys.path.append("/Users/saultyevil/Scripts")
+else:
+    sys.path.append("/home/saultyevil/Scripts")
 
 import numpy as np
 import py_plot_util as ppu
@@ -109,7 +114,8 @@ def plot_uv_observations():
     # Book keeping lists for plotting the spectra in a loop
     nspec = 5
     spec_list = [composite_qso, asassn14li, iptf15af, iptf16fnl, at2018zr]
-    spec_names = ["SDSS Composite QSO", "ASASSN14li: 60d", "iPTF15af: 52d",  "iPTF16fnl: 51d", "AT2018zr: 59d"]
+    spec_names = ["SDSS Composite QSO", r"ASASSN14li $\Delta t = $ 60 d", r"iPTF15af $\Delta t = $ 52 d",
+                  r"iPTF16fnl $\Delta t = $ 51 d", r"AT2018zr $\Delta t = $ 59 d"]
     name_x = [0.28, 1.25, 2.23, 3.25, 4.35]
     spec_z = [0,  0.02058, 0.07897, 0.0163, 0.071]
 
@@ -121,7 +127,7 @@ def plot_uv_observations():
         wlength = spec_list[i][:, 0] / (1 + spec_z[i])
         flux = normalise_flux(ppu.smooth_1d_array(spec_list[i][:, 1], SMOOTH, VERBOSE))
         ax.plot(wlength, flux + offset, label=spec_names[i])
-        ax.text(2300, name_x[i], spec_names[i])
+        ax.text(2200, name_x[i], spec_names[i], fontsize=15)
     # ax.legend(loc="lower right")
     ax.set_ylim(0, nspec + 0.55)
     ax.set_xlabel(r"Rest Wavelength [$\AA$]")
