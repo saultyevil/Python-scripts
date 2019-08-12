@@ -36,9 +36,9 @@ WRITE_PHOT_INFO = False  # This will probably make things slowwwww
 # will alter the performance of the script and algorithms
 
 SCAT_ALBEDO = 1.0      # 1 == pure scattering, 0 == pure absorption
-N_PHOTONS = int(1e5)
+N_PHOTONS = int(1e6)
 P_KILL = 0.0
-TAU_MAX = 2
+TAU_MAX = 5
 ALPHA_FLOOR = 0
 
 ALPHA = None
@@ -144,36 +144,6 @@ class IntensitySpectrum:
         return
 
 
-def write_phots(phots, pas_on):
-    """
-    Write out a bunch of things for all of the photons
-
-    phots       list[PhotonPacket]
-                a list containing all of the photons
-    pas         bool
-                if True, append filename with pas indicator
-    """
-
-    if ALPHA is not None:
-        fname = "phots_tmax_{}_pkill_{}_alpha_{}".format(TAU_MAX, P_KILL, ALPHA)
-    else:
-        fname = "phots_tmax_{}_pkill_{}_tpath".format(TAU_MAX, P_KILL)
-    if pas_on:
-        fname += "_path_str"
-    fname += ".txt"
-    f = open(fname, "w")
-
-    f.write("nrr nstretch weight nscats\n")
-    for i in range(N_PHOTONS):
-        phot = phots[i]
-        tmpstr = "{} {} {} {}".format(phot.nrr, phot.nstretch, phot.weight, phot.nscats)
-        f.write("{}\n".format(tmpstr))
-
-    f.close()
-
-    return
-
-
 class PhotonPacket:
     """
     Contains all of the functions required to generate and transport a photon.
@@ -201,6 +171,9 @@ class PhotonPacket:
         self.nstretch = 0              # number of stretched paths
         self.tau_scat = 0              # optical depth till next scatter
         self.tau_depth = TAU_MAX       # optical depth within the slab
+
+        self.weight_history = []       # the history of the photon's weight
+        self.tau_scat_history = []     # the history of the sampled tau_scats
 
         return
 
@@ -274,7 +247,7 @@ class PhotonPacket:
         if 0 > alpha > 1:
             print("error: expected 0 <= alpha <= 1, but got alpha = {}".format(alpha))
             print("       setting tau_scat form normal distribution")
-            self.tau_scat = self.tau_scat()
+            self.tau_scat = self.unbiased_tau_scat()
             return self.tau_scat
         self.nstretch += 1
         self.tau_scat = -1.0 * (np.log(1 - np.random.rand()) / alpha)
@@ -296,6 +269,7 @@ class PhotonPacket:
         Isotropic scattering of a photon.
         """
 
+        self.nscats += 1
         self.costheta = 2 * np.random.rand() - 1
         self.sintheta = np.sqrt(1 - self.costheta ** 2)
         self.cosphi = np.cos(2 * np.pi * np.random.rand())
@@ -320,6 +294,29 @@ class PhotonPacket:
         return
 
 
+def append_to_phot_file(root, phot):
+    """
+    Write certain photon properties to file for later analysis.
+
+    Parameters
+    ----------
+    root                str
+                        The root name for the output file
+    phot                Photon
+                        the photon to write to file
+    """
+
+    fname = root + "phot_info.txt"
+    with open(fname, "a") as f:
+        if len(phot.weight_history) != len(phot.tau_scat_history):
+            print("phot {} weight history and tau scat history different length somehow".format(phot.nphot))
+            return
+        for i in range(len(phot.weight_history)):
+            f.write("{} {} {}\n".format(phot.nphot, i, phot.weight_history[i], phot.tau_scat_history[i]))
+
+    return
+
+
 def trans_phot_single(phot, path_stretch_on, rr_on):
     """
     Transport a single photon packet.
@@ -331,6 +328,9 @@ def trans_phot_single(phot, path_stretch_on, rr_on):
     rr_on               bool
                         if True, Russian Roulette will be used
     """
+
+    phot.weight_history.append(phot.weight)
+    phot.tau_scat_history.append(phot.tau_scat)
 
     while phot.inslab and phot.weight > 0:
         if path_stretch_on:
@@ -346,6 +346,10 @@ def trans_phot_single(phot, path_stretch_on, rr_on):
                     break
         else:
             tau_scat = phot.unbiased_tau_scat()
+
+        phot.weight_history.append(phot.weight)
+        phot.tau_scat_history.append(phot.tau_scat)
+
         ds = tau_scat / TAU_MAX
         phot.translate(ds)
 
@@ -385,6 +389,9 @@ def trans_phot(root, path_stretch_on):
     if P_KILL > 0:
         rr_on = True
 
+    f = open(root + "phot_info.txt", "w")
+    f.close()
+
     spectrum = IntensitySpectrum(N_BINS)
     spectrum.init_bins()
 
@@ -393,12 +400,13 @@ def trans_phot(root, path_stretch_on):
         phot = trans_phot_single(phot, path_stretch_on, rr_on)
         if phot.inslab is False and phot.weight > 0:
             spectrum.bin_photon_direction(phot.costheta, phot.weight)
+        append_to_phot_file(root, phot)
         if (iphot + 1) % (N_PHOTONS / 10) == 0:
             print("{:3.0f}% photons transported".format(iphot / N_PHOTONS * 100.0))
 
     sname = "intens_" + root
     if path_stretch_on:
-        sname += "_path_str_on"
+        sname += "path_str_on"
     spectrum.calculate_intensity()
     spectrum.write(sname)
 
@@ -411,9 +419,9 @@ def main():
     """
 
     if ALPHA is not None:
-        root = "tmax_{}_pkill_{}_alpha_{}".format(TAU_MAX, P_KILL, ALPHA)
+        root = "tmax_{}_pkill_{}_alpha_{}_".format(TAU_MAX, P_KILL, ALPHA)
     else:
-        root = "tmax_{}_pkill_{}_alpha_tpath".format(TAU_MAX, P_KILL, ALPHA)
+        root = "tmax_{}_pkill_{}_alpha_tpath_".format(TAU_MAX, P_KILL, ALPHA)
 
     print("Running MCRT with path stretching enabled\n")
     start = time.time()
@@ -428,7 +436,8 @@ def main():
     ax.set_ylabel(r"Normalised Intensity, I")
     ax.set_xlim(0, 1)
     ax.legend()
-    plt.show()
+    plt.savefig(root + "intens_plot.png")
+    plt.close()
 
     return
 
