@@ -5,6 +5,7 @@ from sys import exit
 import numpy as np
 import py_plot_util
 from socket import gethostname
+from platform import system
 
 
 def iptf15af_spec(smooth: int, verbose: bool = False) -> np.array:
@@ -29,31 +30,35 @@ def iptf15af_spec(smooth: int, verbose: bool = False) -> np.array:
     try:
         smooth = int(smooth)
     except ValueError:
-        print("py_util.get_iPTF15af_spec: Unable to convert smooth into an integer")
+        print("py_util.iptf15af_spec: Unable to convert smooth into an integer")
         exit(1)
 
     spec_dir = ""
-    hostname = gethostname()
-    if hostname == "ASTRO-REX":
-        spec_dir = "/home/saultyevil/PySims/tde/observed_spec/Blagorodnova_iPTF15af.dat"
+    sys = system()
+    if sys == "Linux":
+        spec_dir = "/home/saultyevil/"
+    elif sys == "Darwin":
+        spec_dir = "/Users/saultyevil/"
     else:
-        print("Unknown hostname, update py_util with directory for the Blagordnova spectrum")
+        print("py_util.iptf15af_spec: unknown system type {}".format(sys))
         exit(1)
+    spec_dir += "PySims/tde/observed_spec/Blagorodnova_iPTF15af.dat"
 
     if verbose:
-        print("Hostname: {}".format(hostname))
+        print("Hostname: {}".format(gethostname()))
+        print("System: {}".format(sys))
         print("iPTF15af spectra being read in from {}".format(spec_dir))
 
     try:
-        iPTF15af_spec = np.loadtxt(spec_dir)
+        spec = np.loadtxt(spec_dir)
     except IOError:
         print("py_util.get_iPTF15af_spec: Unable to open the iPTF15af UV spectrum from the following path {}. "
               "Update the directories in the script".format(spec_dir))
         exit(1)
 
-    iPTF15af_spec[:, 1] = py_plot_util.smooth_1d_array(iPTF15af_spec[:, 1], smooth)
+    spec[:, 1] = py_plot_util.smooth_1d_array(spec[:, 1], smooth)
 
-    return iPTF15af_spec
+    return spec
 
 
 def asassn14li_spec(smooth: int, verbose: bool = False) -> np.array:
@@ -79,31 +84,34 @@ def asassn14li_spec(smooth: int, verbose: bool = False) -> np.array:
     try:
         smooth = int(smooth)
     except ValueError:
-        print("py_util.get_ASSASN_14li_spec: Unable to convert smooth into an integer")
+        print("py_util.asassn14li_spec: Unable to convert smooth into an integer")
         exit(1)
 
-    cenk_dir = ""
-    hostname = gethostname()
-    if hostname == "ASTRO-REX":
-        cenk_dir = "/home/saultyevil/PySims/tde/observed_spec/ASASSN-14li_spec_Cenko.dat"
+    spec_dir = ""
+    sys = system()
+    if sys == "Linux":
+        spec_dir = "/home/saultyevil/"
+    elif sys == "Darwin":
+        spec_dir = "/Users/saultyevil/"
     else:
-        print("Unknown hostname, update py_util with directory for the Cenko spectrum")
+        print("py_util.iptf15af_spec: unknown system type {}".format(sys))
         exit(1)
+    spec_dir += "PySims/tde/observed_spec/ASASSN-14li_spec_Cenko.dat"
 
     if verbose:
-        print("Hostname: {}".format(hostname))
-        print("Cenko spectra being read in from {}".format(cenk_dir))
+        print("Hostname: {}".format(gethostname()))
+        print("Cenko spectra being read in from {}".format(spec_dir))
 
     try:
-        ASSASN_14li_spec = np.loadtxt(cenk_dir)
+        spec = np.loadtxt(spec_dir)
     except IOError:
         print("py_util.get_ASSASN_14li_spec: Unable to open the ASSASSN_14li spectrum from the following path {}. "
-              "Update the directories in the script".format(cenk_dir))
+              "Update the directories in the script".format(spec_dir))
         exit(1)
 
-    ASSASN_14li_spec[:, 1] = py_plot_util.smooth_1d_array(ASSASN_14li_spec[:, 1], smooth)
+    spec[:, 1] = py_plot_util.smooth_1d_array(spec[:, 1], smooth)
 
-    return ASSASN_14li_spec
+    return spec
 
 
 def iptf16fnl_spec(smooth: int, verbose: bool = False) -> np.array:
@@ -119,31 +127,34 @@ def iptf16fnl_spec(smooth: int, verbose: bool = False) -> np.array:
     try:
         smooth = int(smooth)
     except ValueError:
-        print("py_util.iPTF16fnl_spec: Unable to convert smooth into an integer")
+        print("py_util.iptf16fnl_spec: Unable to convert smooth into an integer")
         exit(1)
 
-    fdir = ""
-    hostname = gethostname()
-    if hostname == "ASTRO-REX":
-        fdir = "/home/saultyevil/PySims/tde/observed_spec/iPTF16fnl_52d.dat"
+    spec_dir = ""
+    sys = system()
+    if sys == "Linux":
+        spec_dir = "/home/saultyevil/"
+    elif sys == "Darwin":
+        spec_dir = "/Users/saultyevil/"
     else:
-        print("Unknown hostname, update py_util with directory for the iPTF16fnl spectrum")
+        print("py_util.iptf16fnl_spec: unknown system type {}".format(sys))
         exit(1)
+    spec_dir += "PySims/tde/observed_spec/iPTF16fnl_52d.dat"
 
     if verbose:
-        print("Hostname: {}".format(hostname))
-        print("iPTF16fnl spectra being read in from {}".format(fdir))
+        print("Hostname: {}".format(gethostname()))
+        print("iPTF16fnl spectra being read in from {}".format(spec_dir))
 
     try:
-        iPTF16fnl_spec = np.loadtxt(fdir)
+        spec = np.loadtxt(spec_dir)
     except IOError:
-        print("py_util.iPTF16fnl_spec: Unable to open the iPTF16fnl spectrum from the following path {}. "
-              "Update the directories in the script".format(fdir))
+        print("py_util.iptf16fnl_spec: Unable to open the iPTF16fnl spectrum from the following path {}. "
+              "Update the directories in the script".format(spec_dir))
         exit(1)
 
-    iPTF16fnl_spec[:, 1] = py_plot_util.smooth_1d_array(iPTF16fnl_spec[:, 1], smooth)
+    spec[:, 1] = py_plot_util.smooth_1d_array(spec[:, 1], smooth)
 
-    return iPTF16fnl_spec
+    return spec
 
 
 def at2018zr_spec(smooth: int, verbose: bool = False) -> np.array:
@@ -159,31 +170,34 @@ def at2018zr_spec(smooth: int, verbose: bool = False) -> np.array:
     try:
         smooth = int(smooth)
     except ValueError:
-        print("py_util.AT2018zr_spec: Unable to convert smooth into an integer")
+        print("py_util.at2018zr_spec: Unable to convert smooth into an integer")
         exit(1)
 
-    fdir = ""
-    hostname = gethostname()
-    if hostname == "ASTRO-REX":
-        fdir = "/home/saultyevil/PySims/tde/observed_spec/at2018zr_59d.dat"
+    spec_dir = ""
+    sys = system()
+    if sys == "Linux":
+        spec_dir = "/home/saultyevil/"
+    elif sys == "Darwin":
+        spec_dir = "/Users/saultyevil/"
     else:
-        print("Unknown hostname, update py_util with directory for the AT2018zr spectrum")
+        print("py_util.iptf16fnl_spec: unknown system type {}".format(sys))
         exit(1)
+    spec_dir += "PySims/tde/observed_spec/at2018zr_59d.dat"
 
     if verbose:
-        print("Hostname: {}".format(hostname))
-        print("AT2018zr spectra being read in from {}".format(fdir))
+        print("Hostname: {}".format(gethostname()))
+        print("AT2018zr spectra being read in from {}".format(spec_dir))
 
     try:
-        AT2018zr_spec = np.loadtxt(fdir)
+        spec = np.loadtxt(spec_dir)
     except IOError:
-        print("py_util.AT2018zr_spec: Unable to open the AT2018zr spectrum from the following path {}. "
-              "Update the directories in the script".format(fdir))
+        print("py_util.at2018zr_spec: Unable to open the AT2018zr spectrum from the following path {}. "
+              "Update the directories in the script".format(spec_dir))
         exit(1)
 
-    AT2018zr_spec[:, 1] = py_plot_util.smooth_1d_array(AT2018zr_spec[:, 1], smooth)
+    spec[:, 1] = py_plot_util.smooth_1d_array(spec[:, 1], smooth)
 
-    return AT2018zr_spec
+    return spec
 
 
 def sdss_qso_spec(verbose: bool = False) -> np.array:
@@ -194,23 +208,27 @@ def sdss_qso_spec(verbose: bool = False) -> np.array:
                         Enable verbose logging
     """
 
-    fdir = ""
-    hostname = gethostname()
-    if hostname == "ASTRO-REX":
-        fdir = "/home/saultyevil/PySims/tde/observed_spec/sdss_composite_qso.dat"
+    spec_dir = ""
+    sys = system()
+    if sys == "Linux":
+        spec_dir = "/home/saultyevil/"
+    elif sys == "Darwin":
+        spec_dir = "/Users/saultyevil/"
     else:
-        print("Unknown hostname, update py_util with directory for the SDSS QSO spectrum")
+        print("py_util.sdss_qso_spec: unknown system type {}".format(sys))
         exit(1)
+    spec_dir += "PySims/tde/observed_spec/sdss_composite_qso.dat"
+
 
     if verbose:
-        print("Hostname: {}".format(hostname))
-        print("SDSS QSO spectra being read in from {}".format(fdir))
+        print("Hostname: {}".format(gethostname()))
+        print("SDSS QSO spectra being read in from {}".format(spec_dir))
 
     try:
-        return np.loadtxt(fdir)
+        return np.loadtxt(spec_dir)
     except IOError:
-        print("py_util.SDSS_QSO: Unable to open the SDSS QSO spectrum from the following path {}. "
-              "Update the directories in the script".format(fdir))
+        print("py_util.sdss_qso_spec: Unable to open the SDSS QSO spectrum from the following path {}. "
+              "Update the directories in the script".format(spec_dir))
         exit(1)
 
     return
