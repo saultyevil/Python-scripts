@@ -14,6 +14,29 @@ will be plotted.
 You do not have to include the Python root name as an argument for this script,
 as it uses the Unix find command to search for .spec files recursively to find
 Python simulations.
+
+usage: py_plot.py [-h] [-wmin WMIN] [-wmax WMAX] [-filetype FILETYPE]
+                  [-smooth SMOOTH] [-dist DIST] [-p] [--dim_1d] [-v] [-s]
+                  [-log] [-r]
+                  output_name [plots]
+
+positional arguments:
+  output_name         The base name for the output
+  plots               The type of plot to create
+
+optional arguments:
+  -h, --help          show this help message and exit
+  -wmin WMIN          The smallest wavelength to show
+  -wmax WMAX          The largest wavelength to show
+  -filetype FILETYPE  The file format of the output
+  -smooth SMOOTH      The amount of smoothing of the spectra
+  -dist DIST          Distance of the observer
+  -p, --polar         Project the wind on polar axes
+  --dim_1d            Plot 1D data
+  -v, --verbose       Increase output to screen
+  -s, --show          Show the plots on screen
+  -log                Enable log log axes
+  -r, --root          Enables providing a root name instead
 """
 
 from sys import exit
@@ -42,14 +65,14 @@ MIN_FLUX = 1e-20
 ROOT = False
 
 
-def get_script_arguments() -> Tuple[str, str]:
+def get_script_arguments() -> str:
     """
     Parse the various global parameters from the command line.
 
     Returns
     -------
-    args.output_name       str
-                           The output base name for plots
+    args.output_name: str
+       The output base name for plots
     """
 
     global PLOTS
@@ -116,27 +139,27 @@ def plot_rectilinear_wind(fig, ax, x, z, qoi, i, j, var, var_t, loglog_scale) ->
 
     Parameters
     ----------
-    fig                 plt.Figure
-                        A Pyplot figure object containing the axes
-    ax                  plt.Axes
-                        The plt.Axes object containing the subplots
-    x                   np.array[float]
-                        The x coordinates to plot
-    z                   np.array[float]
-                        The z coordinates to plot
-    qoi                 np.array[float] (masked array)
-                        The quantity of interest to be plotted
-    i                   int
-                        The i (row) index for the plt.Axes object
-    j                   int
-                        The j (column) index for the plt.Axes object
-    vars                list[str], optional
-                        The Python wind variables to plot
-    var_type            list[str], optional
-                        The type of the variables to be plotted, allowable
-                        values are wind and ion
-    loglog_scale        bool, optional
-                        If True, plot on a loglog scale
+    fig: plt.Figure
+        A Pyplot figure object containing the axes
+    ax: plt.Axes
+        The plt.Axes object containing the subplots
+    x: np.array[float]
+        The x coordinates to plot
+    z: np.array[float]
+        The z coordinates to plot
+    qoi: np.array[float] (masked array)
+        The quantity of interest to be plotted
+    i: int
+        The i (row) index for the plt.Axes object
+    j: int
+        The j (column) index for the plt.Axes object
+    vars: list[str], optional
+        The Python wind variables to plot
+    var_type: list[str], optional
+        The type of the variables to be plotted, allowable values are wind and
+        ion
+    loglog_scale: bool, optional
+        If True, plot on a loglog scale
 
     Returns
     -------

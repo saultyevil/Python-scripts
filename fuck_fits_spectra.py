@@ -83,7 +83,9 @@ def combine(fnames: List[str], nfiles: int):
 
     Returns
     -------
-
+    spec: np.ndarray[float]
+        The combined input spectra. Column 0 is wavelength in Angstroms, 1 is
+        the flux in ergs/s/cm^2/A (probably) and 2 is the error on the flux.
     """
 
     specs = []
@@ -128,7 +130,7 @@ def combine(fnames: List[str], nfiles: int):
 
 def main():
     """
-    Main function.
+    Main fuction of the scrip - controls the flow of everything.
     """
 
     print("Combining the current spectra:")
@@ -149,7 +151,7 @@ def main():
     print(spec[:, 1])
 
     plt.semilogy(spec[:, 0], ppu.smooth_1d_array(spec[:, 1], 10))
-    # plt.semilogy(spec[:, 0], spec[:, 1])
+    plt.semilogy(spec[:, 0], spec[:, 1])
     plt.show()
 
     return

@@ -44,15 +44,15 @@ def get_tde_spectrum() -> Tuple[np.array, float, str]:
 
     Returns
     -------
-    tde_spec            np.array
-                        The spectrum for the TDE
-                            - Column 0 is wavelength,
-                            - Column 1 is flux,
-                            - Column 2 is error (sometimes)
-    observse_dist       float
-                        The distance of the TDE given in cm
-    reference           str
-                        The journal reference for the observation
+    tde_spec: np.array[float]
+        The spectrum for the TDE
+            - Column 0 is wavelength,
+            - Column 1 is flux,
+            - Column 2 is error (sometimes)
+    observse_dist: float
+        The distance of the TDE given in cm
+    reference: str
+        The journal reference for the observation
     """
 
     if TDE_OBJ == "iPTF15af" or TDE_OBJ == "iptf15af":
@@ -80,14 +80,10 @@ def spec_plot_inclination(root: str, inc: str) -> None:
 
     Parameters
     ----------
-    root            str
-                    The root name of the Python simulation
-    inc             str
-                    The inclination angle to plot the spectrum for
-
-    Returns
-    -------
-    None
+    root: str
+        The root name of the Python simulation
+    inc: str
+        The inclination angle to plot the spectrum for
     """
 
     fig, ax = plt.subplots(1, 1, figsize=(12, 8))
@@ -144,12 +140,8 @@ def spec_plot_multiple(root: str) -> None:
 
     Parameters
     ----------
-    root            str
-                    The root name of the Python simulation
-
-    Returns
-    -------
-    None
+    root: str
+        The root name of the Python simulation
     """
 
     observe_dist = 1
@@ -221,17 +213,13 @@ def spec_plot_comparison(name: str, inc: str = None):
 
     Parameters
     ----------
-    name                str
-                        The base name of the output plot
-    inc                 str
-                        The inclination angle
-
-    Returns
-    -------
-    None
+    name: str
+        The base name of the output plot
+    inc: str, optional
+        The inclination angle to be plotted
     """
 
-    print("DISCLAIMER: can sometimes not produce the desired plots :^).")
+    print("DISCLAIMER: can sometimes not produce the desired plot :^).")
 
     spec_files = py_plot_util.find_spec_files()
     if len(spec_files) == 0:
@@ -335,11 +323,8 @@ def spec_plot_comparison(name: str, inc: str = None):
 
 def main() -> None:
     """
-    Main controlling function of the script.
-
-    Returns
-    -------
-    None
+    Main controlling function of the script. Also contains all of the code which
+    parses the command line for run time parameters.
     """
 
     global SMOOTH
