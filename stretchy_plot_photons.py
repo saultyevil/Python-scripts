@@ -6,6 +6,7 @@ import sys
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import rcParams
+import pandas as pd
 
 
 def plot_weight_tau():
@@ -374,6 +375,48 @@ def plot_intensity():
 
     plt.show()
 
+    return
+
+
+def plot_history_histograms(fname):
+    """
+    Plot the weight and tau scat history histograms.
+
+    Parameters
+    ----------
+    fname: str
+        The file name of the data to be plotted.
+
+    """
+
+    print("reading file: ", fname)
+    d = pd.read_table(fname, delim_whitespace=True, header=None)
+    d.columns = ["nphot", "nscats", "w"]
+
+    nbins = 200
+    nrows = 5
+    ncols = 5
+    fig, ax = plt.subplots(nrows, ncols, figsize=(16, 9))
+    iscat = 1
+    for i in range(nrows):
+        for j in range(ncols):
+            try:
+                w = d[d["nscats"] == iscat]["w"]
+            except KeyError:
+                continue
+            norm_weights = np.ones_like(w / float(len(w)))
+            lbins = np.logspace(np.log10(w[w != 0].min()), np.log10(w.max()), nbins)
+            ax[i, j].hist(w, log=True, weights=norm_weights, bins=lbins)
+            ax[i, j].set_xscale("log")
+            ax[i, j].set_title("nscats = {}".format(iscat))
+            iscat += 1
+
+    fig.tight_layout()
+    plt.savefig(fname + ".pdf")
+    plt.show()
+
+    return
+
 
 if __name__ == "__main__":
 
@@ -410,6 +453,8 @@ if __name__ == "__main__":
         plot_nstretch_weight(arg)
     elif plot == "intensity":
         plot_intensity()
+    elif plot == "history_hist":
+        plot_history_histograms(arg)
     else:
         print("you fucked up. choices: weights tau_weight panels tau_alpha_hists nstretch_weight intensity")
         sys.exit(1)

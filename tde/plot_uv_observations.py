@@ -3,17 +3,17 @@
 
 import sys
 from platform import system
+import numpy as np
+from matplotlib import pyplot as plt
 
 if system() == "Darwin":
     sys.path.append("/Users/saultyevil/Scripts")
 else:
     sys.path.append("/home/saultyevil/Scripts")
 
-import numpy as np
+from consts import *
 import py_plot_util as ppu
 import tde_util as tu
-from matplotlib import pyplot as plt
-
 
 SMOOTH = 5
 VERBOSE = False
@@ -30,7 +30,7 @@ LINES = [
     ["C IV",  1549],
     ["He II", 0],
     ["O III]", 0],
-    ["N III]", 1750],
+    ["N III]", 1759],
     ["C III]", 1908],
     ["Fe II", 0],
     ["Fe II / CII]", 0],
@@ -93,42 +93,76 @@ def normalise_flux(input_flux: np.ndarray):
     assert(type(input_flux) == np.ndarray), "input flux must be a Numpy array"
 
     fmax = np.max(input_flux)
-    output_flux = input_flux / fmax
+    fmin = np.min(input_flux)
+    output_flux = (input_flux - fmin) / (fmax - fmin)
 
     return output_flux
 
 
-def plot_uv_observations():
+def blackbody_flux(T: float, lamda: np.ndarray) -> np.ndarray:
+    """
+    Return the blackbody flux as a function of wavelength in Angstroms.
+
+    Parameters
+    ----------
+    T: float
+        The temperature of the blackbody
+    lamda: np.ndarray[float]
+        The wavelength range to calculate the blackbody flux over.
+
+    Returns
+    -------
+    The monochromatic intensity for a black body at a wavelength lamda and
+    temperature t, in units of ergs s^-1 cm^-2 A^-1.
+    """
+
+    # convert lambda into cm
+    lcm = lamda * ANGSTROM
+
+    x = H * C / (lcm * BOLTZMANN * T)
+    y = 2 * H * C ** 2 / lcm ** 5
+    b_lambda = y / (np.exp(x) - 1)
+
+    return b_lambda * ANGSTROM
+
+
+def plot_uv_observations() -> None:
     """
     Plot four UV observations of TDE around ~55d. Also plot the SDSS composite
     QSO as a base for comparison.
     """
 
-    # Load the spectra into memory
     iptf15af = tu.iptf15af_spec(SMOOTH, VERBOSE)
     asassn14li = tu.asassn14li_spec(SMOOTH, VERBOSE)
     iptf16fnl = tu.iptf16fnl_spec(SMOOTH, VERBOSE)
     at2018zr = tu.at2018zr_spec(SMOOTH, VERBOSE)
     composite_qso = tu.sdss_qso_spec(VERBOSE)
 
-    # Book keeping lists for plotting the spectra in a loop
     nspec = 5
     spec_list = [composite_qso, asassn14li, iptf15af, iptf16fnl, at2018zr]
-    spec_names = ["SDSS Composite QSO", r"ASASSN14li $\Delta t = $ 60 d", r"iPTF15af $\Delta t = $ 52 d",
-                  r"iPTF16fnl $\Delta t = $ 51 d", r"AT2018zr $\Delta t = $ 59 d"]
-    name_x = [0.28, 1.25, 2.23, 3.25, 4.35]
+    spec_names = ["SDSS Composite QSO", r"ASASSN14li $\Delta t = $60 d", r"iPTF15af $\Delta t = $52 d",
+                  r"iPTF16fnl $\Delta t = $51 d", r"AT2018zr $\Delta t = $59 d"]
+    name_x = [0.28, 1.25, 2.23, 3.27, 4.55]
     spec_z = [0,  0.02058, 0.07897, 0.0163, 0.071]
+    bbT = [0, 35000, 43300, 19000, 22000]
+
+    wmin = 1000
+    wmax = 3000
 
     fig, ax = plt.subplots(1, 1, figsize=(9.5, 11))
-    ax.set_xlim(1000, 3000)
+    ax.set_xlim(wmin, wmax)
     ax = plot_line_id(ax, nspec + 0.17)
     for i in range(nspec):
         offset = 1 * i
         wlength = spec_list[i][:, 0] / (1 + spec_z[i])
         flux = normalise_flux(ppu.smooth_1d_array(spec_list[i][:, 1], SMOOTH, VERBOSE))
         ax.plot(wlength, flux + offset, label=spec_names[i])
-        ax.text(2200, name_x[i], spec_names[i], fontsize=15)
-    # ax.legend(loc="lower right")
+        if bbT[i] != 0:
+            twl = wlength
+            bbfl = blackbody_flux(bbT[i], twl)
+            bbfl = normalise_flux(bbfl)
+            ax.plot(twl, bbfl + offset, linestyle="--", alpha=0.5, color="k")
+        ax.text(2200, name_x[i], spec_names[i], fontsize=13)
     ax.set_ylim(0, nspec + 0.55)
     ax.set_xlabel(r"Rest Wavelength [$\AA$]")
     ax.set_ylabel(r"Normalised Flux $F_{\lambda}$ + Offset")
