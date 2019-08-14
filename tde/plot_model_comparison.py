@@ -219,7 +219,7 @@ def main(argc: int, argv: List[str]) -> None:
            "cno_processed/spherical_macro_cno/zorig/tde_spherical_cno.spec"]
 
     model_comparison(solar.copy(), "_solar", wmin, wmax)
-    # model_comparison(cno.copy(), "_cno", wmin, wmax, legend=False)
+    model_comparison(cno.copy(), "_cno", wmin, wmax)
     # model_comparison(solar.copy() + cno.copy(), "_solar_cno", wmin, wmax, legend=True)
 
     return
