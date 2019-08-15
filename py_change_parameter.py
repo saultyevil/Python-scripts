@@ -78,7 +78,7 @@ def change_python_parameter(pf: str, parameter: str, value: str, bakup: bool = T
             print("NEW: {}".format(new.replace("\n", "")))
     else:
         print("Could not find parameter {} in {}".format(parameter, pf))
-        exit(1)
+        return 1
 
     # Now write out modified lines to file
     with open(pf, "w") as f:
