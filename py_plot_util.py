@@ -500,6 +500,7 @@ def common_lines(use_freq: bool = False, log_scale: bool = False) -> dict:
         "Si IV": 1400,
         "N IV": 1489,
         "C IV": 1549,
+        # "He II": 1640,
         "N III]": 1750,
         "Al III": 1854,
         "C III]": 1908,

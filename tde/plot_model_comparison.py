@@ -17,7 +17,7 @@ from sys import exit
 from platform import system
 from sys import argv
 from matplotlib import pyplot as plt
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 if system() == "Darwin":
     sys.path.append("/Users/saultyevil/Scripts")
@@ -51,7 +51,7 @@ LINES = [
 ]
 
 
-def plot_line_id(ax: plt.Axes, xlims: Tuple[float, float]) -> plt.Axes:
+def plot_line_id(ax: plt.Axes) -> plt.Axes:
     """
     Plot labels and vertical lines to indicate important atomic transitions.
 
@@ -93,7 +93,8 @@ def plot_line_id(ax: plt.Axes, xlims: Tuple[float, float]) -> plt.Axes:
     return ax
 
 
-def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800, wmax: float = 3600) -> None:
+def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800, wmax: float = 3600, label: str = None,
+                     return_figure: bool = False, figure: Tuple[plt.Figure, plt.Axes] = None) -> Union[None, Tuple[plt.Figure, plt.Axes]]:
     """
     Plot a 3 x 3 grid of model comparisons for the three TDE geometries, AGN,
     CV and spherical. Each model will have a low, a medium and high inclination
@@ -110,8 +111,24 @@ def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800,
         The smallest wavelength to show on the figure
     wmax: float, optional
         The largest wavelength to show on the figure
-    legend: bool, optional
-        If True, include a legend for each panel in the figure
+    label: str, optional
+        A label to give to the data
+    return_figure: bool, optional
+        If True, the plt.Figure and plt.Axes objects will be returned
+    figure: Tuple[plt.Figure, plt.Axes], optional
+        If a plt.Figure and plt.Axes object are provided, then these will be
+        used instead of generating a new one.
+
+    Returns
+    -------
+    fig: plt.Figure
+        If return_figure is True, then the plt.Figure and plt.Axes object which
+        are the figure objects are returned instead of the figure being created.
+        This particular return is the plt.Figure object.
+    ax: plt.Axes
+        If return_figure is True, then the plt.Figure and plt.Axes object which
+        are the figure objects are returned instead of the figure being created.
+        This particular return is the plt.Axes object.
     """
 
     if system() == "Darwin":
@@ -123,20 +140,22 @@ def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800,
     for i in range(len(direcs)):
         direcs[i] = pdir + direcs[i]
         modelspecs.append(ppu.read_spec_file(direcs[i], pandas_table=True))
-        print("Loaded spec: ", direcs[i])
 
     ncols = 3
     nrows = 3
 
-    fig, ax = plt.subplots(nrows, ncols, figsize=(9.5, 11), sharex="col", sharey="row")
+    if figure:
+        fig, ax = figure[0], figure[1]
+    else:
+        fig, ax = plt.subplots(nrows, ncols, figsize=(9.5, 11), sharex="col", sharey="row")
+
     #       CV    AGN   Spherical
     incl = ["20", "70", "30",
             "62", "75", "60",
             "75", "85", "80"]
     iidx = 0
 
-    ylims = [(5e-3, 0.13), (1e-3, 0.07), (1e-3, 0.06)]
-    xlims = (wmin, wmax)
+    ylims = [(5e-3, 0.13), (0.8e-3, 0.07), (1e-3, 0.07)]
 
     for i in range(nrows):
         for j in range(ncols):
@@ -160,17 +179,25 @@ def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800,
 
             # TODO: line ids look a bit fucked up
             # ax[i, j].set_xlim(wmin - 40, wmax + 40)
-            # ax[i, j] = plot_line_id(ax[i, j], xlims)
+            # ax[i, j] = plot_line_id(ax[i, j])
 
-            ax[i, j].semilogy(wl, ppu.smooth_1d_array(fl, SMOOTH, VERBOSE))
+            ax[i, j].semilogy(wl, ppu.smooth_1d_array(fl, SMOOTH, VERBOSE), label=label)
             ax[i, j].set_ylim(ylims[i])
             tstr = r"$i = $" + incl[iidx - 1] + r"$^{\circ}$"
             ax[i, j].text(0.85, 0.93, tstr, ha="center", va="center", rotation="horizontal", fontsize=12,
-                          transform=ax[i, j].transAxes)
+                           transform=ax[i, j].transAxes)
 
-    fig.text(0.5, 0.02, r"Rest Wavelength [$\AA$]", ha="center", va="center", rotation="horizontal", fontsize=15)
-    fig.text(0.025, 0.5, r"Flux $F_{\lambda}$ [erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$]", ha="center", va="center",
-             rotation="vertical", fontsize=15)
+    mnames = ["Biconical Wind Model", "Equatorial Wind Model", "Spherical Model"]
+    for i in range(ncols):
+        ax[0, i].text(0.5, 1.1, mnames[i], va="center", ha="center", rotation="horizontal", fontsize=13,
+                       transform=ax[0, i].transAxes)
+
+    if figure:
+        ax[0, 0].legend(loc="lower center")
+
+    fig.text(0.5, 0.02, r"Rest Wavelength [$\AA$]", ha="center", va="center", rotation="horizontal", fontsize=13)
+    fig.text(0.025, 0.5, r"Flux $F_{\lambda}$  at 100 pc [erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$]", ha="center", va="center",
+             rotation="vertical", fontsize=13)
     fig.tight_layout(rect=[0.03, 0.03, 0.97, 0.97])
     fig.subplots_adjust(hspace=0, wspace=0)
 
@@ -178,8 +205,12 @@ def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800,
     if extrafname:
         fname += extrafname
     fname += ".png"
-    plt.savefig(fname)
-    plt.show()
+
+    if not return_figure:
+        plt.savefig(fname)
+        plt.show()
+    else:
+        return fig, ax
 
     return
 
@@ -220,7 +251,9 @@ def main(argc: int, argv: List[str]) -> None:
 
     model_comparison(solar.copy(), "_solar", wmin, wmax)
     model_comparison(cno.copy(), "_cno", wmin, wmax)
-    # model_comparison(solar.copy() + cno.copy(), "_solar_cno", wmin, wmax, legend=True)
+    fig, ax = model_comparison(solar.copy(), "_solar_cno", wmin, wmax, label="Solar Abundance", return_figure=True)
+    model_comparison(cno.copy(), "_solar_cno", wmin, wmax, label="CNO Processed Abundance", return_figure=False,
+                     figure=(fig, ax))
 
     return
 

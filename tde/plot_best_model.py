@@ -33,9 +33,9 @@ LINES = [
     ["Si IV", 1400],
     ["N IV]", 0],
     ["C IV",  1549],
-    ["He II", 0],
+    ["He II", 1640],
     ["O III]", 0],
-    ["N III]", 1759],
+    ["N III]", 1750],
     ["C III]", 1908],
     ["Fe II", 0],
     ["Fe II / CII]", 0],
@@ -123,7 +123,7 @@ def plot_against_data(dfname: str):
     ax[0].set_ylim(3e-17, 7e-15)
     ax[0] = plot_line_id(ax[0])
     ax[0].text(0.92, 0.035, r"$i = 75^{\circ}$", transform=ax[0].transAxes, fontsize=12)
-    ax[0].legend(loc="lower left")
+    # ax[0].legend(loc="lower left")
 
     mspec_wl = mspec["Lambda"].values.astype(float)
     mspec_fl = mspec["85"].values.astype(float)
@@ -148,9 +148,9 @@ def plot_against_data(dfname: str):
     ax[1].text(0.92, 0.035, r"$i = 85^{\circ}$", transform=ax[1].transAxes, fontsize=12)
     ax[1].legend(loc="lower left")
 
-    fig.text(0.5, 0.02, r"Rest Wavelength [$\AA$]", ha="center", va="center", rotation="horizontal", fontsize=15)
+    fig.text(0.5, 0.02, r"Rest Wavelength [$\AA$]", ha="center", va="center", rotation="horizontal", fontsize=13)
     fig.text(0.025, 0.5, r"Flux $F_{\lambda}$ [erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$]", ha="center", va="center",
-             rotation="vertical", fontsize=15)
+             rotation="vertical", fontsize=13)
     fig.tight_layout(rect=[0.03, 0.03, 0.97, 0.97])
     fig.subplots_adjust(hspace=0, wspace=0)
 

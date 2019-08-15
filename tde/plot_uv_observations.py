@@ -28,9 +28,9 @@ LINES = [
     ["Si IV", 1400],
     ["N IV]", 1489],
     ["C IV",  1549],
-    ["He II", 0],
+    ["He II", 1640],
     ["O III]", 0],
-    ["N III]", 1759],
+    ["N III]", 1750],
     ["C III]", 1908],
     ["Fe II", 0],
     ["Fe II / CII]", 0],
@@ -145,6 +145,7 @@ def plot_uv_observations() -> None:
     name_x = [0.28, 1.25, 2.23, 3.27, 4.55]
     spec_z = [0,  0.02058, 0.07897, 0.0163, 0.071]
     bbT = [0, 35000, 43300, 19000, 22000]
+    bbT = [0, 35000, 43300, 1.9e4, 2.2e4]
 
     wmin = 1000
     wmax = 3000
@@ -164,10 +165,10 @@ def plot_uv_observations() -> None:
             ax.plot(twl, bbfl + offset, linestyle="--", alpha=0.5, color="k")
         ax.text(2200, name_x[i], spec_names[i], fontsize=13)
     ax.set_ylim(0, nspec + 0.55)
-    ax.set_xlabel(r"Rest Wavelength [$\AA$]")
-    ax.set_ylabel(r"Normalised Flux $F_{\lambda}$ + Offset")
+    ax.set_xlabel(r"Rest Wavelength [$\AA$]", fontsize=13)
+    ax.set_ylabel(r"Normalised Flux $F_{\lambda}$ + Offset", fontsize=13)
 
-    fig.tight_layout()
+    fig.tight_layout(rect=[0.015, 0.015, 0.985, 0.985])
     plt.savefig("tde_uv_observations.png")
     plt.show()
 
