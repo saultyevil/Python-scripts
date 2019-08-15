@@ -297,10 +297,10 @@ def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = 
     pf = root + ".pf"
 
     if split_cycles and restart_from_spec is False:
-        pcp.change_python_parameter(pf, "Spectrum_cycles", "0", VERBOSE, bakup=True)
+        pcp.change_python_parameter(pf, "Spectrum_cycles", "0", bakup=True, verbose=VERBOSE)
     if split_cycles and restart_from_spec:
-        pcp.change_python_parameter(pf, "Spectrum_cycles", "5", VERBOSE, bakup=False)
-        pcp.change_python_parameter(pf, "Photons_per_cycle", "1e6", VERBOSE, bakup=False)
+        pcp.change_python_parameter(pf, "Spectrum_cycles", "5", bakup=False, verbose=VERBOSE)
+        pcp.change_python_parameter(pf, "Photons_per_cycle", "1e6", bakup=False, verbose=VERBOSE)
 
     # Construct shell command to run Python and use subprocess to run
     command = "cd {}; Setup_Py_Dir; ".format(wd)
@@ -405,7 +405,7 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
 
     for i, path in enumerate(roots):
         rc = 0
-        root, wd = putil.parse_root_name_and_path(path)
+        root, wd = putil.get_root_wd(path)
         rutil.log("------------------------\n")
         rutil.log("     Simulation {}/{}".format(i + 1, n_sims))
         rutil.log("\n------------------------\n")

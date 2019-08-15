@@ -94,7 +94,7 @@ def get_python_version(py: str = "py", verbose: bool = False) -> Tuple[str, str]
     return version, commit_hash
 
 
-def parse_root_name_and_path(pf_path: str) -> Tuple[str, str]:
+def get_root_wd(pf_path: str) -> Tuple[str, str]:
     """
     Split a path name into a directory path and root name for a Python simulation.
 

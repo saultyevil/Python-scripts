@@ -80,6 +80,8 @@ def create_grid(pf: str, parameter: str, grid: List[str]) -> List[str]:
         for line in range(len(new_pf)):
             if new_pf[line][0] == parameter:
                 new_pf[line][1] = grid[i]
+            elif new_pf[line][0] == "Wind.mdot(msol/yr)":
+                new_pf[line][1] = str(0.1 * float(grid[i]))
         try:
             os.mkdir(grid[i])
         except OSError:  # if the directory already exists an OS error is raised
@@ -120,15 +122,15 @@ def run_grid() -> None:
     input("Press a enter to continue...")
 
     # This is the parameter which will be changed
-    root = "tde_spherical.pf"
-    parameter = "Stellar_wind.v_infinity(cm)"
+    root = "tde_agn.pf"
+    parameter = "Disk.mdot(msol/yr)"
 
     grid = []
-    # tmp = np.linspace(0.0, 2.0, 10)
-    tmp = [0.07, 0.075, 0.08, 0.085, 0.090, 0.095]
-    esc_vel = np.sqrt(2 * G * 3e7 * MSOL / 2.65e13)
+    tmp = [2e-5, 2e-4, 2e-3, 2e-2, 2]
+    # tmp = [0.07, 0.075, 0.08, 0.085, 0.090, 0.095]
+    # esc_vel = np.sqrt(2 * G * 3e7 * MSOL / 2.65e13)
     for i in range(len(tmp)):
-        grid.append("{:.4e}".format(esc_vel * tmp[i]))
+        grid.append("{:.4e}".format(tmp[i]))
 
     print("Running grid of {} simulations:".format(len(grid)))
     print("Parameter: {}".format(parameter))

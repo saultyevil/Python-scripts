@@ -279,7 +279,7 @@ def spec_plot_comparison(name: str, inc: str = None):
             # Loop over each spectrum from each simulation
             for file in spec_files:
                 # Get the spectrum, flux and scale the flux for distance
-                root, dir = py_plot_util.parse_root_name_and_path(file)
+                root, dir = py_plot_util.get_root_wd(file)
 
                 spectrum = py_plot_util.read_spec_file(file, pandas_table=True)
                 wavelength = spectrum["Lambda"].values.astype(float)

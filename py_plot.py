@@ -648,7 +648,7 @@ def plot_spectra(spec_path: List[str], inclinations: Union[List, np.array], outp
         for file in spec_path:
             if file.find(".spec") == -1:
                 file += ".spec"
-            root, filepath = py_plot_util.parse_root_name_and_path(file)
+            root, filepath = py_plot_util.get_root_wd(file)
             legend = filepath + root
             if verbose:
                 print("\tPlotting {} {}°".format(legend, angle))
@@ -764,7 +764,7 @@ def main() -> None:
 
     # If this is being run in an individual folder, then we can plot the spectrum components and wind parameters
     if len(files) == 1:
-        root, path = py_plot_util.parse_root_name_and_path(files[0])
+        root, path = py_plot_util.get_root_wd(files[0])
 
         # Plot the spectrum components
         if PLOTS == "spec_comps" or PLOTS == "all":

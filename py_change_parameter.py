@@ -20,7 +20,7 @@ from sys import argv, exit
 from shutil import copyfile
 
 
-def change_python_parameter(pf: str, parameter: str, value: str, verbose: bool = False, bakup: bool = True):
+def change_python_parameter(pf: str, parameter: str, value: str, bakup: bool = True, verbose: bool = False):
     """
     Search a parameter file for a given parameter and replaces the current value
     with a new value. This script will change the parameter file, even if the
@@ -28,16 +28,16 @@ def change_python_parameter(pf: str, parameter: str, value: str, verbose: bool =
 
     Parameters
     ----------
-    pf              str
-                    The name of the parameter file to edit
-    parameter       str
-                    The name of the parameter to be edited
-    value           str
-                    The new value of the parameter
-    verbose         bool, optional
-                    Enable verbose logging
-    bakup           bool, optional
-                    If True, save a back up of the parameter file prior to edit
+    pf: str
+        The name of the parameter file to edit
+    parameter: str
+        The name of the parameter to be edited
+    value: str
+        The new value of the parameter
+    verbose: bool, optional
+        Enable verbose logging
+    bakup:bool , optional
+        If True, save a back up of the parameter file prior to edit
 
     Returns
     -------
@@ -47,6 +47,9 @@ def change_python_parameter(pf: str, parameter: str, value: str, verbose: bool =
     assert(type(pf) == str)
     assert(type(parameter) == str)
     assert(type(value) == str)
+
+    if verbose:
+        print("Updating pf with path: {}".format(pf))
 
     if pf.find(".pf") == -1:
         pf += ".pf"
@@ -87,7 +90,7 @@ def change_python_parameter(pf: str, parameter: str, value: str, verbose: bool =
 if __name__ == "__main__":
     if len(argv) != 4:
         print(__doc__)
-        exit(0)
+        exit(1)
     else:
         root = argv[1]
         parameter = argv[2]
