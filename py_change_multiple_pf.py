@@ -10,11 +10,13 @@ script will only operate on pf files which have the same root name.
 The script expects 2 arguments and 1 optional argument, as documented below:
 
 Usage
-   $ python py_change_multiple_pf.py parameter value [root]
+   $ python py_change_multiple_pf.py parameter value [root] [-h] [-checkpf]
 
         - parameter       The name of the parameter to update
         - value           The updated parameter value
         - root            Optional: the name of the parameter files to edit
+        - h               Print this error message and exit
+        - checkpf         Prints to the screen the pfs which will be updated
 """
 
 import py_change_parameter as pcp
@@ -65,8 +67,6 @@ def get_pfs(root: str = None) -> List[str]:
     pfs = []
     ppfs = ppu.find_pf_files("./")
 
-    print(root)
-
     for i in range(len(ppfs)):
         pf, wd = ppu.get_root_wd(ppfs[i])
         if root:
@@ -81,7 +81,14 @@ def get_pfs(root: str = None) -> List[str]:
 if __name__ == "__main__":
     root = None
     argc = len(argv)
-    if argc == 3:
+    if argc == 2 and argv[1] == "-h":
+        print(__doc__)
+        exit(0)
+    elif argc == 2 and argv[1] == "-checkpf":
+        pfs = get_pfs()
+        print("Will operate on the following pfs:\n", pfs)
+        exit(0)
+    elif argc == 3:
         parameter = argv[1]
         value = argv[2]
     elif argc == 4:
@@ -89,6 +96,7 @@ if __name__ == "__main__":
         value = argv[2]
         root = argv[3]
     else:
+        print("Unknown arguments: ", argv[1:])
         print(__doc__)
         exit(1)
     change_pfs(get_pfs(root), parameter, value)

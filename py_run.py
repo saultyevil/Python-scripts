@@ -419,22 +419,23 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
         if CHECK_CONVERGENCE:
             rutil.log("Checking the convergence of the simulation:\n")
             c = check_python_convergence(root, wd)
-            if c and SPLIT_CYCLES:
+            if c and SPLIT_CYCLES and RUN_SIMS:
                 rc = python(root, wd, use_mpi, n_cores, True, True, True)
                 restore_bakup_pf(root, wd)
-            elif not c and SPLIT_CYCLES:
+            elif not c and SPLIT_CYCLES and RUN_SIMS:
                 print("Simulation has not converged, hence no spectral cycles will be run.")
                 print("Use -sc to override this.\n")
                 rutil.print_error_summary(root, wd)
                 restore_bakup_pf(root, wd)
                 continue
 
-        if rc == 0:
+        if rc == 0 or rc == 1:
             rutil.print_error_summary(root, wd)
         else:
             continue
 
-        putil.run_windsave2table(wd, root, VERBOSE)
+        if CREATE_PLOTS or RUN_SIMS:
+            putil.run_windsave2table(wd, root, VERBOSE)
 
         if CREATE_PLOTS:
             rutil.log("Creating plots for the simulation\n")
@@ -444,8 +445,9 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
             rutil.log("Creating TDE specific plot for simulation\n")
             plot_spec_tde(root, wd)
 
-        rutil.log("Removing the data directory\n")
-        prd.remove_data_dir(wd, VERBOSE)
+        if CREATE_PLOTS or RUN_SIMS:
+            rutil.log("Removing the data directory\n")
+            prd.remove_data_dir(wd, VERBOSE)
 
     return
 
@@ -636,9 +638,7 @@ def main() -> None:
 
     use_mpi, n_procs = rutil.get_num_procs(N_CORES)
 
-    rutil.log("")
-
-    rutil.log("The following parameter files were found:\n")
+    rutil.log("\nThe following parameter files were found:\n")
     for i in range(len(pf_paths)):
         rutil.log("{}".format(pf_paths[i]))
     rutil.log("")

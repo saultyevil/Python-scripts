@@ -20,16 +20,12 @@ from pathlib import Path
 from consts import C, ANGSTROM
 
 
-def tests():
+def tests() -> None:
     """
     Warns the user that this script is a utility script and not meant to be run. It will also print the current
     Python version to screen.
 
     TODO: add unit tests or something
-
-    Returns
-    -------
-    None
     """
 
     print("This script is not designed to be run. Instead, import it using import py_plot_util.")
@@ -44,17 +40,17 @@ def get_python_version(py: str = "py", verbose: bool = False) -> Tuple[str, str]
 
     Parameters
     ----------
-    py              str, optional
-                    The name of the Python executable in $PATH whose version will be queried
-    verbose         bool, optional
-                    Enable verbose logging
+    py: str, optional
+        The name of the Python executable in $PATH whose version will be queried
+    verbose: bool, optional
+        Enable verbose logging
 
-    Returns:
+    Returns
     --------
-    version         str
-                    The version number of Python
-    commit_hash     str
-                    The commit hash of Python
+    version: str
+        The version number of Python
+    commit_hash: str
+        The commit hash of Python
     """
 
     version = ""
@@ -100,15 +96,15 @@ def get_root_wd(pf_path: str) -> Tuple[str, str]:
 
     Parameters
     ----------
-    pf_path         str
-                    The directory path to a Python .pf file
+    pf_path: str
+        The directory path to a Python .pf file
 
     Returns
     -------
-    root       str
-                    The root name of the Python simulation
-    path            str
-                    The directory path containing the provided Python .pf file
+    root: str
+        The root name of the Python simulation
+    path: str
+        The directory path containing the provided Python .pf file
     """
 
     if type(pf_path) != str:
@@ -132,7 +128,7 @@ def get_root_wd(pf_path: str) -> Tuple[str, str]:
     return root, path
 
 
-def read_spec_file(file_name: str, delim: str = " ", pandas_table: bool = False) -> Union[np.array, pd.DataFrame]:
+def read_spec_file(file_name: str, delim: str = " ", pandas_table: bool = False) -> Union[np.ndarray, pd.DataFrame]:
     """
     Read in data from an external file, line by line whilst ignoring comments.
         - Comments begin with #
@@ -140,17 +136,17 @@ def read_spec_file(file_name: str, delim: str = " ", pandas_table: bool = False)
 
     Parameters
     ----------
-    file_name       str
-                    The directory path to the spec file to be read in
-    delim           str, optional
-                    The delimiter between values in the file, by default a space is assumed
-    pandas_table    bool, optional
-                    Return the spectrum as a Pandas DataFrame instead of a Numpy array
+    file_name: str
+        The directory path to the spec file to be read in
+    delim: str, optional
+        The delimiter between values in the file, by default a space is assumed
+    pandas_table:bool, optional
+        Return the spectrum as a Pandas DataFrame instead of a Numpy array
 
     Returns
     -------
-    lines           Numpy array of strings or a Pandas DataFrame
-                    The .spec file as a Numpy array or a Pandas DataFrame
+    lines: np.ndarray or pd.DataFrame
+        The .spec file as a Numpy array or a Pandas DataFrame
     """
 
     try:
@@ -173,8 +169,8 @@ def read_spec_file(file_name: str, delim: str = " ", pandas_table: bool = False)
             if line[0] == "Freq.":
                 for j in range(len(line)):
                     if line[j][0] == "A":
-                        line[j] = line[j].replace("P0.50", "").replace("A", "")
-            # Don't add lines which are comments
+                        index = line[j].find("P")
+                        line[j] = line[j][1:index]
             if line[0][0] != "#":
                 lines.append(line)
 
@@ -191,13 +187,13 @@ def find_spec_files(path: str = "./") -> List[str]:
 
     Parameters
     ----------
-    path            str
-                    The path to recusrively search from
+    path: str
+        The path to recusrively search from
 
     Returns
     -------
-    spec_files:     list[str]
-                    The file paths of various .spec files
+    spec_files: List[str]
+        The file paths of various .spec files
     """
 
     spec_files = []
@@ -214,13 +210,13 @@ def find_pf_files(path: str = "./") -> List[str]:
 
     Parameters
     ----------
-    path                    str, optional
-                            The directory to search for pf files
+    path: str, optional
+        The directory to search for pf files
 
     Returns
     -------
-    pfs                     List[str]
-                            The file path for any Python pf files founds
+    pfs: List[str]
+        The file path for any Python pf files founds
     """
 
     pfs = []
@@ -246,15 +242,15 @@ def spec_inclinations_numpy(spec_names: List[str], delim: str = " ") -> np.array
 
     Parameters
     ----------
-    spec_name       list[str]
-                    The directory path to Python .spec files
-    delim           str, optional
-                    The delimiter in the .spec files, assumed to be spaces by default
+    spec_name: List[str]
+        The directory path to Python .spec files
+    delim: str, optional
+        The delimiter in the .spec files, assumed to be spaces by default
 
     Returns
     -------
-    iangles         list[int]
-                    All of the unique inclination angles found in the Python .spec files
+    iangles: List[int]
+        All of the unique inclination angles found in the Python .spec files
     """
 
     iangles = []
@@ -279,19 +275,19 @@ def spec_inclinations_numpy(spec_names: List[str], delim: str = " ") -> np.array
     return iangles
 
 
-def spec_inclinations_pandas(spectrum: pd.DataFrame) -> list:
+def spec_inclinations_pandas(spectrum: pd.DataFrame) -> List[str]:
     """
     Return a list of the viewing angles within a spectrum
 
     Parameters
     ----------
-    spectrum            Pandas DataFrame
-                        The spectrum to extract the viewing angles from
+    spectrum: pd.DataFrame
+        The spectrum to extract the viewing angles from
 
     Returns
     -------
-    viewing_angles      list
-                        The inclinations within the spectrum file
+    viewing_angles: List[str]
+        The inclinations within the spectrum file
     """
 
     viewing_angles = []
@@ -314,15 +310,15 @@ def check_inclination_present(inclination: int, spec: np.array) -> bool:
 
     Parameters
     ----------
-    inclination         int
-                        The inclination angle to check
-    spec                np.arrayp[str]
-                        The spectrum array to read -- assume that it is a np.array of strings
-                        Note that tde_spec_plot has a similar routine for pd.DataFrame's, whoops!
+    inclination: int
+        The inclination angle to check
+    spec: np.ndarray
+        The spectrum array to read -- assume that it is a np.array of strings
+        Note that tde_spec_plot has a similar routine for pd.DataFrame's, whoops!
     Returns
     -------
-    allowed             bool
-                        If True, angle is a legal angle, otherise fault
+    allowed: bool
+        If True, angle is a legal angle, otherise fault
     """
 
     allowed = False
@@ -341,23 +337,23 @@ def check_inclination_present(inclination: int, spec: np.array) -> bool:
     return allowed
 
 
-def smooth_1d_array(flux: np.array, smooth: Union[int, float], verbose: bool = False) -> np.array:
+def smooth_1d_array(flux: np.ndarray, smooth: Union[int, float], verbose: bool = False) -> np.ndarray:
     """
     Smooth 1d data using a boxcar smoother.
 
     Parameters
     ----------
-    flux                np.array[float]
-                        The data to smooth using the boxcar filter
-    smooth              int
-                        The size of the window for the boxcar filter
-    verbose             bool
-                        Enable verbose logging
+    flux: np.array[float]
+        The data to smooth using the boxcar filter
+    smooth: int
+        The size of the window for the boxcar filter
+    verbose: bool
+        Enable verbose logging
 
     Returns
     -------
-    smoothed            np.array[float]
-                        The smoothed data
+    smoothed: np.ndarray
+        The smoothed data
     """
 
     if type(flux) is not list and type(flux) is not np.ndarray:
@@ -397,13 +393,13 @@ def subplot_dims(n_plots: int) -> Tuple[int, int]:
 
     Parameters
     ----------
-    n_plots         int
-                    The number of subplots which will be plotted
+    n_plots: int
+        The number of subplots which will be plotted
 
     Returns
     -------
-    dims            tuple
-                    The dimensions of the subplots returned as (nrows, ncols)
+    dims: Tuple[int, int]
+        The dimensions of the subplots returned as (nrows, ncols)
     """
 
     if n_plots > 2:
@@ -428,25 +424,25 @@ def define_ylims(wavelength: np.array, flux: np.array, wmin: float, wmax: float,
 
     Parameters
     ----------
-    wavelength          np.array[float]
-                        An array containing all wavelengths in a spectrum
-    flux                np.array[float]
-                        An array containing the flux at each wavelength point
-    wmin                float
-                        The shortest wavelength which is being plotted
-    wmax                float
-                        The longest wavelength which is being plotted
-    scale               float, optional
-                        The scaling factor for white space around the data
-    verbose             bool, optional
-                        Enable verbose logging
+    wavelength: np.array[float]
+        An array containing all wavelengths in a spectrum
+    flux: np.array[float]
+        An array containing the flux at each wavelength point
+    wmin: float
+        The shortest wavelength which is being plotted
+    wmax: float
+        The longest wavelength which is being plotted
+    scale: float, optional
+        The scaling factor for white space around the data
+    verbose: bool, optional
+        Enable verbose logging
 
     Returns
     -------
-    yupper              float
-                        The upper y limit to use with the wavelength range
-    ylower              float
-                        The lower y limit to use with the wavelength range
+    yupper: float
+        The upper y limit to use with the wavelength range
+    ylower: float
+        The lower y limit to use with the wavelength range
     """
 
     if wavelength.shape[0] != flux.shape[0]:
@@ -478,17 +474,17 @@ def common_lines(use_freq: bool = False, log_scale: bool = False) -> dict:
 
     Parameters
     ----------
-    use_freq           bool, optional
-                       If True, return the dict in frequency space
-    log_scale          bool, optional
-                       If this and use_freq are true, the lines will be returned
-                       to be plotted on a log10 scale
+    use_freq: bool, optional
+       If True, return the dict in frequency space
+    log_scale: bool, optional
+       If this and use_freq are true, the lines will be returned to be plotted
+       on a log10 scale
 
     Returns
     -------
-    line           dict
-                   A dictionary where the keys are the line names and the values are the wavelength of the lines
-                   in Angstroms
+    line: dict
+       A dictionary where the keys are the line names and the values are the
+       wavelength of the lines in Angstroms
     """
 
     lines = {
@@ -525,22 +521,23 @@ def common_lines(use_freq: bool = False, log_scale: bool = False) -> dict:
 
 def absorption_edges(use_freq: bool = False, log_scale: bool = False) -> dict:
     """
-    Return a dictionary containing major absorption edges which I am interested in. The wavelengths of the lines are in
-    Angstroms or in frequency in Hz if use_freq is True.
+    Return a dictionary containing major absorption edges which I am interested
+    in. The wavelengths of the lines are in Angstroms or in frequency in Hz
+    if use_freq is True.
 
     Parameters
     ----------
-    use_freq           bool, optional
-                       If True, return the dict in frequency space
-    log_scale          bool, optional
-                       If this and use_freq are true, the lines will be returned
-                       to be plotted on a log10 scale
+    use_freq: bool, optional
+       If True, return the dict in frequency space
+    log_scale: bool, optional
+       If this and use_freq are true, the lines will be returned to be plotted
+       on a log10 scale
 
     Returns
     -------
-    edges              dict
-                       A dictionary where the keys are the line names and the values are the wavelength of the lines
-                       in Angstroms or in Hz if in frequency space
+    edges: dict
+        A dictionary where the keys are the line names and the values are the
+         wavelength of the lines in Angstroms or in Hz if in frequency space
     """
 
     edges = {
@@ -560,24 +557,27 @@ def absorption_edges(use_freq: bool = False, log_scale: bool = False) -> dict:
     return edges
 
 
-def plot_line_ids(ax: plt.axes, lines: dict, rotation: str = "horizontal", fontsize: int = 10) -> plt.axes:
+def plot_line_ids(ax: plt.Axes, lines: dict, rotation: str = "horizontal", fontsize: int = 10) -> plt.Axes:
     """
     Plot major absorption and emission line IDs onto a spectrum.
+
     Note, this should be used after setting the x limits on a figure.
+
     Parameters
     ----------
-    ax              plt.axes
-                    The plot object to add line IDs to
-    lines           dict
-                    A dictionary containing the line name and wavelength in Angstroms (ordered by wavelength)
-    rotation        str, optional
-                    Vertical or horizontal rotation for text ids
-    fontsize        int, optional
-                    The fontsize of the labels
+    ax: plt.Axes
+        The plot object to add line IDs to
+    lines: dict
+        A dictionary containing the line name and wavelength in Angstroms (ordered by wavelength)
+    rotation: str, optional
+        Vertical or horizontal rotation for text ids
+    fontsize: int, optional
+        The fontsize of the labels
+
     Returns
     -------
-    ax              plt.axes
-                    The plot object now with lines IDs :-)
+    ax: plt.Axes
+        The plot object now with lines IDs :-)
     """
 
     xlims = ax.get_xlim()

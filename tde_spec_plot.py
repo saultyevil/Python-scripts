@@ -315,7 +315,11 @@ def spec_plot_comparison(name: str, inc: str = None):
 
     fig.suptitle("Model Comparison")
     fig.tight_layout(rect=[0, 0.05, 1, 0.95])
-    plt.savefig("{}_comparison.{}".format(name, FTYPE))
+
+    fname = "{}_comparison".format(name)
+    if inc:
+        fname += "_i{}".format(inc)
+    plt.savefig("{}.{}".format(fname, FTYPE))
     plt.close()
 
     return

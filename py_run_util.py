@@ -404,6 +404,8 @@ def print_error_summary(root: str, wd: str, logfile=None) -> List[str]:
 
     error_summary = diag[error_start_idx:py_error_idx]
     n_unique_errors = len(error_summary) - 3
+    if n_unique_errors < 0:
+        n_unique_errors = 0
     n_total_errors = 0
 
     for i in range(n_unique_errors):
