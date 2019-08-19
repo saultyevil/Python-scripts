@@ -51,10 +51,7 @@ def split_path_fname(path: str) -> Tuple[str, str]:
     if sidx > -1:
         slurmdir = path[:sidx]
     else:
-        slurmdir = ""
-
-    print(slurmf, slurmdir)
-    exit(1)
+        slurmdir = "./"
 
     return slurmf, slurmdir
 
@@ -74,6 +71,7 @@ def add_to_queue(slurmfs: List[str]) -> None:
     for i in range(nslurm):
         f, wd = split_path_fname(slurmfs[i])
         cmd = "cd {}; sbatch {}; cd ..".format(wd, f)
+        print(cmd)
         sh = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
         stdout, stderr = sh.communicate()
         if stderr:
