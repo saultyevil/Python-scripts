@@ -40,7 +40,7 @@ def split_path_fname(path: str) -> Tuple[str, str]:
 
     assert(type(path) == str)
 
-    sidx = 0
+    sidx = -1
     idx = path.find(".slurm")
     for i in range(idx - 1, -1, -1):
         if path[i] == "/":
@@ -48,7 +48,13 @@ def split_path_fname(path: str) -> Tuple[str, str]:
             break
 
     slurmf = path[sidx + 1:]
-    slurmdir = path[:sidx]
+    if sidx > -1:
+        slurmdir = path[:sidx]
+    else:
+        slurmdir = ""
+
+    print(slurmf, slurmdir)
+    exit(1)
 
     return slurmf, slurmdir
 
