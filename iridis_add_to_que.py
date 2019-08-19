@@ -40,16 +40,13 @@ def split_path_fname(path: str) -> Tuple[str, str]:
 
     assert(type(path) == str)
 
-    sidx = -2
+    sidx = 0
     idx = path.find(".slurm")
     for i in range(idx - 1, -1, -1):
         if path[i] == "/":
             sidx = i
             break
 
-    if sidx == -2:
-        print("Unable to find .slurm extension in {}".format(path))
-        exit(1)
     slurmf = path[sidx + 1:]
     slurmdir = path[:sidx]
 
@@ -121,7 +118,7 @@ def main(argc: int, argv: List[str]) -> None:
     """
 
     slurmf = find_slurm_files()
-    print("The following .slurm files will be added to the queue:\n", slurmf)
+    print("The following .slurm files will be added to the queue:\n", slurmf, "\n")
     if argc == 2 and argv[1] == "-check":
         exit(0)
     add_to_queue(slurmf)

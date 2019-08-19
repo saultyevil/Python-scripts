@@ -113,8 +113,10 @@ def main() -> None:
     """
 
     name, root, ncores, thours, flags, vers = parse_arguments()
-    if vers == "":
+    if vers is None:
         vers = "py"
+    if flags is None:
+        flags = ""
     write_slurm_file(name, root, ncores, thours, flags, vers)
 
     return
