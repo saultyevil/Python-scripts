@@ -311,7 +311,7 @@ def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = 
     if restart_run:
         command += "-r "
 
-    if PY_FLAGS:
+    if PY_FLAGS and restart_from_spec is False:
         if type(PY_FLAGS) != str:
             rutil.log("The provided additional flags for Python is not a string")
             exit(1)
@@ -336,7 +336,8 @@ def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = 
         logfile.write("{}\n".format(line))
         pcycle = rutil.process_line_output(line, pcycle, n_cores, NOT_QUIET, VERBOSE)
 
-    rutil.log("")
+    if not NOT_QUIET:
+        rutil.log("")
     logfile.close()
 
     # Sometimes with Subprocess, if the output buffer is too large then subprocess
@@ -354,10 +355,7 @@ def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = 
     if rc:
         print("Python exited with non-zero exit code: {}\n".format(rc))
         rutil.print_error_summary(root, wd)
-        # raise CalledProcessError(rc, command)
 
-    # Create a file containing the Python version and commit hash - helpful when
-    # trying to figure out what version you need for py_wind or windsave2table
     version, hash = putil.get_python_version(PY_VERSION, VERBOSE)
     with open("version", "w") as f:
         f.write("{}\n{}".format(version, hash))
@@ -435,7 +433,7 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
             continue
 
         if CREATE_PLOTS or RUN_SIMS:
-            putil.run_windsave2table(wd, root, VERBOSE)
+            putil.windsave2table(wd, root, VERBOSE)
 
         if CREATE_PLOTS:
             rutil.log("Creating plots for the simulation\n")

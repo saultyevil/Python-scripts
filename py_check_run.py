@@ -30,7 +30,7 @@ from subprocess import Popen, PIPE
 from matplotlib import pyplot as plt
 from typing import List, Tuple
 
-CREATE_PLOT = False  # If True, the plot will be drawn on screen
+SHOW_PLOT = False  # If True, the plot will be drawn on screen
 FILE_TYPE = "png"  # The file type of the output
 
 
@@ -92,7 +92,7 @@ def get_convergence(filename: str) -> Tuple[np.ndarray, np.ndarray]:
     """
 
     # Create a grep command and pass to subprocess to get stdout and stderr
-    grep = r"grep '\!\!Check_converging' {}".format(filename)
+    grep = r"grep '\!\!Check_convergence' {}".format(filename)
     stdout, stderr = Popen(grep, stdout=PIPE, stderr=PIPE, shell=True).communicate()
     conv_out = stdout.decode("utf-8").split()
     if len(conv_out) == 0:
@@ -149,8 +149,8 @@ def parse_rootname() -> str:
         global FILE_TYPE
         FILE_TYPE = args.filetype
     if args.show:
-        global CREATE_PLOT
-        CREATE_PLOT = args.show
+        global SHOW_PLOT
+        SHOW_PLOT= args.show
 
     return args.root
 
@@ -173,7 +173,7 @@ def main():
 
     converged, converging = get_convergence(filename)
 
-    if CREATE_PLOT:
+    if SHOW_PLOT:
         plot_convergence(root, converged, converging)
 
     return

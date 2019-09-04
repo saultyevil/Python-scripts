@@ -287,7 +287,9 @@ def check_run_convergence(root: str, wd: str) -> Union[int, float]:
     converge_lines = []
     converge_fraction = None
     for line in diag:
-        if line.find("!!Check_converging") != -1:
+        if line.find("!!Check_convergence") != -1:
+            if len(line.split()) != 11:
+                continue
             c_string = line.split()[2].replace("(", "").replace(")", "")
             converge_fraction = float(c_string)
             converge_lines.append(line)
