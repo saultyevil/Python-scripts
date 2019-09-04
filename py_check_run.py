@@ -97,13 +97,13 @@ def get_convergence(filename: str) -> Tuple[np.ndarray, np.ndarray]:
     conv_out = stdout.decode("utf-8").split()
     if len(conv_out) == 0:
         print("No convergence output from grep")
-        sys.exit(1)
+        sys.exit(0)
     grep = r"grep '\!\!Python: Beginning cycle' {}".format(filename)
     stdout, stderr = Popen(grep, stdout=PIPE, stderr=PIPE, shell=True).communicate()
     cycle_out = stdout.decode("utf-8").split()
     if len(cycle_out) == 0:
         print("No cycle output from grep")
-        sys.exit(1)
+        sys.exit(0)
     ncycles = int(cycle_out[-4])
 
     # Loop over the grep output and separate converged and converging fractions
