@@ -40,7 +40,7 @@ def create(root, path):
     """
 
     verbose = False
-    py_plot_util.run_windsave2table(path, root, verbose)
+    py_plot_util.windsave2table(path, root, verbose)
 
     return
 

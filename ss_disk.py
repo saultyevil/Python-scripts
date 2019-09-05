@@ -84,9 +84,14 @@ def t_eff(r: float, m: float, mdot: float, rstar: float) -> float:
                     The effective temperature of the accretion disk at point R on the accretion disk given in K
     """
 
-    if r < rstar:
-        print("ss_disk.t_eff: r < rin")
-        exit(1)
+    if type(r) == float:
+        if r < rstar:
+            print("ss_disk.t_eff: r < rin")
+            exit(1)
+    elif type(r) == np.ndarray:
+        if np.any(r < rstar):
+            print("error")
+            exit(1)
 
     teff = ((3 * G * m * mdot) / (8 * np.pi * r ** 3 * STEFAN_BOLTZMANN) * (1 - (rstar / r) ** 0.5)) ** 0.25
 

@@ -315,6 +315,7 @@ def check_inclination_present(inclination: int, spec: np.array) -> bool:
     spec: np.ndarray
         The spectrum array to read -- assume that it is a np.array of strings
         Note that tde_spec_plot has a similar routine for pd.DataFrame's, whoops!
+
     Returns
     -------
     allowed: bool
@@ -467,10 +468,11 @@ def define_ylims(wavelength: np.array, flux: np.array, wmin: float, wmax: float,
     return yupper, ylower
 
 
-def common_lines(use_freq: bool = False, log_scale: bool = False) -> dict:
+def common_lines(use_freq: bool = False, log_scale: bool = False) -> list:
     """
-    Return a dictionary containing the major absorption and emission lines which I'm interested in. The wavelengths
-    of the lines are in Angstrom.
+    Return a dictionary containing the major absorption and emission lines which
+    I'm interested in. The wavelengths of the lines are in Angstrom in the
+    rest frame.
 
     Parameters
     ----------
@@ -482,44 +484,44 @@ def common_lines(use_freq: bool = False, log_scale: bool = False) -> dict:
 
     Returns
     -------
-    line: dict
-       A dictionary where the keys are the line names and the values are the
-       wavelength of the lines in Angstroms
+    line: List[List[str, float]]
+        A list of lists where each element of the list is the name of the
+        transition/edge and the rest wavelength of that transition in Angstroms.
     """
 
-    lines = {
-        "HeII Edge": 229,
-        "Lyman Edge": 912,
-        "P V": 1118,
-        r"L$_{\alpha}$": 1216,
-        "N V": 1240,
-        "Si IV": 1400,
-        "N IV": 1489,
-        "C IV": 1549,
-        # "He II": 1640,
-        "N III]": 1750,
-        "Al III": 1854,
-        "C III]": 1908,
-        "Mg II": 2798,
-        "Balmer Edge": 3646,
-        "He II": 4686,
-        r"H$_{\beta}$": 4861,
-        r"H$_{\alpha}$": 6564,
-        "Paschen Edge": 8204,
-        # "FeII": ,  # can't find a fucking value for this cunt
-    }
+    lines = [
+        ["HeII Edge", 229],
+        ["Lyman Edge", 912],
+        ["P V", 1118],
+        [r"Ly$\alpha$/N V", 1216],
+        ["", 1240],
+        ["O V/Si IV", 1371],
+        ["", 1400],
+        ["N IV", 1489],
+        ["C IV", 1549],
+        ["He II", 1640],
+        ["N III]", 1750],
+        ["Al III", 1854],
+        ["C III]", 1908],
+        ["Mg II", 2798],
+        ["Balmer Edge", 3646],
+        ["He II", 4686],
+        [r"H$_{\beta}$", 4861],
+        [r"H$_{\alpha}$", 6564],
+        ["Paschen Edge", 8204]
+    ]
 
     if use_freq:
-        for key, value in lines.items():
+        for i in range(len(lines)):
             if log_scale:
-                lines[key] = np.log10(C / (value * ANGSTROM))
+                lines[i][1] = np.log10(C / (lines[i][1] * ANGSTROM))
             else:
-                lines[key] = C / (value * ANGSTROM)
+                lines[i][1] = C / (lines[i][1] * ANGSTROM)
 
     return lines
 
 
-def absorption_edges(use_freq: bool = False, log_scale: bool = False) -> dict:
+def absorption_edges(use_freq: bool = False, log_scale: bool = False) -> list:
     """
     Return a dictionary containing major absorption edges which I am interested
     in. The wavelengths of the lines are in Angstroms or in frequency in Hz
@@ -536,28 +538,28 @@ def absorption_edges(use_freq: bool = False, log_scale: bool = False) -> dict:
     Returns
     -------
     edges: dict
-        A dictionary where the keys are the line names and the values are the
-         wavelength of the lines in Angstroms or in Hz if in frequency space
+        A list of lists where each element of the list is the name of the
+        transition/edge and the rest wavelength of that transition in Angstroms.
     """
 
-    edges = {
-        "HeII Edge": 229,
-        "Lyman Edge": 912,
-        "Balmer Edge": 3646,
-        "Paschen Edge": 8204,
-    }
+    edges = [
+        ["HeII Edge", 229],
+        ["Lyman Edge", 912],
+        ["Balmer Edge", 3646],
+        ["Paschen Edge", 8204],
+    ]
 
     if use_freq:
-        for key, value in edges.items():
+        for i in range(len(edges)):
             if log_scale:
-                edges[key] = np.log10(C / (value * ANGSTROM))
+                edges[i][1] = np.log10(C / (edges[i][1] * ANGSTROM))
             else:
-                edges[key] = C / (value * ANGSTROM)
+                edges[i][1] = C / (edges[i][1] * ANGSTROM)
 
     return edges
 
 
-def plot_line_ids(ax: plt.Axes, lines: dict, rotation: str = "horizontal", fontsize: int = 10) -> plt.Axes:
+def plot_line_ids(ax: plt.Axes, lines: list, rotation: str = "horizontal", fontsize: int = 10) -> plt.Axes:
     """
     Plot major absorption and emission line IDs onto a spectrum.
 
@@ -567,8 +569,8 @@ def plot_line_ids(ax: plt.Axes, lines: dict, rotation: str = "horizontal", fonts
     ----------
     ax: plt.Axes
         The plot object to add line IDs to
-    lines: dict
-        A dictionary containing the line name and wavelength in Angstroms (ordered by wavelength)
+    lines: list
+        A list containing the line name and wavelength in Angstroms (ordered by wavelength)
     rotation: str, optional
         Vertical or horizontal rotation for text ids
     fontsize: int, optional
@@ -580,32 +582,25 @@ def plot_line_ids(ax: plt.Axes, lines: dict, rotation: str = "horizontal", fonts
         The plot object now with lines IDs :-)
     """
 
+    nlines = len(lines)
     xlims = ax.get_xlim()
 
-    for i, l in enumerate(lines):
-        # check to make sure that a line isn't off the actual axis of the plot
-        if float(lines[l]) > xlims[1]:
+    for i in range(nlines):
+        x = lines[i][1]
+        if x < xlims[0]:
             continue
-        if float(lines[l]) < xlims[0]:
+        if x > xlims[1]:
             continue
-        # plot the text in an alternating up-down pattern
-        if i % 2 == 0:
-            line = ax.axvline(lines[l], 0.8, 0.9, color="k")
-            x, y = line.get_data()
-            coords = ax.transLimits.transform((x[0], y[1]))
-            ax.text(coords[0], 0.95, l, transform=ax.transAxes, ha="center", va="center", rotation=rotation,
-                    fontsize=fontsize)
-        else:
-            line = ax.axvline(lines[l], 0.1, 0.2, color="k")
-            x, y = line.get_data()
-            coords = ax.transLimits.transform((x[0], y[0]))
-            ax.text(coords[0], 0.05, l, transform=ax.transAxes, ha="center", va="center", rotation=rotation,
-                    fontsize=fontsize)
+        label = lines[i][0]
+        ax.axvline(x, linestyle="--", linewidth=0.5, color="k", zorder=1)
+        x = x - 25
+        xnorm = (x - xlims[0]) / (xlims[1] - xlims[0])
+        ax.text(xnorm, 0.92, label, ha="center", va="center", rotation="vertical", transform=ax.transAxes)
 
     return ax
 
 
-def run_windsave2table(path: str, root: str, verbose: bool = False) -> Union[int, None]:
+def windsave2table(path: str, root: str, verbose: bool = False) -> Union[int, None]:
     """
     Run windsave2table in the directory given by path. This function will also
     create a *.ep.complete file which combines both the heat and master data
@@ -680,8 +675,8 @@ def run_windsave2table(path: str, root: str, verbose: bool = False) -> Union[int
     return
 
 
-def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./", coord: str = "rectilinear") -> Tuple[
-    np.array, np.array, np.array]:
+def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./", coord: str = "rectilinear") \
+        -> Tuple[np.array, np.array, np.array]:
     """
     Read in variables contained within a windsave2table file. Requires the user
     to have already run windsave2table so the data is in the directory. This

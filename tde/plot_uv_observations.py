@@ -22,8 +22,10 @@ LINES = [
     ["O VI", 0],
     ["P V", 1118],
     ["N III]", 0],
-    [r"Ly$\alpha$", 1216],
-    ["N V", 1240],
+    [r"Ly$\alpha$/N V", 1216],
+    ["", 1240],
+    # [r"Ly$\alpha$", 1216],
+    # ["N V", 1240],
     ["O I", 0],
     ["Si IV", 1400],
     ["N IV]", 1489],
@@ -40,7 +42,7 @@ LINES = [
 ]
 
 
-def plot_line_id(ax: plt.Axes, yloc: float) -> plt.Axes:
+def plot_line_id(ax: plt.Axes) -> plt.Axes:
     """
     Plot labels and vertical lines to indicate important atomic transitions.
 
@@ -49,9 +51,6 @@ def plot_line_id(ax: plt.Axes, yloc: float) -> plt.Axes:
     ax: plt.Axes
         The Axes object to add line ID labels to.
 
-    yloc: float
-        The y coordinate where to place the labels. Note that this is value is
-        then padded by 0.2 :^).
 
     Returns
     -------
@@ -69,15 +68,17 @@ def plot_line_id(ax: plt.Axes, yloc: float) -> plt.Axes:
             continue
         elif x > xlims[1]:
             continue
-        ax.axvline(x, ymax=0.93, linestyle="--", linewidth=0.45, color="k")
-        ax.text(x, yloc + 0.2, lab, ha="center", va="center", rotation="vertical")
+        ax.axvline(x, ymax=1, linestyle="--", linewidth=0.45, color="k")
+        x = x - 25
+        xnorm = (x - xlims[0]) / (xlims[1] - xlims[0])
+        ax.text(xnorm, 0.92, lab, ha="center", va="center", rotation="vertical", transform=ax.transAxes, fontsize=13)
 
     return ax
 
 
-def normalise_flux(input_flux: np.ndarray):
+def rescale_flux(input_flux: np.ndarray):
     """
-    Normalise the flux between 0 and 1.
+    Rescale the input flux between 0 and 1.
 
     Parameters
     ----------
@@ -137,36 +138,42 @@ def plot_uv_observations() -> None:
     iptf16fnl = tu.iptf16fnl_spec(SMOOTH, VERBOSE)
     at2018zr = tu.at2018zr_spec(SMOOTH, VERBOSE)
     composite_qso = tu.sdss_qso_spec(VERBOSE)
+    lobal = tu.lobal_qso_spec(VERBOSE)
 
-    nspec = 5
-    spec_list = [composite_qso, asassn14li, iptf15af, iptf16fnl, at2018zr]
-    spec_names = ["SDSS Composite QSO", r"ASASSN14li $\Delta t = $60 d", r"iPTF15af $\Delta t = $52 d",
-                  r"iPTF16fnl $\Delta t = $51 d", r"AT2018zr $\Delta t = $59 d"]
-    name_x = [0.28, 1.25, 2.23, 3.27, 4.55]
-    spec_z = [0,  0.02058, 0.07897, 0.0163, 0.071]
-    bbT = [0, 35000, 43300, 19000, 22000]
-    bbT = [0, 35000, 43300, 1.9e4, 2.2e4]
+    nspec = 6
+    spec_list = [composite_qso, lobal, asassn14li, iptf15af, iptf16fnl, at2018zr]
+    spec_names = ["SDSS Composite QSO", "Composite LoBALQSO", r"ASASSN14li $\Delta t = $60 d",
+                  r"iPTF15af $\Delta t = $52 d", r"iPTF16fnl $\Delta t = $51 d", r"AT2018zr $\Delta t = $59 d"]
+    name_x = [0.28, 1.45, 2.23, 3.27, 4.32, 5.55]
+    spec_z = [0,  0, 0.02058, 0.07897, 0.0163, 0.071]
+    bb_temp = [0, 0, 35000, 43300, 19000, 22000]
+    bb_radius = [0, 0, 1.35e14, 1.35e14, 1.1e14, 4e14]
+    dl = np.array([0, 0, 90, 358, 67, 337]) * 1e6 * PARSEC
 
     wmin = 1000
     wmax = 3000
 
     fig, ax = plt.subplots(1, 1, figsize=(9.5, 11))
     ax.set_xlim(wmin, wmax)
-    ax = plot_line_id(ax, nspec + 0.17)
+    # ax = plot_line_id(ax, nspec + 0.17)
     for i in range(nspec):
-        offset = 1 * i
+        offset = 1 * 10 ** i
         wlength = spec_list[i][:, 0] / (1 + spec_z[i])
-        flux = normalise_flux(ppu.smooth_1d_array(spec_list[i][:, 1], SMOOTH, VERBOSE))
-        ax.plot(wlength, flux + offset, label=spec_names[i])
-        if bbT[i] != 0:
+        # flux = rescale_flux(ppu.smooth_1d_array(spec_list[i][:, 1], SMOOTH, VERBOSE))
+        flux = ppu.smooth_1d_array(spec_list[i][:, 1], SMOOTH, VERBOSE)
+        ax.semilogy(wlength, flux, label=spec_names[i])
+        if bb_temp[i]:
             twl = wlength
-            bbfl = blackbody_flux(bbT[i], twl)
-            bbfl = normalise_flux(bbfl)
-            ax.plot(twl, bbfl + offset, linestyle="--", alpha=0.5, color="k")
-        ax.text(2200, name_x[i], spec_names[i], fontsize=13)
-    ax.set_ylim(0, nspec + 0.55)
-    ax.set_xlabel(r"Rest Wavelength [$\AA$]", fontsize=13)
-    ax.set_ylabel(r"Normalised Flux $F_{\lambda}$ + Offset", fontsize=13)
+            bbfl = blackbody_flux(bb_temp[i], twl)
+            bbfl *= np.pi * bb_radius[i] ** 2 / dl[i] ** 2
+            # bbfl = rescale_flux(bbfl)
+            ax.semilogy(twl, bbfl, linestyle="--", alpha=0.5, color="k")
+        # ax.text(2200, name_x[i], spec_names[i], fontsize=15)
+    # ax.set_ylim(0, nspec + 0.7)
+    ax.set_xlabel(r"Rest Wavelength [$\AA$]", fontsize=15)
+    ax.set_ylabel(r"Rescaled Flux $F_{\lambda}$ + Offset", fontsize=15)
+    ax.tick_params(axis="x", labelsize=13)
+    ax.tick_params(axis="y", labelsize=13)
 
     fig.tight_layout(rect=[0.015, 0.015, 0.985, 0.985])
     plt.savefig("tde_uv_observations.png")

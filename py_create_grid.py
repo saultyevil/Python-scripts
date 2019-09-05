@@ -15,6 +15,7 @@ Usage
 """
 
 
+from sys import exit
 import os
 import py_run
 import shutil
@@ -118,19 +119,27 @@ def run_grid() -> None:
         print(__doc__)
         return
 
-    print("ENSURE THAT THE SCRIPT HAS BEEN EDITED APPROPRIATELY BEFORE RUNNING")
-    input("Press a enter to continue...")
-
     # This is the parameter which will be changed
-    root = "tde_agn.pf"
+    root = "base.pf"
     parameter = "Disk.mdot(msol/yr)"
 
-    grid = []
-    tmp = [2e-5, 2e-4, 2e-3, 2e-2, 2]
+    # tmp = np.linspace(-10, 10, 11)
+    # for i in range(len(tmp)):
+    #     if tmp[i] < 0:
+    #         tmp[i] = -1 / tmp[i]
+    # tmp = tmp[tmp != 0]
+    # print(tmp)
     # tmp = [0.07, 0.075, 0.08, 0.085, 0.090, 0.095]
     # esc_vel = np.sqrt(2 * G * 3e7 * MSOL / 2.65e13)
+
+    tmp = [9e-2, 1e-1, 3e-1, 4e-1]
+    grid = []
     for i in range(len(tmp)):
         grid.append("{:.4e}".format(tmp[i]))
+    print(parameter, grid)
+
+    print("ENSURE THAT THE SCRIPT HAS BEEN EDITED APPROPRIATELY BEFORE RUNNING")
+    input("Press a enter to continue...")
 
     print("Running grid of {} simulations:".format(len(grid)))
     print("Parameter: {}".format(parameter))

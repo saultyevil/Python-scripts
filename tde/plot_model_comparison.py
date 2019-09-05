@@ -26,32 +26,32 @@ else:
 
 import py_plot_util as ppu
 
-SMOOTH = 5
+SMOOTH = 10
 VERBOSE = False
 
 LINES = [
-    ["O VI", 0],
+    # ["O VI", 0],
     ["P V", 1118],
-    ["N III]", 0],
-    [r"Ly$\alpha$", 1216],
-    ["N V", 1240],
-    ["O I", 0],
-    ["Si IV", 1400],
-    ["N IV]", 1489],
+    # ["N III]", 0],
+    [r"Ly$\alpha$/N V", 1216],
+    ["", 1240],
+    ["O V/Si IV", 1371],
+    ["", 1400],
+    # ["N IV]", 1489],
     ["C IV",  1549],
-    ["He II", 0],
-    ["O III]", 0],
-    ["N III]", 1750],
-    ["C III]", 1908],
-    ["Fe II", 0],
-    ["Fe II / CII]", 0],
-    ["Fe II", 0],
-    ["Fe II", 0],
-    ["Mg II", 2798]
+    ["He II", 1640],
+    # ["O III]", 0],
+    # ["N III]", 1750],
+    # ["C III]", 1908],
+    # ["Fe II", 0],
+    # ["Fe II / CII]", 0],
+    # ["Fe II", 0],
+    # ["Fe II", 0],
+    # ["Mg II", 2798]
 ]
 
 
-def plot_line_id(ax: plt.Axes) -> plt.Axes:
+def plot_line_id(ax: plt.Axes, labels: bool) -> plt.Axes:
     """
     Plot labels and vertical lines to indicate important atomic transitions.
 
@@ -72,7 +72,6 @@ def plot_line_id(ax: plt.Axes) -> plt.Axes:
     xlims = ax.get_xlim()
     nlines = len(LINES)
 
-    iloc = 0
     for i in range(nlines):
         lab = LINES[i][0]
         x = LINES[i][1]
@@ -80,15 +79,15 @@ def plot_line_id(ax: plt.Axes) -> plt.Axes:
             continue
         elif x > xlims[1]:
             continue
-        ax.axvline(x, ymin=0.15, ymax=0.85, linestyle="--", linewidth=0.45, color="k")
+
+        ax.axvline(x, ymax=1, linestyle="--", linewidth=0.45, color="k")
+
+        if labels is False:
+            continue
+
+        x = x - 25
         xnorm = (x - xlims[0]) / (xlims[1] - xlims[0])
-        if iloc % 2 == 0:
-            yloc = 0.95
-        else:
-            yloc = 0.05
-        iloc += 1
-        ax.text(xnorm, yloc, lab, ha="center", va="center", rotation="vertical", transform=ax.transAxes,
-                fontsize=9)
+        ax.text(xnorm, 0.92, lab, ha="center", va="center", rotation="vertical", transform=ax.transAxes, fontsize=10)
 
     return ax
 
@@ -150,12 +149,12 @@ def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800,
         fig, ax = plt.subplots(nrows, ncols, figsize=(9.5, 11), sharex="col", sharey="row")
 
     #       CV    AGN   Spherical
-    incl = ["20", "70", "30",
-            "62", "75", "60",
-            "75", "85", "80"]
+    incl = ["20", "70", "20",
+            "62", "75", "62",
+            "75", "85", "75"]
     iidx = 0
 
-    ylims = [(5e-3, 0.13), (0.8e-3, 0.07), (1e-3, 0.07)]
+    ylims = [(5e-3, 0.17), (0.8e-3, 0.07), (1e-3, 0.07)]
 
     for i in range(nrows):
         for j in range(ncols):
@@ -167,37 +166,32 @@ def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800,
                 print("Inclination {} w/ iidx {} not found for model with x,y indices {},{}: {}".format(incl[iidx], iidx, i, j, direcs[j]))
                 iidx += 1
                 continue
-            wminidx = 0
-            wmaxidx = 0
-            for k in range(len(wl)):
-                if wl[k] > wmin:
-                    wminidx = k - 1
-                if wl[k] > wmax:
-                    wmaxidx = k
-            wl = wl[wmaxidx:wminidx]
-            fl = fl[wmaxidx:wminidx]
-
-            # TODO: line ids look a bit fucked up
-            # ax[i, j].set_xlim(wmin - 40, wmax + 40)
-            # ax[i, j] = plot_line_id(ax[i, j])
-
             ax[i, j].semilogy(wl, ppu.smooth_1d_array(fl, SMOOTH, VERBOSE), label=label)
+            ax[i, j].set_xlim(wmin, wmax)
             ax[i, j].set_ylim(ylims[i])
             tstr = r"$i = $" + incl[iidx - 1] + r"$^{\circ}$"
             ax[i, j].text(0.85, 0.93, tstr, ha="center", va="center", rotation="horizontal", fontsize=12,
-                           transform=ax[i, j].transAxes)
+                          transform=ax[i, j].transAxes)
+            if i != 0:
+                labels = False
+            else:
+                labels = True
+            # ax[i, j] = plot_line_id(ax[i, j], labels)
 
     mnames = ["Biconical Wind Model", "Equatorial Wind Model", "Spherical Model"]
     for i in range(ncols):
         ax[0, i].text(0.5, 1.1, mnames[i], va="center", ha="center", rotation="horizontal", fontsize=13,
-                       transform=ax[0, i].transAxes)
+                      transform=ax[0, i].transAxes)
+        ax[-1, i].tick_params(axis="x", rotation=30, labelsize=12)
+    for i in range(nrows):
+        ax[i, 0].tick_params(axis="y", labelsize=12)
 
     if figure:
         ax[0, 0].legend(loc="lower center")
 
-    fig.text(0.5, 0.02, r"Rest Wavelength [$\AA$]", ha="center", va="center", rotation="horizontal", fontsize=13)
+    fig.text(0.5, 0.02, r"Rest Wavelength [$\AA$]", ha="center", va="center", rotation="horizontal", fontsize=15)
     fig.text(0.025, 0.5, r"Flux $F_{\lambda}$  at 100 pc [erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$]", ha="center", va="center",
-             rotation="vertical", fontsize=13)
+             rotation="vertical", fontsize=15)
     fig.tight_layout(rect=[0.03, 0.03, 0.97, 0.97])
     fig.subplots_adjust(hspace=0, wspace=0)
 
@@ -245,12 +239,20 @@ def main(argc: int, argv: List[str]) -> None:
         print(__doc__)
         exit(1)
 
-    solar = ["cv_macro/zorig/tde_cv.spec", "agn_macro/zorig/tde_agn.spec", "spherical_macro/zorig/tde_spherical.spec"]
-    cno = ["cno_processed/cv_macro_cno/zorig/tde_cv.spec", "cno_processed/agn_macro_cno/zorig/tde_agn.spec",
-           "cno_processed/spherical_macro_cno/zorig/tde_spherical_cno.spec"]
+    # solar = ["cv_macro/zorig/tde_cv.spec", "agn_macro/zorig/tde_agn.spec",
+    #          "spherical_macro/zorig_angles/tde_spherical.spec"]
+    #
+    # cno = ["cno_processed/cv_macro_cno/zorig/tde_cv.spec", "cno_processed/agn_macro_cno/zorig/tde_agn.spec",
+    #        "cno_processed/spherical_macro_cno/zorig_angles_cno/tde_spherical.spec"]
 
-    model_comparison(solar.copy(), "_solar", wmin, wmax)
-    model_comparison(cno.copy(), "_cno", wmin, wmax)
+    solar = ["paper_models/smooth/cv/solar/tde_cv.spec",
+             "paper_models/smooth/agn/solar/tde_agn.spec",
+             "paper_models/smooth/spherical/solar/tde_spherical.spec"]
+
+    cno = ["paper_models/smooth/cv/cno/tde_cv.spec",
+            "paper_models/smooth/agn/cno/tde_agn.spec",
+            "paper_models/smooth/spherical/cno/tde_spherical.spec"]
+
     fig, ax = model_comparison(solar.copy(), "_solar_cno", wmin, wmax, label="Solar Abundance", return_figure=True)
     model_comparison(cno.copy(), "_solar_cno", wmin, wmax, label="CNO Processed Abundance", return_figure=False,
                      figure=(fig, ax))

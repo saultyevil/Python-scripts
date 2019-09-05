@@ -17,7 +17,7 @@ from consts import *
 from typing import Tuple
 from matplotlib import pyplot as plt
 
-SMOOTH = 15
+SMOOTH = 5
 WMIN = 700
 WMAX = 3500
 TDE_OBJ = "iPTF15af"
@@ -27,8 +27,7 @@ PLOT_LINE_IDS = True
 VERBOSE = False
 
 copypasta = \
-    r"""
-I have put you on a permanent ignore, public and private. I have found you disturbing, rude and generally
+    """I have put you on a permanent ignore, public and private. I have found you disturbing, rude and generally
 not worth talking to. According to the channels you hang on, it strengtens  the effect of wanting to put
 you on ignore because of my lack of interest in you as a person. This message is not meant to be rude to
 you, just to inform you that i won't see anything of what you type from now on.
@@ -86,7 +85,7 @@ def spec_plot_inclination(root: str, inc: str) -> None:
         The inclination angle to plot the spectrum for
     """
 
-    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+    fig, ax = plt.subplots(1, 1, figsize=(12, 5))
 
     observe_dist = 1
     if TDE_OBJ:
@@ -122,7 +121,7 @@ def spec_plot_inclination(root: str, inc: str) -> None:
         py_plot_util.plot_line_ids(ax, py_plot_util.common_lines())
     ax.set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)")
     ax.set_xlabel(r"Wavelength ($\AA$)")
-    ax.legend(loc="lower right")
+    ax.legend(loc="best")
 
     # Finishing touches to the plot, including title and tight layout
     fig.suptitle(root)
@@ -164,7 +163,7 @@ def spec_plot_multiple(root: str) -> None:
     # Figure out the shape of the subplot grid and create the plotting object
     n_spec = len(inclinations)
     nrows, ncols = py_plot_util.subplot_dims(n_spec)
-    fig, ax = plt.subplots(nrows, ncols, figsize=(12, 12), squeeze=False, sharex="col")
+    fig, ax = plt.subplots(nrows, ncols, figsize=(17, 12), squeeze=False, sharex="col")
 
     index = 0
     for i in range(nrows):
@@ -192,7 +191,7 @@ def spec_plot_multiple(root: str) -> None:
             if PLOT_LINE_IDS:
                 ax[i, j] = py_plot_util.plot_line_ids(ax[i, j], py_plot_util.common_lines())
             ax[i, j].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)")
-            ax[i, j].legend(loc="upper right")
+            ax[i, j].legend(loc="best")
 
             # Increment index for inclination array
             index += 1
@@ -305,10 +304,10 @@ def spec_plot_comparison(name: str, inc: str = None):
 
             # Finishing touches to plot
             ax[i, j].set_xlim(WMIN, WMAX)
-            ax[i, j].set_ylim(ymin, ymax)
+            ax[i, j].set_ylim(1e-17, ymax)
             if PLOT_LINE_IDS:
                 py_plot_util.plot_line_ids(ax[i, j], py_plot_util.common_lines())
-            ax[i, j].legend(loc="upper right")
+            ax[i, j].legend(loc="best")
 
             # Increment inclination index
             index += 1

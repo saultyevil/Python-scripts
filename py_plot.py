@@ -52,7 +52,7 @@ from typing import List, Tuple, Union
 PLOTS = "all"
 POLAR_PROJECTION = False
 VERBOSE = False
-CREATE_PLOT = False
+SHOW_PLOT = False
 PLOT_LOG = False
 DIMS = "2d"
 WMIN = None
@@ -78,7 +78,7 @@ def get_script_arguments() -> str:
     global PLOTS
     global POLAR_PROJECTION
     global VERBOSE
-    global CREATE_PLOT
+    global SHOW_PLOT
     global PLOT_LOG
     global WMIN
     global WMAX
@@ -349,8 +349,8 @@ def plot_wind(root_name: str, output_name: str, vars: List[str], var_types: List
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.savefig("{}/{}.{}".format(path, output_name, filetype))
 
-    if CREATE_PLOT:
-        plt.show()
+    if SHOW_PLOT:
+        plt.show(block=False)
     else:
         plt.close()
 
@@ -416,14 +416,6 @@ def plot_tau_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edge
     if wmax:
         xxlims[1] = wmax
 
-    ymin = 1e+99
-    ymax = 1e-99
-
-    if plot_edges:
-        scale = 50000
-    else:
-        scale = 10
-
     for i in range(nangles):
         the_label = r"$i$ = " + str(float(cols[i + 1][1:3])) + r"$^{\circ}$"
 
@@ -440,12 +432,12 @@ def plot_tau_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edge
             ax.plot(spec[:, 0], spec[:, i + 1], label=the_label)
         ax.tick_params(axis="both", which="major", labelsize=13)
 
-        if plot_edges or semilogy is False:
-            tymax, tymin = py_plot_util.define_ylims(spec[:, 0], spec[:, i + 1], xxlims[0], xxlims[1], scale=scale)
-            if tymax > ymax:
-                ymax = tymax
-            if tymin < ymin and tymin != 0:
-                ymin = tymin
+        # if plot_edges or semilogy is False:
+        #     tymax, tymin = py_plot_util.define_ylims(spec[:, 0], spec[:, i + 1], xxlims[0], xxlims[1], scale=scale)
+        #     if tymax > ymax:
+        #         ymax = tymax
+        #     if tymin < ymin and tymin != 0:
+        #         ymin = tymin
 
     if plot_freq:
         if loglog:
@@ -456,18 +448,18 @@ def plot_tau_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edge
         ax.set_xlabel(r"Wavelength, $\AA$", fontsize=15)
     ax.set_ylabel(r"Optical Depth, $\tau$", fontsize=15)
 
+    ylims = ax.get_ylim()
+    ax.set_ylim(ylims[0] / 10, ylims[1] * 10)
+
     if plot_edges:
-        py_plot_util.plot_line_ids(ax, py_plot_util.absorption_edges(plot_freq, loglog))
+        py_plot_util.plot_line_ids(ax, py_plot_util.absorption_edges(use_freq=plot_freq, log_scale=loglog))
 
     ax.legend()
 
-    if plot_edges:
-        py_plot_util.plot_line_ids(ax, py_plot_util.absorption_edges(plot_freq))
-
     plt.savefig("{}_tau_spec.png".format(root))
 
-    if CREATE_PLOT:
-        plt.show()
+    if SHOW_PLOT:
+        plt.show(block=False)
     else:
         plt.close()
 
@@ -570,8 +562,8 @@ def plot_spec_comps(spec_path: str, output_name: str, semilogy_scale: bool = Fal
 
     plt.savefig("{}_spec_comps.{}".format(output_name, filetype))
 
-    if CREATE_PLOT:
-        plt.show()
+    if SHOW_PLOT:
+        plt.show(block=False)
     else:
         plt.close()
 
@@ -672,8 +664,8 @@ def plot_spectra(spec_path: List[str], inclinations: Union[List, np.array], outp
         fig.tight_layout(rect=[0, 0.03, 1, 0.95])
         plt.savefig("{}_{}.{}".format(output_name, angle, filetype))
 
-        if CREATE_PLOT:
-            plt.show()
+        if SHOW_PLOT:
+            plt.show(block=False)
         else:
             plt.close()
 
@@ -755,7 +747,7 @@ def main() -> None:
         # Run windsave2table to extract data from the wind_save file
         if PLOTS == "wind" or PLOTS == "ions" or PLOTS == "all":
             if os.path.isfile("{}.ep.complete".format(root)) is False:
-                rc = py_plot_util.run_windsave2table(path, root, VERBOSE)
+                rc = py_plot_util.windsave2table(path, root, VERBOSE)
                 if rc:
                     print("py_plot.main: windsave2table failed to run")
                     exit(1)
@@ -771,13 +763,25 @@ def main() -> None:
         # Now plot some ions
         if PLOTS == "ions" or PLOTS == "all":
             print("\nPlotting wind ions")
-            # vars = ["He_i01", "He_i02", "He_i03"]
-            # vars = ["C_i01", "C_i02", "C_i03", "C_i04", "C_i05", "C_i06"]
-            # vars = ["N_i01", "N_i02", "N_i03", "N_i04", "N_i05", "N_i06", "N_i07", "N_i08"]
-            vars = ["H_i01", "H_i02", "He_i01", "He_i02", "He_i03", "Si_i04", "N_i05", "C_i04"]
-            var_types = ["ion"] * len(vars)
-            plot_wind(root, outname + "_ions", vars, var_types, path, projection=projection, filetype=FILETYPE,
-                      data_ndims=DIMS, verbose=VERBOSE)
+            inames = ["H", "He", "C", "N", "O", "Si", "Ions"]
+            ions = [
+                ["H_i01", "H_i02"],
+                ["He_i01", "He_i02", "He_i03"],
+                ["C_i01", "C_i02", "C_i03", "C_i04", "C_i05", "C_i06"],
+                ["N_i01", "N_i02", "N_i03", "N_i04", "N_i05", "N_i06", "N_i07", "N_i08"],
+                ["O_i01", "O_i02", "O_i03", "O_i04", "O_i05", "O_i06", "O_i07", "O_i08"],
+                ["Si_i01", "Si_i02", "Si_i03", "Si_i04", "Si_i05", "Si_i06", "Si_i07", "Si_i08", "Si_i09", "Si_i10",
+                 "Si_i11", "Si_i12", "Si_i13", "Si_i14", "Si_i15"],
+                ["O_i05", "Si_i04", "Si_i05", "N_i04", "N_i05", "N_i06", "C_i04", "C_i05"]
+            ]
+            dims = [(1, 2), (2, 2), (3, 2), (4, 2), (4, 2), (5, 3), (4, 2)]
+            for i in range(len(ions)):
+                print("\tCreating ion plot for {}".format(inames[i]))
+                name = "_" + inames[i] + "_ions"
+                vars = ions[i]
+                var_types = ["ion"] * len(vars)
+                plot_wind(root, outname + name, vars, var_types, path, projection=projection, filetype=FILETYPE,
+                          data_ndims=DIMS, verbose=VERBOSE, subplot_dims=dims[i])
 
         py_rm_data.remove_data_dir(path)
 
@@ -785,6 +789,9 @@ def main() -> None:
         print("Can only plot {} when one root in folder :^)".format(PLOTS))
 
     print("")  # spacer :-)
+
+    if SHOW_PLOT:
+        input("Press enter to exit")
 
     print("--------------------------")
 

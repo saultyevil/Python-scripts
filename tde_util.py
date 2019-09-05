@@ -234,6 +234,39 @@ def sdss_qso_spec(verbose: bool = False) -> np.array:
     return
 
 
+def lobal_qso_spec(verbose: bool = False) -> np.array:
+    """
+    Parameters
+    ----------
+    verbose             bool, optional
+                        Enable verbose logging
+    """
+
+    spec_dir = ""
+    sys = system()
+    if sys == "Linux":
+        spec_dir = "/home/saultyevil/"
+    elif sys == "Darwin":
+        spec_dir = "/Users/saultyevil/"
+    else:
+        print("py_util.lobal_qso_spec: unknown system type {}".format(sys))
+        exit(1)
+    spec_dir += "PySims/tde/observed_spec/LoBALQSO.dat"
+
+    if verbose:
+        print("Hostname: {}".format(gethostname()))
+        print("LoBALQSO spectra being read in from {}".format(spec_dir))
+
+    try:
+        return np.loadtxt(spec_dir, skiprows=1)
+    except IOError:
+        print("py_util.lobal_qso_spec: Unable to open the LoBALQSO spectrum from the following path {}. "
+              "Update the directories in the script".format(spec_dir))
+        exit(1)
+
+    return
+
+
 def plot_iPTF15af_photometry(ax):
     """
     Plot photometric data for the UV spectrum of iPTF15af from Blagordnova et al. 2019.
