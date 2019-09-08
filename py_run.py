@@ -203,7 +203,6 @@ def plot_spec_tde(root: str, wd: str) -> None:
     spec = ppu.read_spec_file(wd + root + ".spec", pandas_table=True)
     incs = ppu.spec_inclinations_pandas(spec)
     nincs = len(incs)
-    print(incs)
 
     commands = ["cd {}; tde_spec_plot.py {}".format(wd, root)]
     for i in range(nincs):

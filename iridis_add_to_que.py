@@ -125,6 +125,7 @@ def main(argc: int, argv: List[str]) -> None:
     print("The following .slurm files will be added to the queue:")
     for i in range(len(slurmf)):
         print("\t{}".format(slurmf[i]))
+    print("")
     if argc == 2 and argv[1] == "-check":
         exit(0)
     add_to_queue(slurmf)
