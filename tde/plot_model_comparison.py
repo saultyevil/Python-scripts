@@ -138,7 +138,7 @@ def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800,
     modelspecs = []
     for i in range(len(direcs)):
         direcs[i] = pdir + direcs[i]
-        modelspecs.append(ppu.read_spec_file(direcs[i], pandas_table=True))
+        modelspecs.append(ppu.read_spec(direcs[i], numpy=True))
 
     ncols = 3
     nrows = 3
@@ -166,7 +166,7 @@ def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800,
                 print("Inclination {} w/ iidx {} not found for model with x,y indices {},{}: {}".format(incl[iidx], iidx, i, j, direcs[j]))
                 iidx += 1
                 continue
-            ax[i, j].semilogy(wl, ppu.smooth_1d_array(fl, SMOOTH, VERBOSE), label=label)
+            ax[i, j].semilogy(wl, ppu.smooth(fl, SMOOTH, VERBOSE), label=label)
             ax[i, j].set_xlim(wmin, wmax)
             ax[i, j].set_ylim(ylims[i])
             tstr = r"$i = $" + incl[iidx - 1] + r"$^{\circ}$"

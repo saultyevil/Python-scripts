@@ -150,7 +150,7 @@ def main():
 
     print(spec[:, 1])
 
-    plt.semilogy(spec[:, 0], ppu.smooth_1d_array(spec[:, 1], 10))
+    plt.semilogy(spec[:, 0], ppu.smooth(spec[:, 1], 10))
     plt.semilogy(spec[:, 0], spec[:, 1])
     plt.show()
 

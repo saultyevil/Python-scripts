@@ -150,7 +150,7 @@ def plot_uv_observations() -> None:
     for i in range(nspec):
         offset = 0  # * i
         wlength = spec_list[i][:, 0] / (1 + spec_z[i])
-        flux = normalise_flux(ppu.smooth_1d_array(spec_list[i][:, 1], SMOOTH, VERBOSE))
+        flux = normalise_flux(ppu.smooth(spec_list[i][:, 1], SMOOTH, VERBOSE))
         ax[i].plot(wlength, flux + offset, label=spec_names[i])
 
         wl = wlength.copy()

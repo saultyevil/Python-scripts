@@ -41,7 +41,7 @@ def plot_3_inclinations(files, titles, suptitle, inds, labels, ncols, nrows, out
             if file >= len(files):
                 break
             # print(files[file])
-            spec = py_plot_util.read_spec_file(files[file])
+            spec = py_plot_util.read_spec(files[file])
             wavelength = np.array(spec[1:, 1], dtype=float)
             
             ax[i, j].semilogy(blag[:, 0], blag[:, 1]*100, label="iPTF15af")
@@ -49,19 +49,19 @@ def plot_3_inclinations(files, titles, suptitle, inds, labels, ncols, nrows, out
             # Read in the fluxes and normalise and scale appropriately
             # inclination angle 1
             flux1 = np.array(spec[1:, inds[0]], dtype=float)
-            flux1 = py_plot_util.smooth_1d_array(flux1, SMOOTH, VERBOSE)
+            flux1 = py_plot_util.smooth(flux1, SMOOTH, VERBOSE)
             fmax = np.max(flux1)
             flux1 /= fmax
             flux1 *= 10000
             # inclination angle 2
             flux2 = np.array(spec[1:, inds[1]], dtype=float)
-            flux2 = py_plot_util.smooth_1d_array(flux2, SMOOTH, VERBOSE)
+            flux2 = py_plot_util.smooth(flux2, SMOOTH, VERBOSE)
             fmax = np.max(flux2)
             flux2 /= fmax
             flux2 *= 100  # move up axis
             # inclination angle 3
             flux3 = np.array(spec[1:, inds[2]], dtype=float)
-            flux3 = py_plot_util.smooth_1d_array(flux3, SMOOTH, VERBOSE)
+            flux3 = py_plot_util.smooth(flux3, SMOOTH, VERBOSE)
             fmax = np.max(flux3)
             flux3 /= fmax
             flux3 /= 1  # move up axis MORE

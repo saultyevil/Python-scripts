@@ -32,7 +32,7 @@ def read_and_reshape_data(filename):
             col 6: cell temperature
     """
 
-    sgrid = np.array(py_plot_util.read_spec_file(filename), dtype=float)
+    sgrid = np.array(py_plot_util.read_spec(filename), dtype=float)
 
     # Figure out the number of cells, cycles and cols from the dimensions
     ncells = int(sgrid[:, 0].max()) + 1

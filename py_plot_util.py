@@ -10,7 +10,6 @@ should be imported into other scripts rather than being itself run.
 import os
 import numpy as np
 import pandas as pd
-from sys import exit
 from shutil import which
 from subprocess import Popen, PIPE
 from matplotlib import pyplot as plt
@@ -22,10 +21,8 @@ from consts import C, ANGSTROM
 
 def tests() -> None:
     """
-    Warns the user that this script is a utility script and not meant to be run. It will also print the current
-    Python version to screen.
-
-    TODO: add unit tests or something
+    Warns the user that this script is a utility script and not meant to be run.
+    It will also print the current Python version to screen.
     """
 
     print("This script is not designed to be run. Instead, import it using import py_plot_util.")
@@ -58,8 +55,7 @@ def get_python_version(py: str = "py", verbose: bool = False) -> Tuple[str, str]
 
     path = which(py)
     if not path:
-        print("py_plot_util.get_python_version: {} is not in $PATH".format(py))
-        return version, commit_hash
+        raise Exception("{}:{}: {} is not in $PATH".format(__file__, get_python_version.__name__, py))
 
     command = "{} --version".format(py)
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
@@ -68,7 +64,7 @@ def get_python_version(py: str = "py", verbose: bool = False) -> Tuple[str, str]
     err = stderr.decode("utf-8")
 
     if err:
-        print("py_plot_util.get_python_version: captured from stderr")
+        print("{}:{}: captured from stderr".format(__file__, get_python_version.__name__))
         print(stderr)
 
     for i in range(len(out)):
@@ -78,9 +74,9 @@ def get_python_version(py: str = "py", verbose: bool = False) -> Tuple[str, str]
             commit_hash = out[i + 1]
 
     if version == "" and verbose:
-        print("py_plot_util.get_python_version: couldn't find version for {}".format(py))
+        print("{}:{}: couldn't find version for {}".format(__file__, get_python_version.__name__, py))
     if commit_hash == "" and verbose:
-        print("py_plot_util.get_python_version: couldn't find commit hash for {}".format(py))
+        print("{}:{}: couldn't find commit hash for {}".format(__file__, get_python_version.__name__, py))
 
     if verbose and version and commit_hash:
         print("{} version {}".format(py, version))
@@ -90,7 +86,7 @@ def get_python_version(py: str = "py", verbose: bool = False) -> Tuple[str, str]
     return version, commit_hash
 
 
-def get_root_wd(pf_path: str) -> Tuple[str, str]:
+def get_root_name(pf_path: str) -> Tuple[str, str]:
     """
     Split a path name into a directory path and root name for a Python simulation.
 
@@ -108,8 +104,7 @@ def get_root_wd(pf_path: str) -> Tuple[str, str]:
     """
 
     if type(pf_path) != str:
-        print("py_plot_util.get_root_name_and_path: Provided a {} when expecting a string".format(type(pf_path)))
-        exit(1)
+        raise TypeError("{}:{}: expected string as input".format(__file__, get_root_name.__name__))
 
     dot = 0
     slash = 0
@@ -128,67 +123,14 @@ def get_root_wd(pf_path: str) -> Tuple[str, str]:
     return root, path
 
 
-def read_spec_file(file_name: str, delim: str = " ", pandas_table: bool = False) -> Union[np.ndarray, pd.DataFrame]:
-    """
-    Read in data from an external file, line by line whilst ignoring comments.
-        - Comments begin with #
-        - The default delimiter is assumed to be a space
-
-    Parameters
-    ----------
-    file_name: str
-        The directory path to the spec file to be read in
-    delim: str, optional
-        The delimiter between values in the file, by default a space is assumed
-    pandas_table:bool, optional
-        Return the spectrum as a Pandas DataFrame instead of a Numpy array
-
-    Returns
-    -------
-    lines: np.ndarray or pd.DataFrame
-        The .spec file as a Numpy array or a Pandas DataFrame
-    """
-
-    try:
-        with open(file_name, "r") as f:
-            flines = f.readlines()
-    except IOError:
-        print("py_plot_util.read_spec_file: can't open file {}".format(file_name))
-        exit(1)
-
-    # Now read in the line one by one and append to the list, lines
-    lines = []
-    for i in range(len(flines)):
-        line = flines[i].strip()
-        if delim == " ":
-            line = line.split()
-        else:
-            line = line.split(delim)
-        if len(line) > 0:
-            # Clean up the inclination angle names
-            if line[0] == "Freq.":
-                for j in range(len(line)):
-                    if line[j][0] == "A":
-                        index = line[j].find("P")
-                        line[j] = line[j][1:index]
-            if line[0][0] != "#":
-                lines.append(line)
-
-    # I have decided to add the option to return a pandas table as well
-    if pandas_table:
-        return pd.DataFrame(lines[1:], columns=lines[0])
-
-    return np.array(lines)
-
-
-def find_spec_files(path: str = "./") -> List[str]:
+def find_specs(path: str = "./") -> List[str]:
     """
     Find root.spec files recursively in provided directory
 
     Parameters
     ----------
     path: str
-        The path to recusrively search from
+        The path to recursively search from
 
     Returns
     -------
@@ -197,16 +139,16 @@ def find_spec_files(path: str = "./") -> List[str]:
     """
 
     spec_files = []
-
     for filename in Path(path).glob("**/*.spec"):
         spec_files.append(str(filename))
 
     return spec_files
 
 
-def find_pf_files(path: str = "./") -> List[str]:
+def find_pf(path: str = "./") -> List[str]:
     """
-    Find parameter files recursively from the directory this function is called in.
+    Find parameter files recursively from the directory this function is called
+    in.
 
     Parameters
     ----------
@@ -220,7 +162,6 @@ def find_pf_files(path: str = "./") -> List[str]:
     """
 
     pfs = []
-
     for filename in Path(path).glob("**/*.pf"):
         fname = str(filename)
         if fname.find("out.pf") != -1:
@@ -230,87 +171,159 @@ def find_pf_files(path: str = "./") -> List[str]:
         if fname[0] == "/":
             fname = fname[1:]
         pfs.append(fname)
-
     pfs = sorted(pfs, key=str.lower)
 
     return pfs
 
 
-def spec_inclinations_numpy(spec_names: List[str], delim: str = " ") -> np.array:
+def read_spec(file_name: str, delim: str = None, numpy: bool = False) -> Union[np.ndarray, pd.DataFrame]:
+    """
+    Read in data from an external file, line by line whilst ignoring comments.
+        - Comments begin with #
+        - The default delimiter is assumed to be a space
+
+    Parameters
+    ----------
+    file_name: str
+        The directory path to the spec file to be read in
+    delim: str, optional
+        The delimiter between values in the file, by default a space is assumed
+    numpy:bool, optional
+        If True, a Numpy array of strings will be used instead :-(
+
+    Returns
+    -------
+    lines: np.ndarray or pd.DataFrame
+        The .spec file as a Numpy array or a Pandas DataFrame
+    """
+
+    try:
+        with open(file_name, "r") as f:
+            flines = f.readlines()
+    except IOError:
+        raise Exception("{}:{}: cannot open spec file {}".format(__file__, read_spec.__name__, file_name))
+
+    lines = []
+    for i in range(len(flines)):
+        line = flines[i].strip()
+        if delim:
+            line = line.split(delim)
+        else:
+            line = line.split()
+        if len(line) > 0:
+            if line[0] == "#":
+                continue
+            if line[0] == "Freq.":
+                for j in range(len(line)):
+                    if line[j][0] == "A":
+                        index = line[j].find("P")
+                        line[j] = line[j][1:index]
+            lines.append(line)
+
+    if numpy:
+        return np.array(lines)
+
+    return pd.DataFrame(lines[1:], columns=lines[0])
+
+
+def spec_inclinations(spec: Union[pd.DataFrame, np.ndarray]) -> List[str]:
+    """
+    Return a list of the inclination angles in the spectrum as strings. This is
+    done differently depending on if the provided spectrum is a Numpy array or
+    a Pandas DataFrame.
+
+    Parameters
+    ----------
+    spec: pd.DataFrame or np.ndarray
+        The spectrum to extract the inclination angles from
+
+    Returns
+    -------
+    inclinations: List[str]
+        The possible inclination angles in the spectrum
+    """
+
+    inclinations = []
+    arr_type = type(spec)
+
+    if arr_type == pd.core.frame.DataFrame:
+        column_headers = spec.columns.values
+        for header in column_headers:
+            if header.isdigit():
+                inclinations.append(header)
+    elif arr_type == np.ndarray:
+        col_names = spec[0, :]
+        for i in range(len(col_names)):
+            if col_names[i].isdigit() is True:
+                angle = col_names[i]
+                duplicate_flag = False
+                for va in inclinations:
+                    if angle == va:
+                        duplicate_flag = True
+                if not duplicate_flag:
+                    inclinations.append(angle)
+    else:
+        raise TypeError("{}:{}: unknown data type {}, require pd.DataFrame or np.ndarray"
+                        .format(__file__, spec_inclinations.__name__, arr_type))
+
+    return inclinations
+
+
+def all_inclinations(spec_names: List[str], delim: str = None) -> np.array:
     """
     Get all of the unique inclination angles for a set of Python .spec files.
-
     Parameters
     ----------
     spec_name: List[str]
         The directory path to Python .spec files
     delim: str, optional
         The delimiter in the .spec files, assumed to be spaces by default
-
     Returns
     -------
-    iangles: List[int]
+    inclinations: List[int]
         All of the unique inclination angles found in the Python .spec files
     """
 
-    iangles = []
+    inclinations = []
+
+    for i in range(len(spec_names)):
+        if spec_names[i].find(".pf") != -1:
+            spec_names[i] = spec_names[i].replace(".pf", ".spec")
+
     # Find the viewing angles in each .spec file
     for i in range(len(spec_names)):
-        spec_name = spec_names[i]
-        if spec_name.find(".spec") == -1:
-            spec_name = spec_name.replace(".pf", ".spec")
-        spec_data = read_spec_file(spec_name, delim)
-        col_names = spec_data[0, :]
+        spec = read_spec(spec_names[i], delim)
+
+        if type(spec) == pd.core.frame.DataFrame:
+            col_names = spec.columns.values
+        elif type(spec) == np.ndarray:
+            col_names = spec[0, :]
+        else:
+            raise TypeError("{}:{}: unknown data type {} for function"
+                            .format(__file__, all_inclinations.__name__, type(spec)))
+
         # Go over the columns and look for viewing angles
-        for i in range(len(col_names)):
-            if col_names[i].isdigit() is True:
-                angle = int(col_names[i])
+        for j in range(len(col_names)):
+            if col_names[j].isdigit() is True:
+                angle = int(col_names[j])
                 duplicate_flag = False
-                for va in iangles:  # Check for duplicate angle
+                for va in inclinations:  # Check for duplicate angle
                     if angle == va:
                         duplicate_flag = True
                 if duplicate_flag is False:
-                    iangles.append(angle)
+                    inclinations.append(angle)
 
-    return iangles
-
-
-def spec_inclinations_pandas(spectrum: pd.DataFrame) -> List[str]:
-    """
-    Return a list of the viewing angles within a spectrum
-
-    Parameters
-    ----------
-    spectrum: pd.DataFrame
-        The spectrum to extract the viewing angles from
-
-    Returns
-    -------
-    viewing_angles: List[str]
-        The inclinations within the spectrum file
-    """
-
-    viewing_angles = []
-
-    if type(spectrum) != pd.DataFrame:
-        print("viewing_angles_in_spec: spectrum is not a pandas dataframe")
-        exit(1)
-
-    column_headers = spectrum.columns.values
-    for header in column_headers:
-        if header.isdigit():
-            viewing_angles.append(header)
-
-    return viewing_angles
+    return inclinations
 
 
-def check_inclination_present(inclination: int, spec: np.array) -> bool:
+def check_inclination(inclination: str, spec: Union[pd.DataFrame, np.ndarray]) -> bool:
+
     """
     Check that an inclination angle is in the spectrum array.
 
     Parameters
     ----------
-    inclination: int
+    inclination: str
         The inclination angle to check
     spec: np.ndarray
         The spectrum array to read -- assume that it is a np.array of strings
@@ -323,14 +336,21 @@ def check_inclination_present(inclination: int, spec: np.array) -> bool:
     """
 
     allowed = False
-    headers = spec[0, :]
+
+    if type(spec) == pd.core.frame.DataFrame:
+        headers = spec.columns.values
+    elif type(spec) == np.ndarray:
+        headers = spec[0, :]
+    else:
+        raise TypeError("{}:{}: unknown data type {} for function"
+                        .format(__file__, check_inclination.__name__, type(spec)))
 
     if type(inclination) != str:
         try:
             inclination = str(inclination)
         except ValueError:
-            print("py_plot_util.check_inclination_present: could not convert {} into str".format(inclination))
-            return allowed
+            raise TypeError("{}:{}: could not convert {} into string"
+                            .format(__file__, check_inclination.__name__, inclination))
 
     if inclination in headers:
         allowed = True
@@ -338,9 +358,9 @@ def check_inclination_present(inclination: int, spec: np.array) -> bool:
     return allowed
 
 
-def smooth_1d_array(flux: np.ndarray, smooth: Union[int, float], verbose: bool = False) -> np.ndarray:
+def smooth(flux: np.ndarray, smooth: Union[int, float], verbose: bool = False) -> np.ndarray:
     """
-    Smooth 1d data using a boxcar smoother.
+    Smooth a 1D array of data using a boxcar filter of width smooth pixels.
 
     Parameters
     ----------
@@ -357,29 +377,22 @@ def smooth_1d_array(flux: np.ndarray, smooth: Union[int, float], verbose: bool =
         The smoothed data
     """
 
-    if type(flux) is not list and type(flux) is not np.ndarray:
-        print("py_plot_util.smooth_spectra: data to be smoothed is not a Python list or numpy ndarray")
-        print("py_plot_util.smooth_spectra: type(flux) = {}".format(type(flux)))
-        return flux
+    if type(flux) != list and type(flux) != np.ndarray:
+        raise TypeError("{}:{}: expecting list or np.ndarray".format(__file__, smooth.__name__))
 
-    if type(flux) is list:
-        if verbose:
-            print("py_plot_util.smooth_spectra: Converting Python list to numpy ndarray")
+    if type(flux) == list:
         flux = np.array(flux, dtype=float)
 
     if len(flux.shape) > 2:
-        print("py_plot_util.smooth_spectra: The data to be smoothed should be one dimensional and not of dimension "
-              "{}".format(flux.shape))
-        return flux
+        raise Exception("{}:{}: data is not 1 dimensional but has shape {}"
+                        .format(__file__, smooth.__name__, flux.shape))
 
-    if type(smooth) is not int:
+    if type(smooth) != int:
         try:
-            if verbose:
-                print("py_plot_util.smooth_spectra: Converting smooth to an int")
             smooth = int(smooth)
         except ValueError:
-            print("py_plot_util.smooth_spectra: could not convert smooth {} into an integer".format(smooth))
-            return flux
+            raise Exception("{}:{}: could not convert smooth = {} into an integer"
+                            .format(__file__, smooth.__name__, smooth))
 
     flux = np.reshape(flux, (len(flux),))
     smoothed = convolve(flux, boxcar(smooth) / float(smooth), mode="same")
@@ -387,10 +400,183 @@ def smooth_1d_array(flux: np.ndarray, smooth: Union[int, float], verbose: bool =
     return smoothed
 
 
+def windsave2table(root: str, path: str, verbose: bool = False) -> None:
+    """
+    Run windsave2table in the directory given by path. This function will also
+    create a *.ep.complete file which combines both the heat and master data
+    tables together.
+
+    Parameters
+    ----------
+    root: str
+        The root name of the Python simulation
+    path: str
+        The directory of the Python simulation where windsave2table will be run
+    verbose: bool, optional
+        Enable verbose logging
+    """
+
+    version, hash = get_python_version("windsave2table", verbose)
+    try:
+        with open("version", "r") as f:
+            lines = f.readlines()
+        run_version = lines[0]
+        run_hash = lines[1]
+        if run_version != version and run_hash != hash:
+            print("{}:{}: windsave2table and wind_save versions are likey different. Output may be wank."
+                  .format(__file__, windsave2table.__name__))
+    except IOError:
+        print("{}:{}: unable to determine windsave2table version from py_run.py version file"
+              .format(__file__, windsave2table.__name__))
+
+    in_path = which("windsave2table")
+    if not in_path:
+        raise Exception("{}:{}: windsave2table not in $PATH and executable", __file__, windsave2table.__name__)
+
+    command = "cd {}; Setup_Py_Dir; windsave2table {}".format(path, root)
+    cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
+    stdout, stderr = cmd.communicate()
+    output = stdout.decode("utf-8")
+    err = stderr.decode("utf-8")
+
+    if verbose:
+        print(output)
+    if err:
+        print("{}:{}: the following was sent to stderr:".format(__file__, windsave2table.__name__))
+        print(err)
+
+    # Now create a "complete" file which is the master and heat put together into one csv
+    heat_file = "{}/{}.0.heat.txt".format(path, root)
+    master_file = "{}/{}.0.master.txt".format(path, root)
+
+    try:
+        heat = pd.read_csv(heat_file, delim_whitespace=True)
+        master = pd.read_csv(master_file, delim_whitespace=True)
+    except IOError:
+        raise IOError("{}: could not open master or heat file for root {}".format(__file__, windsave2table.__name__, root))
+
+    # This merges the heat and master table together :-)
+    append = heat.columns.values[14:]
+    for i, col in enumerate(append):
+        master[col] = pd.Series(heat[col])
+    master.to_csv("{}/{}.ep.complete".format(path, root), sep=" ")
+
+    return
+
+
+def extract_wind_var(root: str, var_name: str, var_type: str, path: str = "./", coord: str = "rectilinear") \
+        -> Tuple[np.array, np.array, np.array]:
+    """
+    Read in variables contained within a windsave2table file. Requires the user
+    to have already run windsave2table so the data is in the directory. This
+    also assumes that a .ep.complete file exists which contains both the
+    heat and master data. This will also only work for 2d models :^).
+
+    Parameters
+    ----------
+    root: str
+        The root name of the Python simulation
+    var_name: str
+        The name of the quantity from the Python simulation
+    var_type: str
+        The type of quantity to extract, this can either be wind or ion
+    path: str, optional
+        The directory containing the Python simulation
+    coord: str
+        The coordinate system in use. Currently this only works for polar
+        and rectilinear coordinate systems
+
+    Returns
+    -------
+    x: np.array[float]
+        The x coordinates of the wind in the Python simulation
+    z: np.array[float]
+        The z coordinates of the wind in the Python simulation
+    var_mask: np.array[float]
+        A numpy masked array for the quantity defined in var
+    """
+
+    assert(type(root) == str), "{}:{}: root must be a string".format(__file__, extract_wind_var.__name__)
+    assert(type(var_name) == str), "{}:{}: var_name must be a string".format(__file__, extract_wind_var.__name__)
+    assert(type(var_type) == str), "{}:{}: var_type must be a string".format(__file__, extract_wind_var.__name__)
+
+    # Create string containing the name of the data file required to be loaded
+    nx_cells = 0
+    nz_cells = 0
+    key = var_name
+    if var_type.lower() == "ion":
+        ele_idx = var_name.find("_")
+        element = var_name[:ele_idx]
+        key = var_name[ele_idx + 1:]
+        file = "{}/{}.0.{}.txt".format(path, root, element)
+    elif var_type.lower() == "wind":
+        file = "{}/{}.ep.complete".format(path, root)
+    else:
+        raise Exception("{}:{}: var type {} not recognised for var {}"
+                        .format(__file__, extract_wind_var.__name__, var_type, var_name))
+
+    file_exists = os.path.isfile(file)
+    if not file_exists:
+        raise IOError("{}:{}: file {} doesn't exist. var {} var type {}".
+                      format(__file__, extract_wind_var.__name__, file, var_name, var_type))
+
+    # Open the file and remove any garbage cells for theta grids
+    try:
+        data = pd.read_csv(file, delim_whitespace=True)
+        if coord == "polar" and var_type != "ion":
+            data = data[~(data["theta"] > 90)]
+    except IOError:
+        raise IOError("{}:{}: could not open file {} for some reason"
+                      .format(__file__, extract_wind_var.__name__, file, var_name))
+
+    # Now we can try and read the data out of the file...
+    try:
+        xi = data["i"]
+        zj = data["j"]
+        nx_cells = int(np.max(xi) + 1)
+        nz_cells = int(np.max(zj) + 1)
+        if coord == "rectilinear":
+            x = data["x"].values.reshape(nx_cells, nz_cells)
+            z = data["z"].values.reshape(nx_cells, nz_cells)
+        elif coord == "polar":
+            # Transform from cartesian to polar coordinates manually for ion tables
+            if var_type.lower() == "ion":
+                x = data["x"].values.reshape(nx_cells, nz_cells)
+                z = data["z"].values.reshape(nx_cells, nz_cells)
+                r = np.sqrt(x ** 2 + z ** 2)
+                theta = np.rad2deg(np.arctan(z / x))
+                x = r
+                z = theta
+            else:
+                try:
+                    x = data["r"].values.reshape(nx_cells, nz_cells)
+                    z = data["theta"].values.reshape(nx_cells, nz_cells)
+                except KeyError:
+                    print("{}:{}: trying to read r theta  points in non-polar model"
+                          .format(__file__, extract_wind_var.__name__))
+        else:
+            raise Exception("{}:{}: unknown projection {}: use rectilinear or polar"
+                            .format(__file__, extract_wind_var.__name__, coord))
+    except KeyError:
+        print("{}:{}: could not find var {} or another key".format(__file__, extract_wind_var.__name__, var_name))
+
+    try:
+        var = data[key].values.reshape(nx_cells, nz_cells)
+    except KeyError:
+        raise Exception("{}:{}: unable to use {} as key for table".format(__file__, extract_wind_var.__name__, key))
+
+    # Construct mask for variable
+    inwind = data["inwind"].values.reshape(nx_cells, nz_cells)
+    mask = (inwind < 0)
+    var_mask = np.ma.masked_where(mask, var)
+
+    return x, z, var_mask
+
+
 def subplot_dims(n_plots: int) -> Tuple[int, int]:
     """
     Determine the dimensions for a plot with multiple subplot panels. Two columns
-     of subplots will always be used.
+    of subplots will always be used.
 
     Parameters
     ----------
@@ -418,10 +604,10 @@ def subplot_dims(n_plots: int) -> Tuple[int, int]:
     return dims
 
 
-def define_ylims(wavelength: np.array, flux: np.array, wmin: float, wmax: float, scale: float = 10,
-                 verbose: bool = False) -> Tuple[float, float]:
+def ylims(wavelength: np.array, flux: np.array, wmin: float, wmax: float, scale: float = 10,
+          verbose: bool = False) -> Union[Tuple[float, float], Tuple[bool, bool]]:
     """
-    Find more appropriate y limits to use when the wavelength range has been limited.
+    Return appropriate y limits to use when the wavelength range has been limited.
 
     Parameters
     ----------
@@ -447,12 +633,14 @@ def define_ylims(wavelength: np.array, flux: np.array, wmin: float, wmax: float,
     """
 
     if wavelength.shape[0] != flux.shape[0]:
-        print("py_plot_util.get_ylimits: wavelength and flux are of different dimensions!")
-        print(wavelength.shape, flux.shape)
-        exit(1)
+        raise Exception("{}:{}: wavelength and flux are of different dimensions {} {}"
+                        .format(__file__, ylims.__name__, wavelength.shape, flux.shape))
+
     if type(wavelength) != np.ndarray or type(flux) != np.ndarray:
-        print("py_plot_util.get_ylimits: wavelength or flux not a numpy array!")
-        exit(1)
+        raise TypeError("{}:{}: wavelength or flux array not a numpy arrays {} {}"
+                        .format(__file__, ylims.__name__, type(wavelength), type(flux)))
+
+    yupper = ylower = None
 
     if wmin and wmax:
         idx_wmin = wavelength < wmin
@@ -460,15 +648,11 @@ def define_ylims(wavelength: np.array, flux: np.array, wmin: float, wmax: float,
         flux_lim_wav = np.where(idx_wmin == idx_wmax)[0]
         yupper = np.max(flux[flux_lim_wav]) * scale
         ylower = np.min(flux[flux_lim_wav]) / scale
-    else:
-        if verbose:
-            print("py_plot_util.get_ylimits: wmin and wmax not supplied!")
-        return 0, 0
 
     return yupper, ylower
 
 
-def common_lines(use_freq: bool = False, log_scale: bool = False) -> list:
+def common_lines(freq: bool = False, log: bool = False) -> list:
     """
     Return a dictionary containing the major absorption and emission lines which
     I'm interested in. The wavelengths of the lines are in Angstrom in the
@@ -476,9 +660,9 @@ def common_lines(use_freq: bool = False, log_scale: bool = False) -> list:
 
     Parameters
     ----------
-    use_freq: bool, optional
+    freq: bool, optional
        If True, return the dict in frequency space
-    log_scale: bool, optional
+    log: bool, optional
        If this and use_freq are true, the lines will be returned to be plotted
        on a log10 scale
 
@@ -511,9 +695,9 @@ def common_lines(use_freq: bool = False, log_scale: bool = False) -> list:
         ["Paschen Edge", 8204]
     ]
 
-    if use_freq:
+    if freq:
         for i in range(len(lines)):
-            if log_scale:
+            if log:
                 lines[i][1] = np.log10(C / (lines[i][1] * ANGSTROM))
             else:
                 lines[i][1] = C / (lines[i][1] * ANGSTROM)
@@ -521,7 +705,7 @@ def common_lines(use_freq: bool = False, log_scale: bool = False) -> list:
     return lines
 
 
-def absorption_edges(use_freq: bool = False, log_scale: bool = False) -> list:
+def absorption_edges(freq: bool = False, log: bool = False) -> list:
     """
     Return a dictionary containing major absorption edges which I am interested
     in. The wavelengths of the lines are in Angstroms or in frequency in Hz
@@ -529,9 +713,9 @@ def absorption_edges(use_freq: bool = False, log_scale: bool = False) -> list:
 
     Parameters
     ----------
-    use_freq: bool, optional
+    freq: bool, optional
        If True, return the dict in frequency space
-    log_scale: bool, optional
+    log: bool, optional
        If this and use_freq are true, the lines will be returned to be plotted
        on a log10 scale
 
@@ -549,9 +733,9 @@ def absorption_edges(use_freq: bool = False, log_scale: bool = False) -> list:
         ["Paschen Edge", 8204],
     ]
 
-    if use_freq:
+    if freq:
         for i in range(len(edges)):
-            if log_scale:
+            if log:
                 edges[i][1] = np.log10(C / (edges[i][1] * ANGSTROM))
             else:
                 edges[i][1] = C / (edges[i][1] * ANGSTROM)
@@ -559,18 +743,18 @@ def absorption_edges(use_freq: bool = False, log_scale: bool = False) -> list:
     return edges
 
 
-def plot_line_ids(ax: plt.Axes, lines: list, rotation: str = "horizontal", fontsize: int = 10) -> plt.Axes:
+def plot_line_ids(ax: plt.Axes, lines: list, rotation: str = "vertical", fontsize: int = 10) -> plt.Axes:
     """
-    Plot major absorption and emission line IDs onto a spectrum.
-
-    Note, this should be used after setting the x limits on a figure.
+    Plot line IDs onto a figure. This should probably be used after the x-limits
+    have been set on the figure which these labels are being plotted onto. 
 
     Parameters
     ----------
     ax: plt.Axes
         The plot object to add line IDs to
     lines: list
-        A list containing the line name and wavelength in Angstroms (ordered by wavelength)
+        A list containing the line name and wavelength in Angstroms 
+        (ordered by wavelength)
     rotation: str, optional
         Vertical or horizontal rotation for text ids
     fontsize: int, optional
@@ -595,193 +779,10 @@ def plot_line_ids(ax: plt.Axes, lines: list, rotation: str = "horizontal", fonts
         ax.axvline(x, linestyle="--", linewidth=0.5, color="k", zorder=1)
         x = x - 25
         xnorm = (x - xlims[0]) / (xlims[1] - xlims[0])
-        ax.text(xnorm, 0.92, label, ha="center", va="center", rotation="vertical", transform=ax.transAxes)
+        ax.text(xnorm, 0.92, label, ha="center", va="center", rotation=rotation, fontsize=fontsize,
+                transform=ax.transAxes)
 
     return ax
-
-
-def windsave2table(path: str, root: str, verbose: bool = False) -> Union[int, None]:
-    """
-    Run windsave2table in the directory given by path. This function will also
-    create a *.ep.complete file which combines both the heat and master data
-    tables together.
-
-    Parameters
-    ----------
-    path: str
-        The directory of the Python simulation where windsave2table will be run
-    root: str
-        The root name of the Python simulation
-    verbose: bool, optional
-        Enable verbose logging
-
-    Returns
-    -------
-    Returns an int on error.
-    """
-
-    # Look for a version file in the directory to see if windsave2table is the
-    # on the correct git hash to read the wind_save file
-    try:
-        version, hash = get_python_version("windsave2table", verbose)
-        with open("version", "r") as f:
-            lines = f.readlines()
-        run_version = lines[0]
-        run_hash = lines[1]
-        if verbose:
-            print("wind_save: version {} hash {}".format(run_version, run_hash))
-            print("windsave2table: version {} hash {}".format(version, hash))
-        if run_version != version and run_hash != hash:
-            print("py_plot_util.run_windsave2table: windsave2table version and the wind_save version file are"
-                  "different. Output may be garbage!")
-    except IOError:
-        if verbose:
-            print("py_plot_util.run_windsave2table: no version file assuming everything will be a-ok")
-
-    in_path = which("windsave2table")
-    if not in_path:
-        print("py_plot_util.run_windsave2table: windsave2table not in $PATH and executable")
-        return -1
-
-    command = "cd {}; Setup_Py_Dir; windsave2table {}".format(path, root)
-    cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
-    stdout, stderr = cmd.communicate()
-    output = stdout.decode("utf-8")
-    err = stderr.decode("utf-8")
-
-    if verbose:
-        print(output)
-    if err:
-        print("py_plot_util.get_wind_details: the following was sent to stderr:")
-        print(err)
-
-    # Now create a "complete" file which is the master and heat put together into one csv
-    heat_file = "{}/{}.0.heat.txt".format(path, root)
-    master_file = "{}/{}.0.master.txt".format(path, root)
-
-    try:
-        heat = pd.read_csv(heat_file, delim_whitespace=True)
-        master = pd.read_csv(master_file, delim_whitespace=True)
-    except IOError:
-        print("py_plot_util.run_windsave2table: Could not find master or heat file for {}".format(root))
-        return -1
-
-    # This merges the heat and master table together :-)
-    append = heat.columns.values[14:]
-    for i, col in enumerate(append):
-        master[col] = pd.Series(heat[col])
-    master.to_csv("{}/{}.ep.complete".format(path, root), sep=" ")
-
-    return
-
-
-def get_wind_data(root_name: str, var: str, var_type: str, path: str = "./", coord: str = "rectilinear") \
-        -> Tuple[np.array, np.array, np.array]:
-    """
-    Read in variables contained within a windsave2table file. Requires the user
-    to have already run windsave2table so the data is in the directory. This
-    also assumes that a .ep.complete file exists which contains both the
-    heat and master data. This will also only work for 2d models :^).
-
-    Parameters
-    ----------
-    root_name: str
-        The root name of the Python simulation
-    var: str
-        The name of the quantity from the Python simulation
-    var_type: str
-        The type of quantity to extract, this can either be wind or ion
-    path: str, optional
-        The directory containing the Python simulation
-    coord: str
-        The coordinate system in use. Currently this only works for polar
-        and rectilinear coordinate systems
-
-    Returns
-    -------
-    x: np.array[float]
-        The x coordinates of the wind in the Python simulation
-    z: np.array[float]
-        The z coordinates of the wind in the Python simulation
-    qoi_mask: np.array[float]
-        A numpy masked array for the quantity defined in var
-    """
-
-    assert(type(root_name) == str)
-    assert(type(var_type) == str)
-    assert(type(var) == str)
-
-    # First, we have to construct the name of the data file
-    if var_type.lower() == "ion":
-        ele_idx = var.find("_")
-        element = var[:ele_idx]
-        ion_level = var[ele_idx + 1:]
-        file = "{}/{}.0.{}.txt".format(path, root_name, element)
-    elif var_type.lower() == "wind":
-        file = "{}/{}.ep.complete".format(path, root_name)
-    else:
-        print("py_plot_util.get_wind_data: type {} not recognised for var {}".format(var_type, var))
-        exit(1)
-
-    file_exists = os.path.isfile(file)
-    if not file_exists:
-        print("py_plot_util.get_wind_data: file {} doesn't exist for var {}".format(file, var))
-        rc = np.zeros(1)
-        return rc, rc, rc
-
-    # Open the file and remove any garbage cells for theta grids
-    try:
-        data = pd.read_csv(file, delim_whitespace=True)
-        if coord == "polar" and var_type != "ion":
-            data = data[~(data["theta"] > 90)]
-    except IOError:
-        print("py_plot_util.get_wind_data: could not open file {}: var {}".format(file, var))
-        exit(1)
-
-    # Now we can try and read the data out of the file...
-    try:
-        xi = data["i"]
-        zj = data["j"]
-        nx_cells = int(np.max(xi) + 1)
-        nz_cells = int(np.max(zj) + 1)
-
-        if coord == "rectilinear":
-            x = data["x"].values.reshape(nx_cells, nz_cells)
-            z = data["z"].values.reshape(nx_cells, nz_cells)
-        elif coord == "polar":
-            if var_type.lower() == "ion":  # Transform from cartesian to polar coordinates
-                x = data["x"].values.reshape(nx_cells, nz_cells)
-                z = data["z"].values.reshape(nx_cells, nz_cells)
-                r = np.sqrt(x ** 2 + z ** 2)
-                theta = np.rad2deg(np.arctan(z / x))
-                x = r
-                z = theta
-            else:
-                try:
-                    x = data["r"].values.reshape(nx_cells, nz_cells)
-                    z = data["theta"].values.reshape(nx_cells, nz_cells)
-                except KeyError:
-                    print("py_plot_util.get_wind_data: trying to read r, theta in non-polar model")
-        else:
-            print("py_plot_util.get_wind_data: can't do projection {}: use rectilinear or polar".format(coord))
-            rc = np.zeros(1)
-            return rc, rc, rc
-
-        if var_type.lower() == "ion":
-            qoi = data[ion_level].values.reshape(nx_cells, nz_cells)
-        elif var_type.lower() == "wind":
-            qoi = data[var].values.reshape(nx_cells, nz_cells)
-
-    except KeyError:
-        print("py_plot_util.get_wind_data: could not find var {} or another key".format(var))
-        exit(1)
-
-    # Construct mask for data wanted
-    inwind = data["inwind"].values.reshape(nx_cells, nz_cells)
-    mask = (inwind < 0)
-    qoi_mask = np.ma.masked_where(mask, qoi)
-
-    return x, z, qoi_mask
 
 
 if __name__ == "__main__":

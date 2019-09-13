@@ -65,10 +65,10 @@ def get_pfs(root: str = None) -> List[str]:
     """
 
     pfs = []
-    ppfs = ppu.find_pf_files("./")
+    ppfs = ppu.find_pf("./")
 
     for i in range(len(ppfs)):
-        pf, wd = ppu.get_root_wd(ppfs[i])
+        pf, wd = ppu.get_root_name(ppfs[i])
         if root:
             if root == pf:
                 pfs.append(ppfs[i])

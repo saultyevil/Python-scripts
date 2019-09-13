@@ -110,8 +110,8 @@ def main():
     np.savetxt("{}_dered.txt".format(fname), dered)
 
     fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-    ax.semilogy(spec[:, 0], ppu.smooth_1d_array(spec[:, 1], SMOOTH), label="Original spectrum")
-    ax.semilogy(dered[:, 0], ppu.smooth_1d_array(dered[:, 1], SMOOTH), label="The dereddened spectrum")
+    ax.semilogy(spec[:, 0], ppu.smooth(spec[:, 1], SMOOTH), label="Original spectrum")
+    ax.semilogy(dered[:, 0], ppu.smooth(dered[:, 1], SMOOTH), label="The dereddened spectrum")
     ax.set_xlabel(r"Observed Wavelength")
     ax.set_ylabel(r"Flux")
     ax.legend()

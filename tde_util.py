@@ -56,7 +56,7 @@ def iptf15af_spec(smooth: int, verbose: bool = False) -> np.array:
               "Update the directories in the script".format(spec_dir))
         exit(1)
 
-    spec[:, 1] = py_plot_util.smooth_1d_array(spec[:, 1], smooth)
+    spec[:, 1] = py_plot_util.smooth(spec[:, 1], smooth)
 
     return spec
 
@@ -109,7 +109,7 @@ def asassn14li_spec(smooth: int, verbose: bool = False) -> np.array:
               "Update the directories in the script".format(spec_dir))
         exit(1)
 
-    spec[:, 1] = py_plot_util.smooth_1d_array(spec[:, 1], smooth)
+    spec[:, 1] = py_plot_util.smooth(spec[:, 1], smooth)
 
     return spec
 
@@ -152,7 +152,7 @@ def iptf16fnl_spec(smooth: int, verbose: bool = False) -> np.array:
               "Update the directories in the script".format(spec_dir))
         exit(1)
 
-    spec[:, 1] = py_plot_util.smooth_1d_array(spec[:, 1], smooth)
+    spec[:, 1] = py_plot_util.smooth(spec[:, 1], smooth)
 
     return spec
 
@@ -195,7 +195,7 @@ def at2018zr_spec(smooth: int, verbose: bool = False) -> np.array:
               "Update the directories in the script".format(spec_dir))
         exit(1)
 
-    spec[:, 1] = py_plot_util.smooth_1d_array(spec[:, 1], smooth)
+    spec[:, 1] = py_plot_util.smooth(spec[:, 1], smooth)
 
     return spec
 
@@ -263,6 +263,34 @@ def lobal_qso_spec(verbose: bool = False) -> np.array:
         print("py_util.lobal_qso_spec: Unable to open the LoBALQSO spectrum from the following path {}. "
               "Update the directories in the script".format(spec_dir))
         exit(1)
+
+    return
+
+
+def get_tde_spec(name: str, plot: bool = False, verbose: bool = False):
+    """
+
+    Parameters
+    ----------
+    name
+    plot
+    verbose
+
+    Returns
+    -------
+
+    """
+
+    spec_dir = ""
+    sys = system()
+    if sys == "Linux":
+        spec_dir = "/home/saultyevil/"
+    elif sys == "Darwin":
+        spec_dir = "/Users/saultyevil/"
+    else:
+        print("py_util.lobal_qso_spec: unknown system type {}".format(sys))
+        exit(1)
+    
 
     return
 

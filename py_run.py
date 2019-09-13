@@ -48,6 +48,7 @@ from shutil import which, copyfile
 from typing import Union, List
 from subprocess import Popen, PIPE
 import py_change_parameter as pcp
+import pandas as pd
 
 CONVERGED = \
     r"""
@@ -197,11 +198,11 @@ def plot_spec_tde(root: str, wd: str) -> None:
 
     path = which("tde_spec_plot.py")
     if path == "":
-        pru.log("tde_spec_plot.py not in $PATH and executable")
+        pru.log("{}:{}: tde_spec_path.py not in $PATH and executable".format(__file__, plot_spec_tde.__name__))
         return
 
-    spec = ppu.read_spec_file(wd + root + ".spec", pandas_table=True)
-    incs = ppu.spec_inclinations_pandas(spec)
+    spec = ppu.read_spec(wd + root + ".spec")
+    incs = ppu.spec_inclinations(spec)
     nincs = len(incs)
 
     commands = ["cd {}; tde_spec_plot.py {}".format(wd, root)]
@@ -244,7 +245,7 @@ def check_python_convergence(root: str, wd: str) -> Union[float, int]:
     """
 
     rc = False
-    c_fraction = pru.check_run_convergence(root, wd)
+    c_fraction = pru.check_convergence(root, wd)
 
     pru.log("convergence limit ............ {}".format(CONV_LIMIT))
     pru.log("actual convergence ........... {}\n".format(c_fraction))
@@ -410,7 +411,7 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
 
     for i, path in enumerate(roots):
         rc = -1
-        root, wd = ppu.get_root_wd(path)
+        root, wd = ppu.get_root_name(path)
         pru.log("------------------------\n")
         pru.log("     Simulation {}/{}".format(i + 1, n_sims))
         pru.log("\n------------------------\n")
@@ -440,7 +441,7 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
             continue
 
         if CREATE_PLOTS or RUN_SIMS:
-            ppu.windsave2table(wd, root, VERBOSE)
+            ppu.windsave2table(root, wd, VERBOSE)
 
         if CREATE_PLOTS:
             pru.log("Creating plots for the simulation\n")
@@ -634,7 +635,7 @@ def main() -> None:
     if SIMS_FROM_FILE:
         pf_paths = get_pf_from_file()
     else:
-        pf_paths = ppu.find_pf_files()
+        pf_paths = ppu.find_pf()
     n_sims = len(pf_paths)
     if not n_sims:
         pru.log("No parameter files found, nothing to do!\n")

@@ -39,7 +39,6 @@ optional arguments:
   -r, --root          Enables providing a root name instead
 """
 
-from sys import exit
 import os
 import argparse
 import py_rm_data
@@ -58,7 +57,7 @@ DIMS = "2d"
 WMIN = None
 WMAX = None
 FILETYPE = "png"
-SMOOTH = 15
+SMOOTH = 5
 DEFAULT_DIST = 100 * PARSEC
 OBSERVE_DIST = 100 * PARSEC
 MIN_FLUX = 1e-20
@@ -133,34 +132,36 @@ def get_script_arguments() -> str:
     return args.output_name
 
 
-def plot_rectilinear_wind(fig: plt.Figure, ax: plt.Axes, x: np.ndarray, z: np.ndarray, qoi: np.ndarray, i: int, j: int,
-                          var: str, var_t: str, loglog_scale: bool = True) -> Tuple[plt.Figure, plt.axes]:
+def rectilinear_wind_plot(fig: plt.Figure, ax: plt.Axes, x: np.ndarray, z: np.ndarray, w: np.ndarray, i: int, j: int,
+                          wvar: str, wvar_t: str, loglog_scale: bool = True) -> Tuple[plt.Figure, plt.axes]:
     """
     Create a wind plot in rectilinear coordinates.
 
     Parameters
     ----------
     fig: plt.Figure
-        A Pyplot figure object containing the axes
+        A matplotlib.pyplot figure object which contains the axes objects and
+        etc to create the desired figure
     ax: plt.Axes
-        The plt.Axes object containing the subplots
+        A matplotlib.pyplot plt.Axes object which contains the subplot
+        panels of the desired figure
     x: np.array[float]
-        The x coordinates to plot
+        The x coordinate points for the wind variable
     z: np.array[float]
-        The z coordinates to plot
-    qoi: np.array[float] (masked array)
+        The z coordinate points for the wind vairbale
+    w: np.ndarray[float]
+        The wind variable to be plotted - this should be a 2d masked array
         The quantity of interest to be plotted
     i: int
-        The i (row) index for the plt.Axes object
+        The i-th (row) index for subplot panels
     j: int
-        The j (column) index for the plt.Axes object
-    var: list[str]
-        The Python wind variables to plot
-    var_t: list[str]
-        The type of the variables to be plotted, allowable values are wind and
-        ion
+        The j-th (column) index for the subplot panels
+    wvar: List[str]
+        The name of the wind variable being plotted in the panel
+    wvar_t: List[str]
+        The type of the wind variable being plotted in the panel
     loglog_scale: bool, optional
-        If True, plot on a loglog scale
+        If this is True then the figure will be created on a loglog scale
 
     Returns
     -------
@@ -171,175 +172,186 @@ def plot_rectilinear_wind(fig: plt.Figure, ax: plt.Axes, x: np.ndarray, z: np.nd
     """
 
     with np.errstate(divide="ignore"):
-        if var == "converge":
-            im = ax[i, j].pcolor(x, z, qoi)
-        elif var_t == "ion":
-            im = ax[i, j].pcolor(x, z, np.log10(qoi), vmin=-5, vmax=0)
-        elif var_t == "wind":
-            im = ax[i, j].pcolor(x, z, np.log10(qoi))
+        if wvar == "converge":
+            im = ax[i, j].pcolor(x, z, w)
+        elif wvar_t == "ion":
+            im = ax[i, j].pcolor(x, z, np.log10(w), vmin=-5, vmax=0)
+        elif wvar_t == "wind":
+            im = ax[i, j].pcolor(x, z, np.log10(w))
         else:
-            print("py_plot.plot_python_wind: type {} not recognised".format(type))
+            print("{}:{}: type {} not recognised".format(__file__, rectilinear_wind_plot.__name__, wvar_t))
             return fig, ax
 
     fig.colorbar(im, ax=ax[i, j])
     ax[i, j].set_xlabel("x")
     ax[i, j].set_ylabel("z")
-    if var == "converge":
+    if wvar == "converge":
         ax[i, j].set_title(r"convergence")
     else:
-        ax[i, j].set_title(r"$\log_{10}$(" + var + ")")
+        ax[i, j].set_title(r"$\log_{10}$(" + wvar + ")")
 
     if loglog_scale:
         ax[i, j].set_xscale("log")
         ax[i, j].set_yscale("log")
-        ax[i, j].set_xlim(x[1, 1], x[-1, -1])
-        ax[i, j].set_ylim(z[1, 1], z[-1, -1])
+
+    ax[i, j].set_xlim(x[1, 1], x[-1, -1])
+    ax[i, j].set_ylim(z[1, 1], z[-1, -1])
 
     return fig, ax
 
 
-def plot_polar_wind(r: np.ndarray, theta: np.ndarray, qoi: np.ndarray, index: int, var: str, var_t: str,
+def polar_wind_plot(r: np.ndarray, theta: np.ndarray, w: np.ndarray, index: int, wvar: str, wvar_t: str,
                     subplot_dims: Tuple[int, int]) -> None:
     """
-    Create a wind plot in a polar coordinates.
+    Create a subplot panel for a polar plot. By itself, this can actually make
+    a single panel. However, the intended use of this function is to be
+    used from plot_wind.
 
     Parameters
     ----------
     r: np.array[float]
-        The x coordinates to plot
+        The r coordinate points for the wind variable
     theta: np.array[float]
-        The z coordinates to plot
-    qoi: np.array[float] (masked array)
-        The quantity of interest to be plotted
+        The theta coordinate points for the wind vairbale
+    w: np.ndarray[float]
+        The wind variable to be plotted - this should be a 2d masked array
     index: int
-        The subplot index, i.e. (nrows, ncols, index)
-    vars: List[str]
-        The Python wind variables to plot
-    var_type: List[str]
-        The type of the variables to be plotted, allowable values are wind and
-         ion
+        The index of the subplot panel in the overall figure,
+        (nrows, ncols, index) - note that this uses 0th indexing
+    wvar: List[str]
+        The name of the wind variable being plotted in the panel
+    wvar_t: List[str]
+        The type of the wind variable being plotted in the panel
     subplot_dims: Tuple[int, int]
-        The number of rows and columns of subplot panels
+        The number of rows and columns of subplot panels, (nrows, ncols)
     """
 
     theta = np.deg2rad(theta)
     ax = plt.subplot(subplot_dims[0], subplot_dims[1], index + 1, projection="polar")
 
     with np.errstate(divide="ignore"):
-        if var == "converge":
-            im = ax.pcolor(theta, np.log10(r), qoi)
-        elif var_t == "wind":
-            im = ax.pcolor(theta, np.log10(r), np.log10(qoi))
-        elif var_t == "ion":
-            im = ax.pcolor(theta, np.log10(r), np.log10(qoi), vmin=-5, vmax=0)
+        if wvar == "converge":
+            im = ax.pcolor(theta, np.log10(r), w)
+        elif wvar_t == "wind":
+            im = ax.pcolor(theta, np.log10(r), np.log10(w))
+        elif wvar_t == "ion":
+            im = ax.pcolor(theta, np.log10(r), np.log10(w), vmin=-5, vmax=0)
 
     plt.colorbar(im, ax=ax)
     ax.set_thetamin(0)
-    ax. set_thetamax(90)
+    ax.set_thetamax(90)
     rmin = r[1][0]
     rmax = r[-2][0]
     ax.set_rlim(np.log10(rmin), np.log10(rmax))
 
-    if var == "converge":
+    if wvar == "converge":
         ax.set_title(r"convergence")
     else:
-        ax.set_title(r"$\log_{10}$(" + var + ")")
+        ax.set_title(r"$\log_{10}$(" + wvar + ")")
 
     return
 
 
-def plot_wind(root_name: str, output_name: str, vars: List[str], var_types: List[str], path: str = "./",
-              data_ndims: str = "2d",projection: str = "rectilinear", subplot_dims: Tuple[int, int] = None,
-              plot_title: str = None, loglog_scale: bool = True, filetype: str = "png", verbose: bool = False) -> None:
+def plot_wind(root: str, output_name: str, wvars: List[str], wvar_types: List[str], path: str = "./",
+              ndims: str = "2d", projection: str = "rectilinear", subplot_dims: Tuple[int, int] = None,
+              fig_size: Tuple[int, int] = (10, 15), plot_title: str = None, loglog_scale: bool = True,
+              filetype: str = "png", show_plot: bool = False, verbose: bool = False) -> None:
     """
-    Create a 2D wind plot of the wind variables given in the list vars, of var
-    type given in the list var_type. This function will only work with 2d Python
-     simulations - who even uses 1d in Python anyway? Other than for sn runs.
-    There is some error checking going on for inputs - this should be enough to
-    make sure that something is plotted but still may cause the script to fall
-    over, and will force exit in some situations.
+    Creates a 2D figure with subplot panels for each provided wind variable
+    given in the wvars list; for each wvar, there should be a provided variable
+    type in the list wvar_types. The subplot panel dimensions in the variable
+    subplot_dims should multiply together to be larger than the number of
+    wind variables passed in wvars.
+
+    TODO: polar plot doesn't take into account using log-log scale or not
+
+    Notes
+    -----
+    Currently, this will only work with 2D data and only with rectilinear (x, y)
+    and polar (r, theta) coordinate systems.
 
     Parameters
     ----------
-    root_name: str
+    root: str
         The root name of the Python simulation
     output_name: str
-        The base name of the output plot
-    vars: list[str]
-        The Python wind variables to plot
-    var_types: list[str]
-        The type of the variables to be plotted, allowable values are wind and
-         ion
+        The base output file name for the figure
+    wvars: List[str]
+        A list containing the name of the wind variables to show in the figure.
+        This list must be the same length as the wvar_types list
+    wvar_types: List[str]
+        A list containing the types of the wind variables, this is either going
+        to be "wind" or "ion" depending on if it is a wind/plasma variable or
+        an ion. This list must be the same length as the wvars list
     path: str, optional
-        The directory containing the Python simulation
-    data_ndims: str, optional
-        The dimensionality of the Python simulation - note only 2d is supported
-         for now
+        An absolute or relative path to the directory containing the simulation
+    ndims: str, optional
+        The dimensionality of the simulation, currently only allowed is "2d"
     projection: str, optional
-        The coordinate system in use for the wind data
+        The coordinate system of the simulation grid, allowed values are
+        "rectilinear" and "polar"
     subplot_dims: Tuple[int, int], optional
-        The number of rows and columns of subplot panels
+        The number of rows and columns of the subplot panels
+    fig_size: Tuple[int, int], optional
+        The size of the figure in inches given by the tuple (width, height)
     plot_title: str, optional
-        The title of the plot
+        If this is provided, the figure will include this title at the top
     loglog_scale: bool, optional
-        Plot using a log log scale, set to True by default
+        When True, the subplot panels will use a log-log scale. This is the
+        default behaviour.
     filetype: str, optional
-        The file type of the output plot saved to disk, set to png by default
+        The file type of the output figure, set to png by default
+    show_plot: bool, optional
+        Show the figure after saving the figure to disk
     verbose: bool, optional
         Enable verbose logging
     """
 
-    if data_ndims != "2d":
-        print("py_plot.plot_wind: only understand ndims = 2d at the moment")
-        return
+    if ndims.lower() != "2d":
+        raise NotImplementedError("{}:{}: only understand ndims 2d at the moment".format(__file__, plot_wind.__name__))
 
-    # If no vars are provided, then use some default ones
-    if vars is None:
-        vars = ["t_e", "t_r", "ne", "v_x", "v_y", "v_z", "ip", "c4"]
-    if var_types is None:
-        var_types = ["wind"] * len(vars)
-    if len(vars) != len(var_types):
-        print("py_plot.plot_wind: vars and types should be of the same length")
+    if len(wvars) != len(wvar_types):
+        print("{}:{}: vars and types should be of the same length".format(__file__, plot_wind.__name__,))
         return
 
     # If subplot dimensions are not provided, then assume a default shape of (4, 2)
     if subplot_dims is None:
         subplot_dims = (4, 2)
-    if subplot_dims[0] * subplot_dims[1] < len(vars):
-        print("py_plot.plot_python_wind: not enough panels to plot all the provided vars!")
+    if subplot_dims[0] * subplot_dims[1] < len(wvars):
+        print("{}:{}: not enough subplot panels to plot all the provided vars".format(__file__, plot_wind.__name__,))
         return
 
     allowed_projections = ["rectilinear", "polar"]
     if projection not in allowed_projections:
-        print("py_plot.plot_wind: projection {} not allowed, allowed values: rectilinear or polar".format(projection))
+        print("{}:{}: projection {} not allowed, allowed values: rectilinear or polar"
+              .format(__file__, plot_wind.__name__, projection))
         return
 
     if projection == "rectilinear":
-        fig, ax = plt.subplots(subplot_dims[0], subplot_dims[1], figsize=(10, 15), squeeze=False)
+        fig, ax = plt.subplots(subplot_dims[0], subplot_dims[1], figsize=fig_size, squeeze=False)
     elif projection == "polar":
-        fig = plt.figure(figsize=(10, 15))
+        fig = plt.figure(figsize=fig_size)
 
     index = 0
     for i in range(subplot_dims[0]):
         for j in range(subplot_dims[1]):
-            if index > len(vars) - 1:
+            if index > len(wvars) - 1:
                 break
-            var = vars[index]
-            var_t = var_types[index]
+            wvar = wvars[index]
+            wvar_t = wvar_types[index]
             if verbose:
-                print("\tPlotting {} of type {}".format(var, var_t))
-            x, z, qoi = py_plot_util.get_wind_data(root_name, var, var_t, path, projection)
-
-            # If the data return is only of length 1, then something has gone wrong in the
-            # get_wind_data function, so increment the index counter and skip plotting this
-            if len(qoi) == 1 and len(x) == 1 and len(z) == 1:
-                index += 1
+                print("\tPlotting {} of type {}".format(wvar, wvar_t))
+            try:
+                x, z, w = py_plot_util.extract_wind_var(root, wvar, wvar_t, path, projection)
+            except Exception as e:
+                print(e)
+                print("Exception occured: Unable to plot {}".format(wvar))
                 continue
 
             if projection == "rectilinear":
-                fig, ax = plot_rectilinear_wind(fig, ax, x, z, qoi, i, j, var, var_t, loglog_scale)
+                fig, ax = rectilinear_wind_plot(fig, ax, x, z, w, i, j, wvar, wvar_t, loglog_scale)
             elif projection == "polar":
-                plot_polar_wind(x, z, qoi, index, var, var_t, subplot_dims)
+                polar_wind_plot(x, z, w, index, wvar, wvar_t, subplot_dims)
 
             index += 1
 
@@ -347,9 +359,9 @@ def plot_wind(root_name: str, output_name: str, vars: List[str], var_types: List
     if plot_title:
         fig.suptitle(plot_title)
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.savefig("{}/{}.{}".format(path, output_name, filetype))
+    plt.savefig("{}/{}:{}".format(path, output_name, filetype))
 
-    if SHOW_PLOT:
+    if show_plot:
         plt.show(block=False)
     else:
         plt.close()
@@ -358,11 +370,12 @@ def plot_wind(root_name: str, output_name: str, vars: List[str], var_types: List
 
 
 def plot_tau_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edges: bool = True,
-                  wmin: Union[float, bool] = None, wmax: Union[float, bool] = None,
-                  semilogy: bool = True, loglog: bool = False):
+                  wmin: Union[float, bool] = None, wmax: Union[float, bool] = None, semilogy: bool = True,
+                  loglog: bool = False, show_plot: bool = False) -> None:
     """
-    Plot an optical depth spectrum of either optical depth vs wavelength (Angstroms) or
-    optical depth vs frequency (Hz).
+    Create an optical depth spectrum for a Python simulation. Requires a
+    root.tau_spec.diag file or something. The figure can be created as a
+    function of both wavelength and frequency.
 
     Parameters
     ----------
@@ -394,7 +407,7 @@ def plot_tau_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edge
             filename = "{}/diag_{}/".format(dir, root) + "{}.tau_spec.diag".format(root)
             spec = np.loadtxt(filename, skiprows=1)
         except IOError:
-            print("Unable to find the optical depth spectrum: {}".format(root))
+            print("{}:{}: unable to find the optical depth spectrum: {}".format(__file__, plot_tau_spec.__name__, root))
             return
 
     with open(filename, "r") as f:
@@ -432,16 +445,9 @@ def plot_tau_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edge
             ax.plot(spec[:, 0], spec[:, i + 1], label=the_label)
         ax.tick_params(axis="both", which="major", labelsize=13)
 
-        # if plot_edges or semilogy is False:
-        #     tymax, tymin = py_plot_util.define_ylims(spec[:, 0], spec[:, i + 1], xxlims[0], xxlims[1], scale=scale)
-        #     if tymax > ymax:
-        #         ymax = tymax
-        #     if tymin < ymin and tymin != 0:
-        #         ymin = tymin
-
     if plot_freq:
         if loglog:
-            ax.set_xlabel(r"Log(Frequency), Hz")
+            ax.set_xlabel(r"Log[Frequency], Hz")
         else:
             ax.set_xlabel(r"Frequency, Hz")
     else:
@@ -452,13 +458,13 @@ def plot_tau_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edge
     ax.set_ylim(ylims[0] / 10, ylims[1] * 10)
 
     if plot_edges:
-        py_plot_util.plot_line_ids(ax, py_plot_util.absorption_edges(use_freq=plot_freq, log_scale=loglog))
+        py_plot_util.plot_line_ids(ax, py_plot_util.absorption_edges(freq=plot_freq, log=loglog))
 
     ax.legend()
 
     plt.savefig("{}_tau_spec.png".format(root))
 
-    if SHOW_PLOT:
+    if show_plot:
         plt.show(block=False)
     else:
         plt.close()
@@ -466,43 +472,65 @@ def plot_tau_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edge
     return
 
 
-def plot_spec_comps(spec_path: str, output_name: str, semilogy_scale: bool = False, smooth: int = 15,
+def plot_spec_comps(input_file: str, output_name: str, semilogy_scale: bool = False, smooth: int = 5,
                     wmin: Union[float, bool] = None, wmax: Union[float, bool] = None, filetype: str = "png",
-                    verbose: bool = False) -> None:
+                    show_plot: bool = False, verbose: bool = False) -> None:
     """
-    Plot the different integrated flux components within a Python spec file.
+    Create a figure of the different spectrum components which contribute to
+    the emitted spectrum in Python. Note that all the spectrum components added
+    together DO NOT equal the emitted spectrum.
+
+    From Knox:
+    0 - The spectra with their original weights (before transmission through the
+        wind)
+    1 - The emitted spectra with their weights revised by transmission through
+        the wind
+    2 - The emitted spectra from photons that originated from the central object
+    3 - The emitted spectra from photons that originated0.2 from the disk
+    4 - The emitted spectra from photons that originated in the wind  (Note that
+        with modification that we made recently to account for adiabatic
+        heating, there are actually photons, generally quite few, that can be in
+        this spectrum even in the macro-atom case).
+    5 - The spectra of photons which hit (and were absorbed by the star) at the
+        time they were absorbed.  This spectrum should be all zero’s for in the
+        case where we scatter at a surface as this is not the flux that hit the
+        surface, but the flux that is lost.
+    6 - The flux of photons that scattered at least once in the wind. Note that
+        this appears to be all photons that have scattered, regardless of
+        whether they escape. The weights used are the final weights.
 
     Parameters
     ----------
-    spec_path: str
-        A directory path to Python .spec file
-    output_name     str
-        The base name for the plot which is saved to disk
+    input_file: str
+        A relative or absolute path to the .spec file
+    output_name: str
+        The base output file name for the figure
     semilogy_scale: bool, optional
         Use a log-linear scale for the plot
     smooth: int, optional
-        The size of the window for the boxcar smoother. Larger values result in
-         more smoothing
-    filetype: str, optional
-        The file type of the plot saved to disk, by default this is
+        The size of the window for the boxcar smoother
     wmin: float, optional
-        The minimum wavelength to plot
+        The smallest wavelength to plot
     wmax: float, optional
-        The maximum wavelength to plot
+        The largest wavelength to plot
+    filetype: str, optional
+        The file type of the figure saved to disk; default is png
+    show_plot: bool, optional
+        Show the figure after saving the figure to disk
     verbose: bool, optional
         Enable verbose logging
-
     """
 
-    if type(spec_path) is not str:
-        print("py_plot.plot_spec_comps: can only plot spectrum components for one spectrum at a time")
+    if type(input_file) is not str:
+        print("{}:{}: can only plot spectrum components for one spectrum at a time"
+              .format(__file__, plot_spec_comps.__name__))
         return
 
-    if spec_path.find(".spec") == -1:
-        if spec_path.find(".pf") != -1:
-            spec_path = spec_path.replace(".pf", ".spec")
+    if input_file.find(".spec") == -1:
+        if input_file.find(".pf") != -1:
+            input_file = input_file.replace(".pf", ".spec")
         else:
-            print("py_plot.plot_spec_comps: can't fix file path {}".format(spec_path))
+            print("{}:{}: can't fix file path {}".format(__file__, plot_spec_comps.__name__, input_file))
 
     fig, ax = plt.subplots(2, 1, figsize=(12, 10))
 
@@ -511,18 +539,18 @@ def plot_spec_comps(spec_path: str, output_name: str, semilogy_scale: bool = Fal
     headers_top = ["Created", "Emitted"]
     headers_bot = ["CenSrc", "Disk", "Wind", "HitSurf", "Scattered"]
 
-    if spec_path.find(".spec") == -1:
-        spec_path += ".spec"
+    try:
+        spec = py_plot_util.read_spec(input_file)
+    except Exception:
+        print("{}:{}: could not open input file {}".format(__file__, plot_spec_comps.__name__, input_file))
+        return
 
-    # Get the spectrum for the model
-    spec = py_plot_util.read_spec_file(spec_path, " ")
-    wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
+    wavelength = spec["Lambda"].values.astype(float)
 
-    # First, plot the created and emitted emission
+    # First panel, plot the created and emitted emission
     for i in range(len(headers_top)):
         print("\tPlotting {}".format(headers_top[i]))
-        flux = py_plot_util.smooth_1d_array(np.array(spec[1:, spec[0, :] == headers_top[i]], dtype=float), smooth,
-                                            verbose)
+        flux = py_plot_util.smooth(spec[headers_top[i]].values.astype(float), smooth, verbose)
         if len(flux[flux < MIN_FLUX]) > 0.7 * len(flux):
             print("\t\t!!Skipping {}".format(headers_top[i]))
             continue
@@ -541,11 +569,10 @@ def plot_spec_comps(spec_path: str, output_name: str, semilogy_scale: bool = Fal
     ax[0].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)", fontsize=17)
     ax[0].legend()
 
-    # Second, plot CenSrc, Disk, Wind, HitSurf and Scattered emission
+    # Second panel, plot CenSrc, Disk, Wind, HitSurf and Scattered emission
     for i in range(len(headers_bot)):
         print("\tPlotting {}".format(headers_bot[i]))
-        flux = py_plot_util.smooth_1d_array(np.array(spec[1:, spec[0, :] == headers_bot[i]], dtype=float), smooth,
-                                            verbose)
+        flux = py_plot_util.smooth(spec[headers_bot[i]].values.astype(float), smooth, verbose)
         if len(flux[flux < MIN_FLUX]) > 0.7 * len(flux):
             print("\t\t!!Skipping {}".format(headers_bot[i]))
             continue
@@ -562,7 +589,7 @@ def plot_spec_comps(spec_path: str, output_name: str, semilogy_scale: bool = Fal
 
     plt.savefig("{}_spec_comps.{}".format(output_name, filetype))
 
-    if SHOW_PLOT:
+    if show_plot:
         plt.show(block=False)
     else:
         plt.close()
@@ -570,101 +597,98 @@ def plot_spec_comps(spec_path: str, output_name: str, semilogy_scale: bool = Fal
     return
 
 
-def plot_spectra(spec_path: List[str], inclinations: Union[List, np.array], output_name: str, wmin: float = None,
-                 wmax: float = None, smooth: int = 15, filetype: str = "png", verbose: bool = False) -> None:
+def plot_spectra(input_files: List[str], figure_inclinations: Union[List, np.array], output_name: str,
+                 wmin: float = None, wmax: float = None, smooth: int = 5, filetype: str = "png",
+                 show_plot: bool = False, verbose: bool = False) -> None:
     """
-    Plot the spectrum for each provided inclination angle for a Python .spec file.
+    Plot the spectrum for each provided inclination angle for a Python .spec
+    file. The directory to a .pf or a .spec file can be passed, as the function
+    should be able to cope with either...
 
     Parameters
     ----------
-    spec_path: str
-        A directory path to Python .spec file
-    inclinations: List[str]
-        A list of inlcination angles to plot
+    input_files: str
+        The relative or absolute path to the .spec or .pf file
+    figure_inclinations: List[str]
+        A list of the inclination angles to be plotted
     output_name: str
-        The base name for the plot which is saved to disk
+        The base output file name for the figure
     wmin: float, optional
-        The smallest wavelength to show on the plot
+        The smallest wavelength to plot
     wmax: float, optional
-        The largest wavelength to show on the plot
+        The largest wavelength to plot
     smooth: int, optional
-        The size of the window for the boxcar smoother. Larger values result in
-         more smoothing
+        The size of the window for the boxcar smoother
     filetype: str, optional
-        The file type of the plot saved to disk, by default this is png
+        The file type of the figure saved to disk; default is png
     show_plot: bool, optional
-        Show the plot before saving to disk
+        Show the figure after saving the figure to disk
     verbose: bool, optional
         Enable verbose logging
     """
 
-    root = "spec"
-    nfiles = len(spec_path)
+    nfiles = len(input_files)
 
     for i in range(nfiles):
-        path = spec_path[i]
+        path = input_files[i]
         if path.find(".spec") != -1:
             continue
         elif path.find(".pf") != -1:
             path = path.replace(".pf", ".spec")
-        spec_path[i] = path
+        input_files[i] = path
 
     # Loop over each possible viewing angle as provided in inclinations
-    for angle in inclinations:
-        fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-        # Loop over each possible .spec file provided in spec_path
+    for inclination in figure_inclinations:
         ymin = +1e99
         ymax = -1e99
-        for file in spec_path:
-            if file.find(".spec") == -1:
-                file += ".spec"
-            root, filepath = py_plot_util.get_root_wd(file)
-            legend = filepath + root
-            if verbose:
-                print("\tPlotting {} {}°".format(legend, angle))
+        inclination = str(inclination)
+        fig, ax = plt.subplots(1, 1, figsize=(12, 5))
 
-            # Read in the spectrum and check that it can be plotted for the current viewing angle
-            spec = py_plot_util.read_spec_file(file)
-            allowed = py_plot_util.check_inclination_present(angle, spec)
-            if not allowed:
+        for file in input_files:
+            if file.find(".spec") == -1 and file.find(".pf") == -1:
+                file += ".spec"
+            root, filepath = py_plot_util.get_root_name(file)
+            legend = filepath + root
+            print("\tPlotting {} for i = {}°".format(legend, inclination))
+
+            # Read in the spectrum and check that it can be plotted for the
+            # current inclination
+            spec = py_plot_util.read_spec(file)
+            allowed_inclination = py_plot_util.check_inclination(inclination, spec)
+            if not allowed_inclination:
                 continue
 
-            # Weird hacky and stupid code to find the index for the inclination
-            # This is only required from read_spec_file returns a numpy array of strings
-            idx = 0
-            for i in range(spec.shape[1]):
-                if spec[0, i].isdigit() and float(spec[0, i]) == float(angle):
-                    spec[0, i] = float(spec[0, i])
-                    idx = i
-                    break
-
             # Extract the wavelength range and flux and scale the flux appropriately
-            wavelength = np.array(spec[1:, spec[0, :] == "Lambda"], dtype=float)
-            flux = py_plot_util.smooth_1d_array(np.array(spec[1:, idx], dtype=float), smooth, verbose)
-            flux *= (DEFAULT_DIST ** 2 / OBSERVE_DIST ** 2)
+            wavelength = spec["Lambda"].values.astype(float)
+            flux = py_plot_util.smooth(spec[inclination].values.astype(float), smooth, verbose)
+            flux *= (DEFAULT_DIST ** 2 / OBSERVE_DIST ** 2)  # TODO: should this be a function input?
             ax.semilogy(wavelength, flux, label=legend)
-            tymax, tymin = py_plot_util.define_ylims(wavelength, flux, wmin, wmax, scale=5)
 
-            if tymin == 0 or tymax == 0:
-                ymin = None
-                ymax = None
-            else:
-                if tymin < ymin:
-                    ymin = tymin
-                if tymax > ymax:
-                    ymax = tymax
+            # This is basically only required when the wavelength range is restricted
+            tymax, tymin = py_plot_util.ylims(wavelength, flux, wmin, wmax)
+            if tymin is not None and tymin < ymin:
+                ymin = tymin
+            if tymax is not None and tymax > ymax:
+                ymax = tymax
+
+        # If these values haven't been updated to something sensible, set to none
+        # otherwise matplotlib complains
+        if ymin == +1e99:
+            ymin = None
+        if ymax == -1e99:
+            ymax = None
 
         ax.set_ylim(ymin, ymax)
         ax.set_xlim(wmin, wmax)
         ax.set_xlabel(r"Wavelength ($\AA$)", fontsize=15)
         ax.set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)", fontsize=15)
-        ax.legend(loc="lower right")
-        ax.set_title("{} {}".format(root, angle) + r"$^{\circ}$", fontsize=20)
+        ax.legend(loc="upper right")
+        ax.set_title(r"{} $i$ = {}".format(root, inclination) + r"$^{\circ}$", fontsize=20)
 
         fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-        plt.savefig("{}_{}.{}".format(output_name, angle, filetype))
+        plt.savefig("{}_i{}:{}".format(output_name, inclination, filetype))
 
-        if SHOW_PLOT:
+        if show_plot:
             plt.show(block=False)
         else:
             plt.close()
@@ -681,7 +705,7 @@ def main() -> None:
     allowed_plots = ["spec", "spec_comps", "wind", "ions", "tau_spec", "all", "help"]
 
     # Parse the running options from the command line
-    outname = get_script_arguments()
+    output_name = get_script_arguments()
 
     if POLAR_PROJECTION:
         projection = "polar"
@@ -701,91 +725,87 @@ def main() -> None:
         return
 
     if ROOT:
-        files = [outname]
+        input_files = [output_name]
     else:
         if PLOTS == "spec" or PLOTS == "spec_comps":
-            files = py_plot_util.find_spec_files()
-            if len(files) == 0:
-                print("No spec files found")
-                print("\n--------------------------")
-                exit(1)
+            input_files = py_plot_util.find_specs()
         else:
-            files = py_plot_util.find_pf_files()
-            if len(files) == 0:
-                print("No pf files found")
-                print("\n--------------------------")
-                exit(1)
+            input_files = py_plot_util.find_pf()
+        if len(input_files) == 0:
+            print("No input files found")
+            print("\n--------------------------")
+            return
 
     print("Creating {} plots for the following simulations:\n".format(PLOTS))
-    for i in range(len(files)):
-        print("\t- {}".format(files[i]))
+    for i in range(len(input_files)):
+        print("\t- {}".format(input_files[i]))
 
     print("\n--------------------------")
 
-    # Plot spectra for inclination angles
+    # CREATE SPECTRA FOR EACH INCLINATION ANGLE
     if PLOTS == "spec" or PLOTS == "all":
-        spec_angles = py_plot_util.spec_inclinations_numpy(files)
-        print("\nPlotting spectra".format(files))
-        plot_spectra(files, spec_angles, outname, wmin=WMIN, wmax=WMAX, smooth=SMOOTH, filetype=FILETYPE,
-                     verbose=VERBOSE)
+        inclinations = py_plot_util.all_inclinations(input_files)
+        print("\nPlotting spectra".format(input_files))
+        plot_spectra(input_files, inclinations, output_name, wmin=WMIN, wmax=WMAX, smooth=SMOOTH, filetype=FILETYPE,
+                     show_plot=SHOW_PLOT, verbose=VERBOSE)
 
-    # If this is being run in an individual folder, then we can plot the spectrum components and wind parameters
-    if len(files) == 1:
-        root, path = py_plot_util.get_root_wd(files[0])
+    # IF THIS IS CALLED IN A DIRECTORY WITH A SINGLE SIMULATION
+    if len(input_files) == 1:
+        root, path = py_plot_util.get_root_name(input_files[0])
 
-        # Plot the spectrum components
+        # CREATE SPECTRUM COMPONENTS FILE
         if PLOTS == "spec_comps" or PLOTS == "all":
             print("\nPlotting spectrum components")
-            plot_spec_comps(files[0], outname, semilogy_scale=PLOT_LOG, smooth=SMOOTH, filetype=FILETYPE,
-                            verbose=VERBOSE)
+            input_files[0] = input_files[0].replace(".pf", ".spec")
+            plot_spec_comps(input_files[0], output_name, semilogy_scale=PLOT_LOG, smooth=SMOOTH, filetype=FILETYPE,
+                            show_plot=SHOW_PLOT, verbose=VERBOSE)
 
-        # Plot the optical depth spectrum
+        # CREATE OPTICAL DEPTH SPECTRUM
         if PLOTS == "tau_spec" or PLOTS == "all":
             print("\nPlotting optical depth spectrum")
-            plot_tau_spec(root, path, wmin=WMIN, wmax=WMAX)
+            plot_tau_spec(root, path, wmin=WMIN, wmax=WMAX, show_plot=SHOW_PLOT,)
 
-        # Run windsave2table to extract data from the wind_save file
+        # RUN WINDSAVE2TABLE IF ROOT.EP.COMPLETE FILE IS MISSING
         if PLOTS == "wind" or PLOTS == "ions" or PLOTS == "all":
-            if os.path.isfile("{}.ep.complete".format(root)) is False:
-                rc = py_plot_util.windsave2table(path, root, VERBOSE)
-                if rc:
-                    print("py_plot.main: windsave2table failed to run")
-                    exit(1)
+            if not os.path.isfile("{}.ep.complete".format(root)):
+                py_plot_util.windsave2table(root, path, VERBOSE)
 
-        # Plot some wind quantities first
+        # CREATE WIND VARIABLE PLOT
         if PLOTS == "wind" or PLOTS == "all":
             print("\nPlotting wind quantities")
             vars = ["t_e", "t_r", "ne", "rho", "w", "converge", "ip", "ntot"]
             var_types = ["wind"] * len(vars)
-            plot_wind(root, outname + "_wind", vars, var_types,  path, projection=projection, filetype=FILETYPE,
-                      data_ndims=DIMS, verbose=VERBOSE)
+            plot_wind(root, output_name + "_wind", vars, var_types, path, projection=projection, filetype=FILETYPE,
+                      ndims=DIMS, show_plot=SHOW_PLOT, verbose=True)
 
-        # Now plot some ions
+        # CREATE ION PLOTS
         if PLOTS == "ions" or PLOTS == "all":
             print("\nPlotting wind ions")
-            inames = ["H", "He", "C", "N", "O", "Si", "Ions"]
+            inames = ["", "H", "He", "C", "N", "O", "Si"]
+            dims = [(4, 2), (1, 2), (2, 2), (3, 2), (4, 2), (4, 2), (5, 3)]
+            size = [(15, 20), (15, 5), (15, 10), (15, 15), (15, 20), (15, 20), (22.5, 25)]
             ions = [
+                ["O_i05", "Si_i04", "Si_i05", "N_i04", "N_i05", "N_i06", "C_i04", "C_i05"],
                 ["H_i01", "H_i02"],
                 ["He_i01", "He_i02", "He_i03"],
                 ["C_i01", "C_i02", "C_i03", "C_i04", "C_i05", "C_i06"],
                 ["N_i01", "N_i02", "N_i03", "N_i04", "N_i05", "N_i06", "N_i07", "N_i08"],
                 ["O_i01", "O_i02", "O_i03", "O_i04", "O_i05", "O_i06", "O_i07", "O_i08"],
                 ["Si_i01", "Si_i02", "Si_i03", "Si_i04", "Si_i05", "Si_i06", "Si_i07", "Si_i08", "Si_i09", "Si_i10",
-                 "Si_i11", "Si_i12", "Si_i13", "Si_i14", "Si_i15"],
-                ["O_i05", "Si_i04", "Si_i05", "N_i04", "N_i05", "N_i06", "C_i04", "C_i05"]
+                 "Si_i11", "Si_i12", "Si_i13", "Si_i14", "Si_i15"]
             ]
-            dims = [(1, 2), (2, 2), (3, 2), (4, 2), (4, 2), (5, 3), (4, 2)]
             for i in range(len(ions)):
-                print("\tCreating ion plot for {}".format(inames[i]))
-                name = "_" + inames[i] + "_ions"
+                print("\tCreating ion plot {}".format(inames[i]))
                 vars = ions[i]
+                name = "_" + inames[i] + "_ions"
                 var_types = ["ion"] * len(vars)
-                plot_wind(root, outname + name, vars, var_types, path, projection=projection, filetype=FILETYPE,
-                          data_ndims=DIMS, verbose=VERBOSE, subplot_dims=dims[i])
+                plot_wind(root, output_name + name, vars, var_types, path, projection=projection, filetype=FILETYPE,
+                          ndims=DIMS, verbose=VERBOSE, show_plot=SHOW_PLOT, subplot_dims=dims[i], fig_size=size[i])
 
+        # REMOVE DATA SYMBOLIC LINK TO KEEP THINGS CLEAN FOR DROPBOX
         py_rm_data.remove_data_dir(path)
 
-    elif len(files) > 1 and PLOTS != "spec":
+    elif len(input_files) > 1 and PLOTS != "spec":
         print("Can only plot {} when one root in folder :^)".format(PLOTS))
 
     print("")  # spacer :-)

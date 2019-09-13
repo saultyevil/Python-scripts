@@ -31,19 +31,19 @@ def plot_velocity_magnitude(root: str, projection: str, ret_mag: bool = False) -
     if projection not in aprojections:
         print("Projection {} unknown. Allowed projections are {}".format(projection, aprojections))
 
-    xx, yx, vx = ppu.get_wind_data(root, "v_x", "wind", coord=projection)
-    xy, yy, vy = ppu.get_wind_data(root, "v_y", "wind", coord=projection)
-    xz, yz, vz = ppu.get_wind_data(root, "v_z", "wind", coord=projection)
+    xx, yx, vx = ppu.extract_wind_var(root, "v_x", "wind", coord=projection)
+    xy, yy, vy = ppu.extract_wind_var(root, "v_y", "wind", coord=projection)
+    xz, yz, vz = ppu.extract_wind_var(root, "v_z", "wind", coord=projection)
     v = np.sqrt(vx ** 2 + vy ** 2 + vz ** 2)
 
     if ret_mag:
         return v
 
     if projection == "polar":
-        pp.plot_polar_wind(xx, yx, v, 0, "|v|", "wind", (1, 1))
+        pp.polar_wind_plot(xx, yx, v, 0, "|v|", "wind", (1, 1))
     else:
         fig, ax = plt.subplots(1, 1, figsize=(12, 8), squeeze=False)
-        fig, ax = pp.plot_rectilinear_wind(fig, ax, xx, yx, v, 0, 0, "|v|", "wind")
+        fig, ax = pp.rectilinear_wind_plot(fig, ax, xx, yx, v, 0, 0, "|v|", "wind")
     plt.savefig("{}.velocitymag.png".format(root))
     plt.close()
 
@@ -67,9 +67,9 @@ def plot_velocity_maps(root: str, projection: str):
     if projection not in aprojections:
         print("Projection {} unknown. Allowed projections are {}".format(projection, aprojections))
 
-    xx, yx, vx = ppu.get_wind_data(root, "v_x", "wind", coord=projection)
-    xy, yy, vy = ppu.get_wind_data(root, "v_y", "wind", coord=projection)
-    xz, yz, vz = ppu.get_wind_data(root, "v_z", "wind", coord=projection)
+    xx, yx, vx = ppu.extract_wind_var(root, "v_x", "wind", coord=projection)
+    xy, yy, vy = ppu.extract_wind_var(root, "v_y", "wind", coord=projection)
+    xz, yz, vz = ppu.extract_wind_var(root, "v_z", "wind", coord=projection)
     v = np.sqrt(vx ** 2 + vy ** 2 + vz ** 2)
     d = [vx, vy, vz, v]
     n = ["vx", "vy", "vz", "|v|"]
@@ -82,9 +82,9 @@ def plot_velocity_maps(root: str, projection: str):
     for i in range(nrows):
         for j in range(ncols):
             if projection == "polar":
-                pp.plot_polar_wind(xx, yx, d[iidx], iidx, n[iidx], "wind", (2, 2))
+                pp.polar_wind_plot(xx, yx, d[iidx], iidx, n[iidx], "wind", (2, 2))
             else:
-                fig, ax = pp.plot_rectilinear_wind(fig, ax, xx, yx, d[iidx], i, j, n[iidx], "wind")
+                fig, ax = pp.rectilinear_wind_plot(fig, ax, xx, yx, d[iidx], i, j, n[iidx], "wind")
             iidx += 1
 
     if projection == "rectilinear":

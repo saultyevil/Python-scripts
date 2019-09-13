@@ -24,8 +24,8 @@ grid_angles = ["20", "40", "60", "62", "70", "75", "80", "85", "89"]
 COMP_MODEL_SPEC_PATH = "zzz_orig/tde.spec"
 
 try:
-    comp_model_spec = py_plot_util.read_spec_file(COMP_MODEL_SPEC_PATH, " ", pandas_table=True)
-    comp_model_angles = py_plot_util.spec_inclinations_pandas(comp_model_spec)
+    comp_model_spec = py_plot_util.read_spec(COMP_MODEL_SPEC_PATH, " ", numpy=True)
+    comp_model_angles = py_plot_util.spec_inclinations(comp_model_spec)
 except IOError:
     print("Can't open base agn model. Is something wrong?")
     comp_model_spec = np.zeros((10,2))
@@ -75,7 +75,7 @@ def plot_comparison(grid_name, root, i_to_plot, subplots, sim_dirs, tde_obj="iPT
             if i_to_plot[index] in comp_model_angles:
                 base_lambda = comp_model_spec["Lambda"].values.astype(float)
                 base_flux = comp_model_spec[i_to_plot[index]].values.astype(float)
-                base_flux = py_plot_util.smooth_1d_array(base_flux, 30)
+                base_flux = py_plot_util.smooth(base_flux, 30)
                 base_flux *= DEFAULT ** 2 / dist ** 2
                 ax[i, j].semilogy(base_lambda, base_flux, "k", label="zzz_orig")
                 
@@ -84,19 +84,19 @@ def plot_comparison(grid_name, root, i_to_plot, subplots, sim_dirs, tde_obj="iPT
             for d in sim_dirs:
                 spec_filename = d + "/" + root + ".spec"
                 try:
-                    spectrum = py_plot_util.read_spec_file(spec_filename, pandas_table=True)
+                    spectrum = py_plot_util.read_spec(spec_filename, numpy=True)
                 except IOError:
                     print("Can't open spec {}, check pls".format(spec_filename))
-                inclinations = py_plot_util.spec_inclinations_pandas(spectrum)
+                inclinations = py_plot_util.spec_inclinations(spectrum)
                 if i_to_plot[index] not in inclinations:
                     continue
                 wavelength = spectrum["Lambda"].values.astype(float)
                 flux = spectrum[i_to_plot[index]].values.astype(float)
-                flux = py_plot_util.smooth_1d_array(flux, smooth)
+                flux = py_plot_util.smooth(flux, smooth)
                 flux *= DEFAULT_DIST ** 2 / dist ** 2
                 ax[i, j].semilogy(wavelength, flux, label=spec_filename)
                 
-                tmp_max, tmp_min = py_plot_util.define_ylims(wavelength, flux, wmin, wmax)
+                tmp_max, tmp_min = py_plot_util.ylims(wavelength, flux, wmin, wmax)
                 if tmp_max > ymax:
                     ymax = tmp_max
                 if tmp_min < ymin:

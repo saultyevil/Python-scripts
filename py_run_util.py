@@ -255,7 +255,7 @@ def get_num_procs(default_cores: int = 0) -> Tuple[bool, int]:
     return mpi, n_cores
 
 
-def check_run_convergence(root: str, wd: str) -> Union[int, float]:
+def check_convergence(root: str, wd: str) -> Union[int, float]:
     """
     Check the convergence of a Python simulation.
 

@@ -159,15 +159,19 @@ def plot_uv_observations() -> None:
     for i in range(nspec):
         offset = 1 * 10 ** i
         wlength = spec_list[i][:, 0] / (1 + spec_z[i])
+
         # flux = rescale_flux(ppu.smooth_1d_array(spec_list[i][:, 1], SMOOTH, VERBOSE))
-        flux = ppu.smooth_1d_array(spec_list[i][:, 1], SMOOTH, VERBOSE)
-        ax.semilogy(wlength, flux, label=spec_names[i])
+
+        flux = ppu.smooth(spec_list[i][:, 1], SMOOTH, VERBOSE)
+        ax.loglog(wlength, flux, label=spec_names[i])
+
         if bb_temp[i]:
             twl = wlength
             bbfl = blackbody_flux(bb_temp[i], twl)
             bbfl *= np.pi * bb_radius[i] ** 2 / dl[i] ** 2
             # bbfl = rescale_flux(bbfl)
-            ax.semilogy(twl, bbfl, linestyle="--", alpha=0.5, color="k")
+            ax.loglog(twl, bbfl, linestyle="--", alpha=0.5, color="k")
+
         # ax.text(2200, name_x[i], spec_names[i], fontsize=15)
     # ax.set_ylim(0, nspec + 0.7)
     ax.set_xlabel(r"Rest Wavelength [$\AA$]", fontsize=15)

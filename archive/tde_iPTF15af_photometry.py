@@ -20,13 +20,13 @@ Z = 0.07897
 
 # load in cv spec
 spec_file = "/Users/saultyevil/PySims/TDE/spherical_model_grids/accel_exp/2.0000e+01/tde_spherical.spec"
-spec = py_plot_util.read_spec_file(spec_file, " ")
+spec = py_plot_util.read_spec(spec_file, " ")
 wavelength = np.array(spec[1:, 1], dtype=float)
 
 # flux indexs should be 11 (45 deg) or 12 (62 deg) -- rescale to iPTF15af distance
-flux1 = py_plot_util.smooth_1d_array(np.array(spec[1:, 12], dtype=float), smooth, verbose)
+flux1 = py_plot_util.smooth(np.array(spec[1:, 12], dtype=float), smooth, verbose)
 flux1 *= 3.08567758128e20 ** 2 / 1.079987153448e+27 ** 2
-flux2 = py_plot_util.smooth_1d_array(np.array(spec[1:, 13], dtype=float), smooth, verbose)
+flux2 = py_plot_util.smooth(np.array(spec[1:, 13], dtype=float), smooth, verbose)
 flux2 *= 3.08567758128e20 ** 2 / 1.079987153448e+27 ** 2
 
 # load iPTF15af and put into rest frame

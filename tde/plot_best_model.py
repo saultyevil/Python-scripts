@@ -105,8 +105,8 @@ def plot_against_data(dfname: List[str], inclinations: List[str]):
         pdir = "/home/saultyevil/PySims/tde/"
     for i in range(len(dfname)):
         dfname[i] = pdir + dfname[i]
-    mspec = ppu.read_spec_file(dfname[0], pandas_table=True)
-    cnospec = ppu.read_spec_file(dfname[1], pandas_table=True)
+    mspec = ppu.read_spec(dfname[0], numpy=True)
+    cnospec = ppu.read_spec(dfname[1], numpy=True)
 
     fig, ax = plt.subplots(2, 1, figsize=(9.5, 11), sharex="col")
 
@@ -118,10 +118,10 @@ def plot_against_data(dfname: List[str], inclinations: List[str]):
     cnospec_fl = cnospec[inclination].values.astype(float)
     cnospec_fl *= (100 * PARSEC) ** 2 / (350 * 1e6 * PARSEC) ** 2
 
-    ax[0].semilogy(iptf[:, 0] / (0.07897 + 1), ppu.smooth_1d_array(iptf[:, 1], SMOOTH),
+    ax[0].semilogy(iptf[:, 0] / (0.07897 + 1), ppu.smooth(iptf[:, 1], SMOOTH),
                    label=r"iPTF15af $\Delta t = $52 d")
-    ax[0].semilogy(mspec_wl, ppu.smooth_1d_array(mspec_fl, SMOOTH), label="Solar Abundance")
-    ax[0].semilogy(cnospec_wl, ppu.smooth_1d_array(cnospec_fl, SMOOTH), label="CNO Abundance")
+    ax[0].semilogy(mspec_wl, ppu.smooth(mspec_fl, SMOOTH), label="Solar Abundance")
+    ax[0].semilogy(cnospec_wl, ppu.smooth(cnospec_fl, SMOOTH), label="CNO Abundance")
     ax[0].set_xlim(wmin, wmax)
     ax[0].set_ylim(3e-17, 9e-15)
     ax[0] = plot_line_id(ax[0])
@@ -136,10 +136,10 @@ def plot_against_data(dfname: List[str], inclinations: List[str]):
     cnospec_fl = cnospec[inclination].values.astype(float)
     cnospec_fl *= (100 * PARSEC) ** 2 / (55 * 1e6 * PARSEC) ** 2
 
-    ax[1].semilogy(assa[:, 0] / (0.02058 + 1), ppu.smooth_1d_array(assa[:, 1], SMOOTH),
+    ax[1].semilogy(assa[:, 0] / (0.02058 + 1), ppu.smooth(assa[:, 1], SMOOTH),
                    label=r"ASASSN14li $\Delta t = $60 d")
-    ax[1].semilogy(mspec_wl, ppu.smooth_1d_array(mspec_fl, SMOOTH), label="Solar Abundance")
-    ax[1].semilogy(cnospec_wl, ppu.smooth_1d_array(cnospec_fl, SMOOTH), label="CNO Abundance")
+    ax[1].semilogy(mspec_wl, ppu.smooth(mspec_fl, SMOOTH), label="Solar Abundance")
+    ax[1].semilogy(cnospec_wl, ppu.smooth(cnospec_fl, SMOOTH), label="CNO Abundance")
     ax[1].set_xlim(wmin, wmax)
     ax[1].set_ylim(9e-16, 8e-14)
     ax[1] = plot_line_id(ax[1])
