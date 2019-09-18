@@ -17,17 +17,24 @@ def check_multiple(wdpf: List[str]):
         A list containing the directories of multiple pf files.
     """
 
+    convergence = []
+
     for i in range(len(wdpf)):
         root, path = ppu.get_root_name(wdpf[i])
-        filename = "{}/diag_{}/{}_0.diag".format(path, root, root)
-        if not access(filename, R_OK):
-            filename = "{}_0.diag".format(root)
-            if not access(filename, R_OK):
-                print("Could not find diag file for {} in calling directory\n".format(root))
-                sys.exit(1)
+        c = pru.check_convergence(root, path, verbose=False)
+        convergence.append(c)
 
-        convergence = pru.check_convergence(root, path)
-        print("{}{}: {:3.2f}%".format(path, root, convergence * 100.0))
+    print("The following simulations have completed at least 1 cycle")
+    for i in range(len(wdpf)):
+        c = convergence[i]
+        if c > 0:
+            print(wdpf[i], c)
+
+    print("The following simulations have no cycle information")
+    for i in range(len(wdpf)):
+        c = convergence[i]
+        if c <= 0:
+            print(wdpf[i], c)
 
     return
 
