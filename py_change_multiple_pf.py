@@ -96,7 +96,7 @@ if __name__ == "__main__":
         value = argv[2]
         root = argv[3]
     else:
-        print("Unknown arguments: ", argv[1:])
+        print("Unknown arguments provided: ", argv[1:])
         print(__doc__)
         exit(1)
     change_pfs(get_pfs(root), parameter, value)

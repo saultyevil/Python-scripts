@@ -48,7 +48,6 @@ from shutil import which, copyfile
 from typing import Union, List
 from subprocess import Popen, PIPE
 import py_change_parameter as pcp
-import pandas as pd
 
 CONVERGED = \
     r"""
@@ -373,7 +372,8 @@ def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = 
 
 def restore_bakup_pf(root: str, wd: str):
     """
-    Copy a bakup parameter file back to the original parameter file destination.
+    Copy a backup parameter file back to the original parameter file
+    destination.
 
     Parameters
     ----------
@@ -642,7 +642,7 @@ def main() -> None:
         pru.log("------------------------")
         exit(0)
 
-    use_mpi, n_procs = pru.get_num_procs(N_CORES)
+    use_mpi, n_procs = pru.ncores(N_CORES)
 
     pru.log("\nThe following parameter files were found:\n")
     for i in range(len(pf_paths)):

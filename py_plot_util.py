@@ -33,7 +33,8 @@ def tests() -> None:
 
 def get_python_version(py: str = "py", verbose: bool = False) -> Tuple[str, str]:
     """
-    Get the Python version and commit hash for the provided Python binary. This should also work with windsave2table.
+    Get the Python version and commit hash for the provided Python binary.
+    This should also work with windsave2table.
 
     Parameters
     ----------
@@ -88,7 +89,8 @@ def get_python_version(py: str = "py", verbose: bool = False) -> Tuple[str, str]
 
 def get_root_name(pf_path: str) -> Tuple[str, str]:
     """
-    Split a path name into a directory path and root name for a Python simulation.
+    Split a path name into a directory path and root name for a Python
+    simulation.
 
     Parameters
     ----------

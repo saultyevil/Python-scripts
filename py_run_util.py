@@ -19,28 +19,23 @@ from multiprocessing import cpu_count
 LOGFILE = None
 
 
-def init_logfile(logfile_name: str, glogfile: bool = True):
+def init_logfile(logfile_name: str, use_global_log: bool = True):
     """
     Initialise a logfile global variable
 
     Parameters
     ----------
-    logfile_name        str
-                        The name of the logfile to initialise
-    glogfile            bool, optional
-                        If this is false, a object for a logfile will be returned
-                        instead.
-
-    Returns
-    -------
-    None
+    logfile_name: str
+        The name of the logfile to initialise
+    use_global_log: bool, optional
+        If this is false, a object for a logfile will be returned instead.
     """
 
     global LOGFILE
 
-    if glogfile:
+    if use_global_log:
         if LOGFILE:
-            print("py_run_util.init_logfile: logfile already initialised as {}".format(LOGFILE.name))
+            print("{}:{}: logfile already initialised as {}".format(__file__, init_logfile.__name__, LOGFILE.name))
             return
         LOGFILE = open(logfile_name, "a")
     else:
@@ -52,16 +47,13 @@ def init_logfile(logfile_name: str, glogfile: bool = True):
 
 def close_logfile(logfile=None) -> None:
     """
-    Close the global logfile
+    Close a log file for writing - this will either use the log file provided
+    or will attempt to close the global log file.
 
     Parameters
     ----------
-    logfile             io.TextIO, optional
-                        Close a logfile file. If no argument is given the the
-                        global logfile will be closed.
-    Returns
-    -------
-    None
+    logfile: io.TextIO, optional
+        An externa log file object
     """
 
     global LOGFILE
@@ -71,26 +63,22 @@ def close_logfile(logfile=None) -> None:
     elif LOGFILE:
         LOGFILE.close()
     else:
-        print("No logfile to close?")
+        print("{}:{}: No logfile to close? ahhh".format(__file__, close_logfile.__name__))
 
     return
 
 
 def log(message: str, logfile=None) -> None:
     """
-    Log a message to screen and to a logfile.
+    Log a message to screen and to the log file provided or the global log file.
 
     Parameters
     ----------
-    message             str
-                        The message to log to screen and file
-    logfile             io.TextIO, optional
-                        An open file object which is the logfile to log to. If
-                        this is not provided, then the global logfile
-
-    Returns
-    -------
-    None
+    message: str
+        The message to log to screen and file
+    logfile: io.TextIO, optional
+        An open file object which is the logfile to log to. If this is not
+        provided, then the global logfile
     """
 
     print(message)
@@ -105,34 +93,31 @@ def log(message: str, logfile=None) -> None:
     return
 
 
-def process_line_output(line: str, pcycle: bool, n_cores: int = 1, print_crap: bool = True,
-                        verbose: bool = False) -> bool:
+def process_line_output(line: str, pcycle: bool, n_cores: int = 1, print_crap: bool = True, verbose: bool = False) \
+        -> bool:
     """
     Process the output from a Python simulation and print something to screen.
     Very ugly! Very sad!
 
     Parameters
     ----------
-    line                str
-                        The line to process
-    pcycle              bool
-                        If True then the line will be processed as a spectral
-                        cycle instead
-    n_cores             int, optional
-                        The number of cores the simulation is being run with. This
-                        is required to calculate the total photon number
-    print_crap          bool, optional
-                        If this is False, then all output to screen will be
-                        suppressed
-    verbose             bool, optional
-                        If this is True, then every line will be printed to
-                        screen
+    line: str
+        The line to process
+    pcycle: bool
+        If True then the line will be processed as a spectral cycle instead
+    n_cores: int, optional
+        The number of cores the simulation is being run with. This is required
+        to calculate the total photon number
+    print_crap: bool, optional
+        If this is False, then all output to screen will be suppressed
+    verbose: bool, optional
+        If this is True, then every line will be printed to screen
 
     Returns
     -------
-    pcycle              bool
-                        Indicates if the previously processes line was a
-                        spectral cycle line or not
+    pcycle: bool
+        Indicates if the previously processed line was a spectral cycle line
+        or not
     """
 
     if verbose:
@@ -177,7 +162,7 @@ def process_line_output(line: str, pcycle: bool, n_cores: int = 1, print_crap: b
     return pcycle
 
 
-def find_number_of_physical_cores_lscpu() -> float:
+def ncores_lscpu() -> int:
     """
     Find the physical number of CPU cores in a computer. This function looks at
     the number of available CPUs and the number of cores per CPU.
@@ -185,14 +170,10 @@ def find_number_of_physical_cores_lscpu() -> float:
     Note that this will only work with systems where lscpu is installed,
     i.e. Linux systems.
 
-    Parameters
-    ----------
-    None
-
     Returns
     -------
-    ncores * nsockets       float
-                            The number of physical CPU cores available
+    ncores * nsockets: int
+        The number of physical CPU cores available
     """
 
     # Find the number of cores per CPU and number of CPUs using lscpu
@@ -209,10 +190,10 @@ def find_number_of_physical_cores_lscpu() -> float:
     ncores = int(ncores.decode("utf-8").replace("\n", "").split()[-1])
     nsockets = int(nsockets.decode("utf-8").replace("\n", "").split()[-1])
 
-    return ncores * nsockets
+    return int(ncores * nsockets)
 
 
-def get_num_procs(default_cores: int = 0) -> Tuple[bool, int]:
+def ncores(default_cores: int = 0) -> Tuple[bool, int]:
     """
     Determine the number of Python processes to run. For linux systems, and
     probably Windows :^), this will use lscpu to figure out the number of cores
@@ -222,17 +203,17 @@ def get_num_procs(default_cores: int = 0) -> Tuple[bool, int]:
 
     Parameters
     ----------
-    default_cores       int, optional
-                        If this is provided, the function will assume that this
-                        is the number of cores Python will be run using and that
-                        the computer is capable of using this many cores
+    default_cores: int, optional
+        If this is provided, the function will assume that this is the number
+        of cores Python will be run using and that the computer is capable of
+        using this many cores
 
     Returns
     -------
-    mpi                 bool
-                        True will be returned if mpirun is found in the system
-    n_cores             int
-                        The number of cores to parallelise Python with
+    mpi: bool
+        True will be returned if mpirun is found in the system
+    n_cores: int
+        The number of cores to parallelise Python with
     """
 
     mpi = which("mpirun")
@@ -248,30 +229,32 @@ def get_num_procs(default_cores: int = 0) -> Tuple[bool, int]:
         if system() == "Darwin":
             n_cores = cpu_count() // 2  # divide by 2 because hyperthreading :^)
         else:
-            n_cores = find_number_of_physical_cores_lscpu()
+            n_cores = ncores_lscpu()
             if n_cores == 0:
                 n_cores = cpu_count()
 
     return mpi, n_cores
 
 
-def check_convergence(root: str, wd: str) -> Union[int, float]:
+def check_convergence(root: str, wd: str, verbose: bool = True) -> Union[int, float]:
     """
     Check the convergence of a Python simulation.
 
     Parameters
     ----------
-    root_name           str
-                        The root name of the Python simulation
-    work_dir            str
-                        The directory containing the Python simulation
+    root: str
+        The root name of the Python simulation
+    wd: str
+        The directory containing the Python simulation
+    verbose: bool, optional
+        Enable verbose logging if set to True
 
     Returns
     -------
-    converge_fraction   int or float
-                        If an int is return, there has been an error in finding
-                        the convergence fraction of the simulation. Otherwise,
-                        the fraction of wind cells which converged is returned.
+    converge_fraction: int or float
+        If an int is return, there has been an error in finding the convergence
+        fraction of the simulation. Otherwise, the fraction of wind cells which
+        converged is returned.
     """
 
     diag_path = "{}/diag_{}/{}_0.diag".format(wd, root, root)
@@ -280,8 +263,8 @@ def check_convergence(root: str, wd: str) -> Union[int, float]:
         with open(diag_path, "r") as file:
             diag = file.readlines()
     except IOError:
-        print("py_util.read_convergence: Couldn't open read only copy of {}. Does the diag file exist?"
-              .format(diag_path))
+        if verbose:
+            print("{}:{}: could not open diag file {}".format(__file__, check_convergence.__name__, diag_path))
         return -1
 
     converge_lines = []
@@ -295,12 +278,15 @@ def check_convergence(root: str, wd: str) -> Union[int, float]:
             converge_lines.append(line)
 
     if converge_fraction is None:
-        print("py_util.read_convergence: unable to parse convergence fraction from diag file {}".format(diag_path))
+        if verbose:
+            print("{}:{}: unable to parse convergence from diag {}"
+                  .format(__file__, check_convergence.__name__, diag_path))
         return -1
 
     if 0 > converge_fraction > 1:
-        print("py_util.read_convergence: the convergence in the simulation is negative or more than one")
-        print("py_util.read_convergence: convergence_fraction = {}".format(converge_fraction))
+        if verbose:
+            print("{}:{}: the convergence in the simulation is not sane with convergence {}"
+                  .format(__file__, check_convergence.__name__, converge_fraction * 100.0))
         return -1
 
     return converge_fraction

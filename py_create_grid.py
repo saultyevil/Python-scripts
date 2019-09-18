@@ -165,7 +165,7 @@ def run_grid() -> None:
         py_run.SPLIT_CYCLES = True
         # Run Python using py_run.py
         nsims = len(pfs)
-        mpi, ncores = py_run_util.get_num_procs()
+        mpi, ncores = py_run_util.ncores()
         py_run.go(pfs, mpi, ncores)
 
     return
