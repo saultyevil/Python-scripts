@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+Used to scale some non-solar abundances to the weird scaling that astronomers
+use where abundances are scaled wrt solar hydrogen in the sun or whatever.
+"""
+
 import numpy as np
 
 # CNO Processed star

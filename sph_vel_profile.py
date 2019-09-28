@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+"""
+Plot various velocity power laws for the Castor & Lamers prescription for
+a stellar wind.
+"""
+
 
 import numpy as np
 from consts import *

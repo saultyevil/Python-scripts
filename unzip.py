@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 
-import argparse
-from subprocess import Popen, PIPE
-
 """
-Unzip a bunch of .zip files.. 
+Unzip a bunch of .zip files..
 
 Usage:
     ./unzip.py file [--verbose]
     python unzip.py file [--verbose]
-    
+
 I suggest using ls > file to get all of the zips in a directory
 """
+
+
+import argparse
+from subprocess import Popen, PIPE
 
 
 def unzip(filename, verbose):

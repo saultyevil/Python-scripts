@@ -2,6 +2,14 @@
 # -*- coding: utf-8 -*-
 
 
+"""
+The purpose of this script is to check the convergence of multiple Python
+simulations at once. It does this by searching recursively for Python
+simulations for the calling directory. However, this script can also be used
+where there is only one Python simulation.
+"""
+
+
 from typing import List
 from PyPython import Simulation, Utils
 

@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
-import py_plot_util
+"""
+Plot the output from a
+"""
+
+from PyPython import SpectrumUtils
 import numpy as np
 from os import mkdir, path
 from matplotlib import pyplot as plt
@@ -32,7 +36,7 @@ def read_and_reshape_data(filename):
             col 6: cell temperature
     """
 
-    sgrid = np.array(py_plot_util.read_spec(filename), dtype=float)
+    sgrid = SpectrumUtils.read_spec(filename, numpy=True)
 
     # Figure out the number of cells, cycles and cols from the dimensions
     ncells = int(sgrid[:, 0].max()) + 1

@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+This contains various functions for getting TDE spectra from somewhere on my
+hard disk.
+"""
+
+
 from sys import exit
 import numpy as np
 import py_plot_util

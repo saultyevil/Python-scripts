@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+The purpose of the script is to create velocity plots for a Python simulation.
+It's currently in a WIP state, and should likely be incorporated into
+py_plot.py or another similar plot.
+"""
+
 import numpy as np
 import py_plot_util as ppu
 import py_plot as pp

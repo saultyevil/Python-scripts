@@ -5,6 +5,10 @@ Solar mass fractions:
     X = 0.7381
     Y = 0.2485
     Z = 0.0134
+
+Create an opacity table which can be read into Snake and used to interpolate for
+the Rosseland mean opacity, given the temperature and density. See the Snake
+repository for more information and context.
 """
 
 

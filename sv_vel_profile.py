@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+"""
+Plot the velocity law for a Schlosman and Vitello wind for a CV disk wind.
+"""
+
 
 import ss_disk
 import numpy as np
