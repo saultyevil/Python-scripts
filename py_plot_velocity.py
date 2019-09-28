@@ -44,6 +44,7 @@ def plot_velocity_magnitude(root: str, projection: str, ret_mag: bool = False) -
     else:
         fig, ax = plt.subplots(1, 1, figsize=(12, 8), squeeze=False)
         fig, ax = pp.rectilinear_wind_plot(fig, ax, xx, yx, v, 0, 0, "|v|", "wind")
+
     plt.savefig("{}.velocitymag.png".format(root))
     plt.close()
 
@@ -87,10 +88,17 @@ def plot_velocity_maps(root: str, projection: str):
                 fig, ax = pp.rectilinear_wind_plot(fig, ax, xx, yx, d[iidx], i, j, n[iidx], "wind")
             iidx += 1
 
+    theta = np.deg2rad(80)
+    xc = np.linspace(xx[0, 0], xx[-1, 0], 50)
+    zx = xc * np.tan(theta)
+    ax[0, 0].plot(xc, zx, label="80 degree")
+    ax[0, 0].set_xlim(1, 1e18)
+    ax[0, 0].set_ylim(1, 1e8)
+
     if projection == "rectilinear":
         fig.tight_layout(rect=[0.02, 0.02, 0.98, 0.98])
     plt.savefig("{}.velocitymaps.png".format(root))
-    plt.close()
+    plt.show()
 
     return
 

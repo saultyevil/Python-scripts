@@ -19,9 +19,8 @@ Usage
         - checkpf         Prints to the screen the pfs which will be updated
 """
 
-import py_change_parameter as pcp
 from sys import argv, exit
-import py_plot_util as ppu
+from PyPython import Utils, Grid
 from typing import List
 
 
@@ -42,7 +41,7 @@ def change_pfs(wdpf: List[str], parameter: str, value: str) -> None:
     """
 
     for i in range(len(wdpf)):
-        pcp.change_python_parameter(wdpf[i], parameter, value, verbose=True)
+        Grid.change_parameter(wdpf[i], parameter, value, verbose=True)
 
     return
 
@@ -65,10 +64,10 @@ def get_pfs(root: str = None) -> List[str]:
     """
 
     pfs = []
-    ppfs = ppu.find_pf("./")
+    ppfs = Utils.find_parameter_files("./")
 
     for i in range(len(ppfs)):
-        pf, wd = ppu.get_root_name(ppfs[i])
+        pf, wd = Utils.split_root_directory(ppfs[i])
         if root:
             if root == pf:
                 pfs.append(ppfs[i])

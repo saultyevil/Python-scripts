@@ -450,12 +450,8 @@ def windsave2table(root: str, path: str, verbose: bool = False) -> None:
     # Now create a "complete" file which is the master and heat put together into one csv
     heat_file = "{}/{}.0.heat.txt".format(path, root)
     master_file = "{}/{}.0.master.txt".format(path, root)
-
-    try:
-        heat = pd.read_csv(heat_file, delim_whitespace=True)
-        master = pd.read_csv(master_file, delim_whitespace=True)
-    except IOError:
-        raise IOError("{}: could not open master or heat file for root {}".format(__file__, windsave2table.__name__, root))
+    heat = pd.read_csv(heat_file, delim_whitespace=True)
+    master = pd.read_csv(master_file, delim_whitespace=True)
 
     # This merges the heat and master table together :-)
     append = heat.columns.values[14:]

@@ -300,14 +300,14 @@ def change_parameter(pf: str, parameter: str, value: str, verbose: bool = False)
 
     Parameters
     ----------
-    pf              str
-                    The name of the parameter file to edit
-    parameter       str
-                    The name of the parameter to be edited
-    value           str
-                    The new value of the parameter
-    verbose         bool, optional
-                    Enable verbose logging
+    pf: str
+        The name of the parameter file to edit
+    parameter: str
+        The name of the parameter to be edited
+    value: str
+        The new value of the parameter
+    verbose : bool, optional
+        Enable verbose logging
 
     Returns
     -------

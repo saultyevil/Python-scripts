@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import sys
+
 from typing import List
-import py_run_util as pru
-import py_plot_util as ppu
-from os import access, R_OK
+from PyPython import Simulation, Utils
 
 
 def check_multiple(wdpf: List[str]):
@@ -20,17 +18,19 @@ def check_multiple(wdpf: List[str]):
     convergence = []
 
     for i in range(len(wdpf)):
-        root, path = ppu.get_root_name(wdpf[i])
-        c = pru.check_convergence(root, path, verbose=False)
+        root, path = Utils.split_root_directory(wdpf[i])
+        c = Simulation.check_convergence(root, path)
         convergence.append(c)
 
-    print("The following simulations have completed at least 1 cycle")
+    print("The following simulations have convergence:\n"
+          "-------------------------------------------")
     for i in range(len(wdpf)):
         c = convergence[i]
         if c > 0:
             print(wdpf[i], c)
 
-    print("The following simulations have no cycle information")
+    print("\nThe following simulations have no convergence:\n"
+          "----------------------------------------------")
     for i in range(len(wdpf)):
         c = convergence[i]
         if c <= 0:
@@ -57,10 +57,10 @@ def get_pfs(root: str = None) -> List[str]:
     """
 
     pfs = []
-    ppfs = ppu.find_pf("./")
+    ppfs = Utils.find_parameter_files("./")
 
     for i in range(len(ppfs)):
-        pf, wd = ppu.get_root_name(ppfs[i])
+        pf, wd = Utils.split_root_directory(ppfs[i])
         if root:
             if root == pf:
                 pfs.append(ppfs[i])

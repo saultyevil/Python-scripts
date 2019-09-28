@@ -40,13 +40,13 @@ optional arguments:
 """
 
 import os
+import pandas as pd
 import argparse
-import py_rm_data
 import numpy as np
-import py_plot_util
 from consts import *
 from matplotlib import pyplot as plt
 from typing import List, Tuple, Union
+from PyPython import SpectrumUtils, Utils, WindUtils
 
 PLOTS = "all"
 POLAR_PROJECTION = False
@@ -130,6 +130,53 @@ def get_script_arguments() -> str:
         ROOT = True
 
     return args.output_name
+
+
+def all_inclinations(spec_names: List[str], delim: str = None) -> np.array:
+    """
+    Get all of the unique inclination angles for a set of Python .spec files.
+    Parameters
+    ----------
+    spec_name: List[str]
+        The directory path to Python .spec files
+    delim: str, optional
+        The delimiter in the .spec files, assumed to be spaces by default
+    Returns
+    -------
+    inclinations: List[int]
+        All of the unique inclination angles found in the Python .spec files
+    """
+
+    inclinations = []
+
+    for i in range(len(spec_names)):
+        if spec_names[i].find(".pf") != -1:
+            spec_names[i] = spec_names[i].replace(".pf", ".spec")
+
+    # Find the viewing angles in each .spec file
+    for i in range(len(spec_names)):
+        spec = SpectrumUtils.read_spec(spec_names[i], delim)
+
+        if type(spec) == pd.core.frame.DataFrame:
+            col_names = spec.columns.values
+        elif type(spec) == np.ndarray:
+            col_names = spec[0, :]
+        else:
+            raise TypeError("{}:{}: unknown data type {} for function"
+                            .format(__file__, all_inclinations.__name__, type(spec)))
+
+        # Go over the columns and look for viewing angles
+        for j in range(len(col_names)):
+            if col_names[j].isdigit() is True:
+                angle = int(col_names[j])
+                duplicate_flag = False
+                for va in inclinations:  # Check for duplicate angle
+                    if angle == va:
+                        duplicate_flag = True
+                if duplicate_flag is False:
+                    inclinations.append(angle)
+
+    return inclinations
 
 
 def rectilinear_wind_plot(fig: plt.Figure, ax: plt.Axes, x: np.ndarray, z: np.ndarray, w: np.ndarray, i: int, j: int,
@@ -342,7 +389,7 @@ def plot_wind(root: str, output_name: str, wvars: List[str], wvar_types: List[st
             if verbose:
                 print("\tPlotting {} of type {}".format(wvar, wvar_t))
             try:
-                x, z, w = py_plot_util.extract_wind_var(root, wvar, wvar_t, path, projection)
+                x, z, w = WindUtils.extract_wind_var(root, wvar, wvar_t, path, projection)
             except Exception as e:
                 print(e)
                 print("Exception occured: Unable to plot {}".format(wvar))
@@ -359,7 +406,7 @@ def plot_wind(root: str, output_name: str, wvars: List[str], wvar_types: List[st
     if plot_title:
         fig.suptitle(plot_title)
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.savefig("{}/{}:{}".format(path, output_name, filetype))
+    plt.savefig("{}/{}.{}".format(path, output_name, filetype))
 
     if show_plot:
         plt.show(block=False)
@@ -458,7 +505,7 @@ def plot_tau_spec(root: str, dir: str = "./", plot_freq: bool = False, plot_edge
     ax.set_ylim(ylims[0] / 10, ylims[1] * 10)
 
     if plot_edges:
-        py_plot_util.plot_line_ids(ax, py_plot_util.absorption_edges(freq=plot_freq, log=loglog))
+        SpectrumUtils.plot_line_ids(ax, SpectrumUtils.absorption_edges(freq=plot_freq, log=loglog))
 
     ax.legend()
 
@@ -540,7 +587,7 @@ def plot_spec_comps(input_file: str, output_name: str, semilogy_scale: bool = Fa
     headers_bot = ["CenSrc", "Disk", "Wind", "HitSurf", "Scattered"]
 
     try:
-        spec = py_plot_util.read_spec(input_file)
+        spec = SpectrumUtils.read_spec(input_file)
     except Exception:
         print("{}:{}: could not open input file {}".format(__file__, plot_spec_comps.__name__, input_file))
         return
@@ -550,7 +597,7 @@ def plot_spec_comps(input_file: str, output_name: str, semilogy_scale: bool = Fa
     # First panel, plot the created and emitted emission
     for i in range(len(headers_top)):
         print("\tPlotting {}".format(headers_top[i]))
-        flux = py_plot_util.smooth(spec[headers_top[i]].values.astype(float), smooth, verbose)
+        flux = SpectrumUtils.smooth_spectrum(spec[headers_top[i]].values.astype(float), smooth)
         if len(flux[flux < MIN_FLUX]) > 0.7 * len(flux):
             print("\t\t!!Skipping {}".format(headers_top[i]))
             continue
@@ -572,7 +619,7 @@ def plot_spec_comps(input_file: str, output_name: str, semilogy_scale: bool = Fa
     # Second panel, plot CenSrc, Disk, Wind, HitSurf and Scattered emission
     for i in range(len(headers_bot)):
         print("\tPlotting {}".format(headers_bot[i]))
-        flux = py_plot_util.smooth(spec[headers_bot[i]].values.astype(float), smooth, verbose)
+        flux = SpectrumUtils.smooth_spectrum(spec[headers_bot[i]].values.astype(float), smooth)
         if len(flux[flux < MIN_FLUX]) > 0.7 * len(flux):
             print("\t\t!!Skipping {}".format(headers_bot[i]))
             continue
@@ -647,25 +694,25 @@ def plot_spectra(input_files: List[str], figure_inclinations: Union[List, np.arr
         for file in input_files:
             if file.find(".spec") == -1 and file.find(".pf") == -1:
                 file += ".spec"
-            root, filepath = py_plot_util.get_root_name(file)
+            root, filepath = Utils.split_root_directory(file)
             legend = filepath + root
             print("\tPlotting {} for i = {}°".format(legend, inclination))
 
             # Read in the spectrum and check that it can be plotted for the
             # current inclination
-            spec = py_plot_util.read_spec(file)
-            allowed_inclination = py_plot_util.check_inclination(inclination, spec)
+            spec = SpectrumUtils.read_spec(file)
+            allowed_inclination = SpectrumUtils.check_inclination(inclination, spec)
             if not allowed_inclination:
                 continue
 
             # Extract the wavelength range and flux and scale the flux appropriately
             wavelength = spec["Lambda"].values.astype(float)
-            flux = py_plot_util.smooth(spec[inclination].values.astype(float), smooth, verbose)
+            flux = SpectrumUtils.smooth_spectrum(spec[inclination].values.astype(float), smooth)
             flux *= (DEFAULT_DIST ** 2 / OBSERVE_DIST ** 2)  # TODO: should this be a function input?
             ax.semilogy(wavelength, flux, label=legend)
 
             # This is basically only required when the wavelength range is restricted
-            tymax, tymin = py_plot_util.ylims(wavelength, flux, wmin, wmax)
+            tymax, tymin = SpectrumUtils.ylims(wavelength, flux, wmin, wmax)
             if tymin is not None and tymin < ymin:
                 ymin = tymin
             if tymax is not None and tymax > ymax:
@@ -686,7 +733,7 @@ def plot_spectra(input_files: List[str], figure_inclinations: Union[List, np.arr
         ax.set_title(r"{} $i$ = {}".format(root, inclination) + r"$^{\circ}$", fontsize=20)
 
         fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-        plt.savefig("{}_i{}:{}".format(output_name, inclination, filetype))
+        plt.savefig("{}_i{}.{}".format(output_name, inclination, filetype))
 
         if show_plot:
             plt.show(block=False)
@@ -728,9 +775,9 @@ def main() -> None:
         input_files = [output_name]
     else:
         if PLOTS == "spec" or PLOTS == "spec_comps":
-            input_files = py_plot_util.find_specs()
+            input_files = SpectrumUtils.find_specs()
         else:
-            input_files = py_plot_util.find_pf()
+            input_files = Utils.find_parameter_files()
         if len(input_files) == 0:
             print("No input files found")
             print("\n--------------------------")
@@ -744,14 +791,14 @@ def main() -> None:
 
     # CREATE SPECTRA FOR EACH INCLINATION ANGLE
     if PLOTS == "spec" or PLOTS == "all":
-        inclinations = py_plot_util.all_inclinations(input_files)
+        inclinations = all_inclinations(input_files)
         print("\nPlotting spectra".format(input_files))
         plot_spectra(input_files, inclinations, output_name, wmin=WMIN, wmax=WMAX, smooth=SMOOTH, filetype=FILETYPE,
                      show_plot=SHOW_PLOT, verbose=VERBOSE)
 
     # IF THIS IS CALLED IN A DIRECTORY WITH A SINGLE SIMULATION
     if len(input_files) == 1:
-        root, path = py_plot_util.get_root_name(input_files[0])
+        root, path = Utils.split_root_directory(input_files[0])
 
         # CREATE SPECTRUM COMPONENTS FILE
         if PLOTS == "spec_comps" or PLOTS == "all":
@@ -768,7 +815,10 @@ def main() -> None:
         # RUN WINDSAVE2TABLE IF ROOT.EP.COMPLETE FILE IS MISSING
         if PLOTS == "wind" or PLOTS == "ions" or PLOTS == "all":
             if not os.path.isfile("{}.ep.complete".format(root)):
-                py_plot_util.windsave2table(root, path, VERBOSE)
+                try:
+                    Utils.windsave2table(root, path, VERBOSE)
+                except:
+                    return
 
         # CREATE WIND VARIABLE PLOT
         if PLOTS == "wind" or PLOTS == "all":
@@ -803,7 +853,7 @@ def main() -> None:
                           ndims=DIMS, verbose=VERBOSE, show_plot=SHOW_PLOT, subplot_dims=dims[i], fig_size=size[i])
 
         # REMOVE DATA SYMBOLIC LINK TO KEEP THINGS CLEAN FOR DROPBOX
-        py_rm_data.remove_data_dir(path)
+        Utils.remove_data_sym_links(path, VERBOSE)
 
     elif len(input_files) > 1 and PLOTS != "spec":
         print("Can only plot {} when one root in folder :^)".format(PLOTS))
