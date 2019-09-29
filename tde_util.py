@@ -9,7 +9,7 @@ hard disk.
 
 from sys import exit
 import numpy as np
-import py_plot_util
+from PyPython import SpectrumUtils
 from socket import gethostname
 from platform import system
 
@@ -62,7 +62,7 @@ def iptf15af_spec(smooth: int, verbose: bool = False) -> np.array:
               "Update the directories in the script".format(spec_dir))
         exit(1)
 
-    spec[:, 1] = py_plot_util.smooth(spec[:, 1], smooth)
+    spec[:, 1] = SpectrumUtils.smooth_spectrum(spec[:, 1], smooth)
 
     return spec
 
@@ -115,7 +115,7 @@ def asassn14li_spec(smooth: int, verbose: bool = False) -> np.array:
               "Update the directories in the script".format(spec_dir))
         exit(1)
 
-    spec[:, 1] = py_plot_util.smooth(spec[:, 1], smooth)
+    spec[:, 1] = SpectrumUtils.smooth_spectrum(spec[:, 1], smooth)
 
     return spec
 
@@ -158,7 +158,7 @@ def iptf16fnl_spec(smooth: int, verbose: bool = False) -> np.array:
               "Update the directories in the script".format(spec_dir))
         exit(1)
 
-    spec[:, 1] = py_plot_util.smooth(spec[:, 1], smooth)
+    spec[:, 1] = SpectrumUtils.smooth_spectrum(spec[:, 1], smooth)
 
     return spec
 
@@ -201,7 +201,7 @@ def at2018zr_spec(smooth: int, verbose: bool = False) -> np.array:
               "Update the directories in the script".format(spec_dir))
         exit(1)
 
-    spec[:, 1] = py_plot_util.smooth(spec[:, 1], smooth)
+    spec[:, 1] = SpectrumUtils.smooth_spectrum(spec[:, 1], smooth)
 
     return spec
 

@@ -8,10 +8,10 @@ py_plot.py or another similar plot.
 """
 
 import numpy as np
-import py_plot_util as ppu
 import py_plot as pp
 from matplotlib import pyplot as plt
 from typing import Union
+from PyPython import WindUtils
 
 
 def plot_velocity_magnitude(root: str, projection: str, ret_mag: bool = False) -> Union[None, np.ndarray]:
@@ -37,9 +37,9 @@ def plot_velocity_magnitude(root: str, projection: str, ret_mag: bool = False) -
     if projection not in aprojections:
         print("Projection {} unknown. Allowed projections are {}".format(projection, aprojections))
 
-    xx, yx, vx = ppu.extract_wind_var(root, "v_x", "wind", coord=projection)
-    xy, yy, vy = ppu.extract_wind_var(root, "v_y", "wind", coord=projection)
-    xz, yz, vz = ppu.extract_wind_var(root, "v_z", "wind", coord=projection)
+    xx, yx, vx = WindUtils.extract_wind_var(root, "v_x", "wind", coord=projection)
+    xy, yy, vy = WindUtils.extract_wind_var(root, "v_y", "wind", coord=projection)
+    xz, yz, vz = WindUtils.extract_wind_var(root, "v_z", "wind", coord=projection)
     v = np.sqrt(vx ** 2 + vy ** 2 + vz ** 2)
 
     if ret_mag:
@@ -74,9 +74,9 @@ def plot_velocity_maps(root: str, projection: str):
     if projection not in aprojections:
         print("Projection {} unknown. Allowed projections are {}".format(projection, aprojections))
 
-    xx, yx, vx = ppu.extract_wind_var(root, "v_x", "wind", coord=projection)
-    xy, yy, vy = ppu.extract_wind_var(root, "v_y", "wind", coord=projection)
-    xz, yz, vz = ppu.extract_wind_var(root, "v_z", "wind", coord=projection)
+    xx, yx, vx = WindUtils.extract_wind_var(root, "v_x", "wind", coord=projection)
+    xy, yy, vy = WindUtils.extract_wind_var(root, "v_y", "wind", coord=projection)
+    xz, yz, vz = WindUtils.extract_wind_var(root, "v_z", "wind", coord=projection)
     v = np.sqrt(vx ** 2 + vy ** 2 + vz ** 2)
     d = [vx, vy, vz, v]
     n = ["vx", "vy", "vz", "|v|"]

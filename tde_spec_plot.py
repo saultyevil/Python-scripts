@@ -12,10 +12,10 @@ from sys import exit
 import argparse
 import tde_util
 import numpy as np
-import py_plot_util
 from consts import *
 from typing import Tuple
 from matplotlib import pyplot as plt
+from PyPython import SpectrumUtils, Utils
 
 SMOOTH = 5
 WMIN = 1000
@@ -98,7 +98,7 @@ def spec_plot_inclination(root: str, inc: str) -> None:
         root = root[:idx]
     spec_file = "{}.spec".format(root)
     try:
-        spectrum = py_plot_util.read_spec(spec_file)
+        spectrum = SpectrumUtils.read_spec(spec_file)
     except IOError:
         print("tde_spec_spec.spec_plot_one: could not open file {}".format(spec_file))
         return
@@ -108,9 +108,9 @@ def spec_plot_inclination(root: str, inc: str) -> None:
     except KeyError:
         print("tde_spec_plot.spec_plot_one: could not find inclination angle of {}".format(inc))
         return
-    flux = py_plot_util.smooth(raw_flux, SMOOTH, VERBOSE)
+    flux = SpectrumUtils.smooth_spectrum(raw_flux, SMOOTH)
     flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
-    ymax, ymin = py_plot_util.ylims(wavelength, flux, WMIN, WMAX)
+    ymax, ymin = SpectrumUtils.ylims(wavelength, flux, WMIN, WMAX)
 
     # Plot the TDE spectrum for the specific inclination angle
     ax.semilogy(wavelength, flux, label="Model at i = {}".format(inc) + r"$^{\circ}$")
@@ -118,7 +118,7 @@ def spec_plot_inclination(root: str, inc: str) -> None:
     ax.set_xlim(WMIN, WMAX)
     ax.set_ylim(ymin, ymax)
     if PLOT_LINE_IDS:
-        py_plot_util.plot_line_ids(ax, py_plot_util.common_lines())
+        SpectrumUtils.plot_line_ids(ax, SpectrumUtils.common_lines())
     ax.set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)")
     ax.set_xlabel(r"Wavelength ($\AA$)")
     ax.legend(loc="best")
@@ -153,16 +153,16 @@ def spec_plot_multiple(root: str) -> None:
         root = root[:idx]
     spec_file = "{}.spec".format(root)
     try:
-        spectrum = py_plot_util.read_spec(spec_file)
+        spectrum = SpectrumUtils.read_spec(spec_file)
     except IOError:
         print("tde_spec_plot.spec_plot_multiple: could not open file {}".format(spec_file))
         return
     wavelength = spectrum["Lambda"].values.astype(float)
-    inclinations = py_plot_util.spec_inclinations(spectrum)
+    inclinations = spectrum.columns.values[9:]
 
     # Figure out the shape of the subplot grid and create the plotting object
     n_spec = len(inclinations)
-    nrows, ncols = py_plot_util.subplot_dims(n_spec)
+    nrows, ncols = Utils.subplot_dims(n_spec)
     fig, ax = plt.subplots(nrows, ncols, figsize=(17, 12), squeeze=False, sharex="col")
 
     index = 0
@@ -179,17 +179,17 @@ def spec_plot_multiple(root: str) -> None:
             # Extract the flux from the spectrum and scale for distance for a specific inclination
             inc = inclinations[index]
             raw_flux = spectrum[inc].values.astype(float)
-            flux = py_plot_util.smooth(raw_flux, SMOOTH, VERBOSE)
+            flux = SpectrumUtils.smooth_spectrum(raw_flux, SMOOTH)
             flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
 
-            ymax, ymin = py_plot_util.ylims(wavelength, flux, WMIN, WMAX)
+            ymax, ymin = SpectrumUtils.ylims(wavelength, flux, WMIN, WMAX)
 
             # Plot the TDE spectrum
             ax[i, j].semilogy(wavelength, flux, label=r"$i$ = {}".format(inc) + r"$^{\circ}$")
             ax[i, j].set_ylim(ymin, ymax)
             ax[i, j].set_xlim(WMIN, WMAX)
             if PLOT_LINE_IDS:
-                ax[i, j] = py_plot_util.plot_line_ids(ax[i, j], py_plot_util.common_lines())
+                ax[i, j] = SpectrumUtils.plot_line_ids(ax[i, j], SpectrumUtils.common_lines())
             ax[i, j].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)")
             ax[i, j].legend(loc="best")
 
@@ -220,7 +220,7 @@ def spec_plot_comparison(name: str, inc: str = None):
 
     print("DISCLAIMER: can sometimes not produce the desired plot :^).")
 
-    spec_files = py_plot_util.find_specs()
+    spec_files = SpectrumUtils.find_specs()
     if len(spec_files) == 0:
         print("No spec files found")
         print("\n--------------------------")
@@ -245,13 +245,13 @@ def spec_plot_comparison(name: str, inc: str = None):
     else:
         inclination = []
         for f in spec_files:
-            spec = py_plot_util.read_spec(f)
-            inclination += py_plot_util.spec_inclinations(spec)
+            spec = SpectrumUtils.read_spec(f)
+            inclination += list(spec.columns.values[9:])
         inclination = sorted(list(dict.fromkeys(inclination)))
         size = (20, 20)
         n_specs = len(inclination)
 
-    nrows, ncols = py_plot_util.subplot_dims(n_specs)
+    nrows, ncols = Utils.subplot_dims(n_specs)
     fig, ax = plt.subplots(nrows, ncols, figsize=size, squeeze=False, sharex="col")
 
     index = 0
@@ -278,21 +278,21 @@ def spec_plot_comparison(name: str, inc: str = None):
             # Loop over each spectrum from each simulation
             for file in spec_files:
                 # Get the spectrum, flux and scale the flux for distance
-                root, dir = py_plot_util.get_root_name(file)
+                root, dir = Utils.split_root_directory(file)
 
-                spectrum = py_plot_util.read_spec(file)
+                spectrum = SpectrumUtils.read_spec(file)
                 wavelength = spectrum["Lambda"].values.astype(float)
                 try:
                     raw_flux = spectrum[ii].values.astype(float)
                 except KeyError:
                     continue
-                flux = py_plot_util.smooth(raw_flux, SMOOTH, VERBOSE)
+                flux = SpectrumUtils.smooth_spectrum(raw_flux, SMOOTH)
                 flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
 
                 # Plot the spectrum for a model
                 ax[i, j].semilogy(wavelength, flux, label=r"{}/{}: $i$: {}".format(dir, root, ii) + r"$^{\circ}$")
 
-                tmax, tmin = py_plot_util.ylims(wavelength, flux, WMIN, WMAX, scale=13)
+                tmax, tmin = SpectrumUtils.ylims(wavelength, flux, WMIN, WMAX, scale=13)
                 if tmax == 0 or tmin == 0:
                     ymin = None
                     ymax = None
@@ -306,7 +306,7 @@ def spec_plot_comparison(name: str, inc: str = None):
             ax[i, j].set_xlim(WMIN, WMAX)
             ax[i, j].set_ylim(1e-17, ymax)
             if PLOT_LINE_IDS:
-                py_plot_util.plot_line_ids(ax[i, j], py_plot_util.common_lines())
+                SpectrumUtils.plot_line_ids(ax[i, j], SpectrumUtils.common_lines())
             ax[i, j].legend(loc="best")
 
             # Increment inclination index

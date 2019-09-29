@@ -5,6 +5,7 @@ import sys
 from platform import system
 import numpy as np
 from matplotlib import pyplot as plt
+from PyPython import SpectrumUtils
 
 if system() == "Darwin":
     sys.path.append("/Users/saultyevil/Scripts")
@@ -12,7 +13,6 @@ else:
     sys.path.append("/home/saultyevil/Scripts")
 
 from consts import *
-import py_plot_util as ppu
 import tde_util as tu
 
 SMOOTH = 5
@@ -159,10 +159,7 @@ def plot_uv_observations() -> None:
     for i in range(nspec):
         offset = 1 * 10 ** i
         wlength = spec_list[i][:, 0] / (1 + spec_z[i])
-
-        # flux = rescale_flux(ppu.smooth_1d_array(spec_list[i][:, 1], SMOOTH, VERBOSE))
-
-        flux = ppu.smooth(spec_list[i][:, 1], SMOOTH, VERBOSE)
+        flux = SpectrumUtils.smooth_spectrum(spec_list[i][:, 1], SMOOTH)
         ax.loglog(wlength, flux, label=spec_names[i])
 
         if bb_temp[i]:

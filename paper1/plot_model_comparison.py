@@ -19,13 +19,7 @@ from sys import argv
 from matplotlib import pyplot as plt
 from typing import List, Tuple, Union
 import numpy as np
-
-if system() == "Darwin":
-    sys.path.append("/Users/saultyevil/Scripts")
-else:
-    sys.path.append("/home/saultyevil/Scripts")
-
-import py_plot_util as ppu
+from PyPython import SpectrumUtils, Utils, WindUtils
 
 SMOOTH = 10
 VERBOSE = False
@@ -160,7 +154,7 @@ def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800,
     modelspecs = []
     for i in range(len(direcs)):
         direcs[i] = pdir + direcs[i]
-        modelspecs.append(ppu.read_spec(direcs[i]))
+        modelspecs.append(SpectrumUtils.read_spec(direcs[i]))
 
     ncols = 3
     nrows = 3
@@ -190,7 +184,7 @@ def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800,
                 print("Inclination {} w/ iidx {} not found for model with x,y indices {},{}: {}".format(incl[iidx], iidx, i, j, direcs[j]))
                 iidx += 1
                 continue
-            ax[i, j].semilogy(wl, ppu.smooth(fl, SMOOTH, VERBOSE), lstyle, label=label)
+            ax[i, j].semilogy(wl, SpectrumUtils.smooth_spectrum(fl, SMOOTH), lstyle, label=label)
             ax[i, j].set_xlim(wmin, wmax)
             ax[i, j].set_ylim(ylims[i])
             # if i != 0:
@@ -235,8 +229,21 @@ def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800,
     return
 
 
-def add_wind(direcs):
+def wind_geos(direcs) -> Union[plt.Figure, list]:
     """
+    Create a plot of the three different wind geometries.
+
+    Parameters
+    ----------
+    direcs: List[str]
+        The directories containing the root.ep.complete files.
+
+    Returns
+    -------
+    fig: plt.Figure
+        The figure object for the figure
+    ax: list
+        A list containing plt.Axes for each panel of the figure
     """
 
     ncols = 3
@@ -252,8 +259,8 @@ def add_wind(direcs):
     coords = ["rectilinear", "rectilinear", "polar"]
     for i in range(len(direcs)):
         direcs[i] = pdir + direcs[i]
-        root, wd = ppu.get_root_name(direcs[i])
-        wx, wz, ww = ppu.extract_wind_var(root, "rho", "wind", wd, coords[i])
+        root, wd = Utils.split_root_directory(direcs[i])
+        wx, wz, ww = WindUtils.extract_wind_var(root, "rho", "wind", wd, coords[i])
         modelwind.append([wx, wz, np.log10(ww)])
 
     fig = plt.figure(figsize=(15, 4))
@@ -267,10 +274,6 @@ def add_wind(direcs):
               
         if coords[i] != "polar":
             im = ax[i].pcolor(np.log10(wx), np.log10(wz), ww)
-            # ax[i].set_xscale("log")
-            # ax[i].set_yscale("log")
-            # ax[i].set_xlim(wx[1, 1], wx[-1, -1])
-            # ax[i].set_ylim(wz[1, 1], wz[-1, -1])
             ax[i].set_xlim(np.log10(wx[1, 1]), np.log10(wx[-1, -1]))
             ax[i].set_ylim(np.log10(wz[1, 1]), np.log10(wz[-1, -1]))
             ax[i].set_xlabel("Log[x]")
@@ -308,7 +311,7 @@ def add_wind(direcs):
     plt.savefig("tde_model_comparison_wind_geo.png")
     plt.show()
 
-    return
+    return fig, ax
 
 
 def main(argc: int, argv: List[str]) -> None:
@@ -358,7 +361,7 @@ def main(argc: int, argv: List[str]) -> None:
     fig, ax = model_comparison(solar.copy(), "_solar_cno", wmin, wmax, label="Solar Abundance", return_figure=True)
     model_comparison(cno.copy(), "_solar_cno", wmin, wmax, label="CNO Processed Abundance", return_figure=False,
                      figure=(fig, ax))
-    add_wind(solar.copy())
+    wind_geos(solar.copy())
 
     return
 

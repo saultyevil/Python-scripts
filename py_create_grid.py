@@ -15,13 +15,9 @@ Usage
 """
 
 
-from sys import exit
 import os
-import py_run
 import shutil
 import numpy as np
-import py_run_util
-from sys import argv
 from typing import List
 from consts import *
 
@@ -96,7 +92,7 @@ def create_grid(pf: str, parameter: str, grid: List[str]) -> List[str]:
     return pfs
 
 
-def run_grid() -> None:
+def run_grid() -> List[str]:
     """
     Main controlling function of the script.
 
@@ -105,32 +101,9 @@ def run_grid() -> None:
     None
     """
 
-    dry_run = True
-    full_run = False
-
-    if len(argv) == 2:
-        if argv[1] == "--run_grid":
-            full_run = True
-            dry_run = False
-        else:
-            print("don't know command {}".format(argv[1]))
-    elif len(argv) > 2:
-        print("only takes 1 command which is --run_grid ;-)")
-        print(__doc__)
-        return
-
     # This is the parameter which will be changed
     root = "base.pf"
     parameter = "Disk.mdot(msol/yr)"
-
-    # tmp = np.linspace(-10, 10, 11)
-    # for i in range(len(tmp)):
-    #     if tmp[i] < 0:
-    #         tmp[i] = -1 / tmp[i]
-    # tmp = tmp[tmp != 0]
-    # print(tmp)
-    # tmp = [0.07, 0.075, 0.08, 0.085, 0.090, 0.095]
-    # esc_vel = np.sqrt(2 * G * 3e7 * MSOL / 2.65e13)
 
     tmp = [9e-2, 1e-1, 3e-1, 4e-1]
     grid = []
@@ -147,28 +120,7 @@ def run_grid() -> None:
 
     pfs = create_grid(root, parameter, grid)
 
-    # Finally make a call to run_python to run all of the parameter files
-    if dry_run:
-        return
-    if full_run:
-        # Set up global variables for py_run modules
-        py_run.PY_VERSION = "py"
-        py_run.PY_FLAGS = "-p 2"
-        py_run.RUN_SIMS = True
-        py_run.RESUME_RUN = False
-        py_run.CHECK_CONVERGENCE = True
-        py_run.CONV_LIMIT = 0.85
-        py_run.CREATE_PLOTS = True
-        py_run.TDE_PLOT = True
-        py_run.NOT_QUIET = True
-        py_run.VERBOSE = False
-        py_run.SPLIT_CYCLES = True
-        # Run Python using py_run.py
-        nsims = len(pfs)
-        mpi, ncores = py_run_util.ncores()
-        py_run.go(pfs, mpi, ncores)
-
-    return
+    return pfs
 
 
 if __name__ == "__main__":

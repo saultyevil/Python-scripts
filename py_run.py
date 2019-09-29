@@ -37,17 +37,17 @@ optional arguments:
   -polar                Plot using a polar projection
 """
 
+
+import time
 import argparse
 from os import access, R_OK
 import datetime
-import py_rm_data as prd
-import py_run_util as pru
-import py_plot_util as ppu
 from sys import exit
 from shutil import which, copyfile
 from typing import Union, List
 from subprocess import Popen, PIPE
-import py_change_parameter as pcp
+from PyPython import Grid, Simulation, Utils, Log, SpectrumUtils, WindUtils
+
 
 CONVERGED = \
     r"""
@@ -144,6 +144,75 @@ SIMS_FROM_FILE = False
 POLAR = False
 
 
+def process_line_output(line: str, pcycle: bool, n_cores: int = 1, print_crap: bool = True, verbose: bool = False) \
+        -> bool:
+    """
+    Process the output from a Python simulation and print something to screen.
+    Very ugly! Very sad!
+
+    Parameters
+    ----------
+    line: str
+        The line to process
+    pcycle: bool
+        If True then the line will be processed as a spectral cycle instead
+    n_cores: int, optional
+        The number of cores the simulation is being run with. This is required
+        to calculate the total photon number
+    print_crap: bool, optional
+        If this is False, then all output to screen will be suppressed
+    verbose: bool, optional
+        If this is True, then every line will be printed to screen
+
+    Returns
+    -------
+    pcycle: bool
+        Indicates if the previously processed line was a spectral cycle line
+        or not
+    """
+
+    if verbose:
+        print(line)
+    elif line.find("for defining wind") != -1 and print_crap:
+        line = line.split()
+        cycle = int(line[3])  # + 1
+        ncycles = line[5]
+        current_time = time.strftime("%H:%M")
+        Log.log("{} : Ionisation Cycle ....... {}/{}".format(current_time, cycle, ncycles))
+    elif line.find("to calculate a detailed spectrum") != -1 and print_crap:
+        line = line.split()
+        pcycle = True
+        cycle = int(line[1])  # + 1
+        ncycles = line[3]
+        current_time = time.strftime("%H:%M")
+        Log.log("{} : Spectrum Cycle ......... {}/{}".format(current_time, cycle, ncycles))
+    elif line.find("per cent") != -1 and line.find("Photon") != -1 and print_crap:
+        line = line.split()
+        Log.log("      : {}% of {:1.2e} photons transported".format(line[-3], int(int(line[-5]) * n_cores)))
+    elif line.find("!!Check_converging:") != -1 and print_crap:
+        line = line.split()
+        nconverged = int(line[1])
+        fconverged = line[2]
+        Log.log("      : {} cells converged {}".format(nconverged, fconverged))
+    elif (line.find("Completed ionization cycle") != -1 or line.find("Completed spectrum cycle") != -1) and print_crap:
+        line = line.split()
+        elapsed_time_seconds = float(line[-1])
+        elapsed_time = datetime.timedelta(seconds=elapsed_time_seconds // 1)
+        Log.log("      : Elapsed run time {} hrs:mins:secs".format(elapsed_time))
+    elif line.find("photon transport completed in") != -1 and print_crap:
+        line = line.split()
+        transport_time_seconds = float(line[5])
+        transport_time = datetime.timedelta(seconds=transport_time_seconds // 1)
+        Log.log("      : Photons transported in {} hrs:mins:secs".format(transport_time))
+    elif line.find("Completed entire program.") != -1 and print_crap:
+        line = line.split()
+        tot_run_time_seconds = float(line[-1])
+        tot_run_time = datetime.timedelta(seconds=tot_run_time_seconds // 1)
+        Log.log("\nSimulation completed in {} hrs:mins:secs".format(tot_run_time))
+
+    return pcycle
+
+
 def plot_model(root: str, wd: str) -> None:
     """
     Use py_plot.py to create plots of the synthetic spectra and wind variables
@@ -159,26 +228,26 @@ def plot_model(root: str, wd: str) -> None:
 
     path = which("py_plot.py")
     if path == "":
-        pru.log("py_plot.py not in $PATH and executable")
+        Log.log("py_plot.py not in $PATH and executable")
         return
 
     commands = "cd {}; py_plot.py {}".format(wd, root)
     if POLAR:
         commands += " -p"
 
-    pru.log(commands)
+    Log.log(commands)
     cmd = Popen(commands, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
     output = stdout.decode("utf-8")
     err = stderr.decode("utf-8")
 
     if VERBOSE:
-        pru.log("\n{}".format(output))
+        Log.log("\n{}".format(output))
     if err:
-        pru.log("\nCaptured from stderr:")
-        pru.log(err)
+        Log.log("\nCaptured from stderr:")
+        Log.log(err)
 
-    pru.log("")
+    Log.log("")
 
     return
 
@@ -197,11 +266,10 @@ def plot_spec_tde(root: str, wd: str) -> None:
 
     path = which("tde_spec_plot.py")
     if path == "":
-        pru.log("{}:{}: tde_spec_path.py not in $PATH and executable".format(__file__, plot_spec_tde.__name__))
+        Log.log("{}:{}: tde_spec_path.py not in $PATH and executable".format(__file__, plot_spec_tde.__name__))
         return
 
-    spec = ppu.read_spec(wd + root + ".spec")
-    incs = ppu.spec_inclinations(spec)
+    incs = SpectrumUtils.spec_inclinations([wd + root + ".spec"])
     nincs = len(incs)
 
     commands = ["cd {}; tde_spec_plot.py {}".format(wd, root)]
@@ -209,19 +277,19 @@ def plot_spec_tde(root: str, wd: str) -> None:
         commands.append("cd {}; tde_spec_plot.py {} -i {}".format(wd, root, incs[i]))
 
     for command in commands:
-        pru.log(command)
+        Log.log(command)
         cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
         stdout, stderr = cmd.communicate()
         out = stdout.decode("utf-8")
         err = stderr.decode("utf-8")
 
         if VERBOSE:
-            pru.log("\n{}".format(out))
+            Log.log("\n{}".format(out))
         if err:
-            pru.log("Captured from stderr:")
-            pru.log(err)
+            Log.log("Captured from stderr:")
+            Log.log(err)
 
-    pru.log("")
+    Log.log("")
 
     return
 
@@ -244,22 +312,22 @@ def check_python_convergence(root: str, wd: str) -> Union[float, int]:
     """
 
     rc = False
-    c_fraction = pru.check_convergence(root, wd)
+    c_fraction = Simulation.check_convergence(root, wd)
 
-    pru.log("convergence limit ............ {}".format(CONV_LIMIT))
-    pru.log("actual convergence ........... {}\n".format(c_fraction))
+    Log.log("convergence limit ............ {}".format(CONV_LIMIT))
+    Log.log("actual convergence ........... {}\n".format(c_fraction))
 
     if 0 > c_fraction > 1:
-        pru.log(ITS_A_MYSTERY)
+        Log.log(ITS_A_MYSTERY)
     elif c_fraction < CONV_LIMIT:
-        pru.log(NOT_CONVERGED)
+        Log.log(NOT_CONVERGED)
         with open("not_converged.txt", "a") as f:
             f.write("{}\t{}.pf\t{}\n".format(wd, root, c_fraction))
     elif c_fraction >= CONV_LIMIT:
-        pru.log(CONVERGED)
+        Log.log(CONVERGED)
         rc = True
 
-    pru.log("")
+    Log.log("")
 
     return rc
 
@@ -304,10 +372,10 @@ def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = 
     pf = root + ".pf"
 
     if split_cycles and restart_from_spec is False:
-        pcp.change_python_parameter(pf, "Spectrum_cycles", "0", bakup=True, verbose=VERBOSE)
+        Grid.change_parameter(pf, "Spectrum_cycles", "0", backup=True, verbose=VERBOSE)
     if split_cycles and restart_from_spec:
-        pcp.change_python_parameter(pf, "Spectrum_cycles", "5", bakup=False, verbose=VERBOSE)
-        pcp.change_python_parameter(pf, "Photons_per_cycle", "1e6", bakup=False, verbose=VERBOSE)
+        Grid.change_parameter(pf, "Spectrum_cycles", "5", backup=False, verbose=VERBOSE)
+        Grid.change_parameter(pf, "Photons_per_cycle", "1e6", backup=False, verbose=VERBOSE)
 
     # Construct shell command to run Python and use subprocess to run
     command = "cd {}; Setup_Py_Dir; ".format(wd)
@@ -320,13 +388,13 @@ def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = 
 
     if PY_FLAGS and restart_from_spec is False:
         if type(PY_FLAGS) != str:
-            pru.log("The provided additional flags for Python is not a string")
+            Log.log("The provided additional flags for Python is not a string")
             exit(1)
         command += " {} ".format(PY_FLAGS)
 
     # Add the root name at the end of the call to Python
     command += "{}".format(pf)
-    pru.log("{}\n".format(command))
+    Log.log("{}\n".format(command))
 
     # Use Popen to create a new Python process
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
@@ -341,10 +409,10 @@ def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = 
             break
         line = stdout_line.decode("utf-8").replace("\n", "")
         logfile.write("{}\n".format(line))
-        pcycle = pru.process_line_output(line, pcycle, n_cores, NOT_QUIET, VERBOSE)
+        pcycle = process_line_output(line, pcycle, n_cores, NOT_QUIET, VERBOSE)
 
     if not NOT_QUIET:
-        pru.log("")
+        Log.log("")
     logfile.close()
 
     # Sometimes with Subprocess, if the output buffer is too large then subprocess
@@ -353,17 +421,17 @@ def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = 
     pystdout, pystderr = cmd.communicate()
     err = pystderr.decode("utf-8")
     if err:
-        pru.log("Captured from stderr:")
-        pru.log(err)
+        Log.log("Captured from stderr:")
+        Log.log(err)
         errfname = "{}/err_{}{:02d}{:02d}.out".format(wd, root, DATE.year, int(DATE.month), int(DATE.day))
         with open(errfname, "a") as f:
             f.writelines(err)
     rc = cmd.returncode
     if rc:
         print("Python exited with non-zero exit code: {}\n".format(rc))
-        pru.print_error_summary(root, wd)
+        Simulation.error_summary(root, wd, VERBOSE)
 
-    version, hash = ppu.get_python_version(PY_VERSION, VERBOSE)
+    version, hash = Utils.get_python_version(PY_VERSION, VERBOSE)
     with open("version", "w") as f:
         f.write("{}\n{}".format(version, hash))
 
@@ -411,19 +479,19 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
 
     for i, path in enumerate(roots):
         rc = -1
-        root, wd = ppu.get_root_name(path)
-        pru.log("------------------------\n")
-        pru.log("     Simulation {}/{}".format(i + 1, n_sims))
-        pru.log("\n------------------------\n")
-        pru.log("Working directory ......... {}".format(wd))
-        pru.log("Python root name .......... {}\n".format(root))
+        root, wd = Utils.split_root_directory(path)
+        Log.log("------------------------\n")
+        Log.log("     Simulation {}/{}".format(i + 1, n_sims))
+        Log.log("\n------------------------\n")
+        Log.log("Working directory ......... {}".format(wd))
+        Log.log("Python root name .......... {}\n".format(root))
 
         if RUN_SIMS:
-            pru.log("Running the simulation: {}\n".format(root))
+            Log.log("Running the simulation: {}\n".format(root))
             rc = python(root, wd, use_mpi, n_cores, RESUME_RUN, SPLIT_CYCLES)
 
         if CHECK_CONVERGENCE:
-            pru.log("Checking the convergence of the simulation:\n")
+            Log.log("Checking the convergence of the simulation:\n")
             c = check_python_convergence(root, wd)
             if c and SPLIT_CYCLES and RUN_SIMS:
                 rc = python(root, wd, use_mpi, n_cores, True, True, True)
@@ -431,29 +499,29 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
             elif not c and SPLIT_CYCLES and RUN_SIMS:
                 print("Simulation has not converged, hence no spectral cycles will be run.")
                 print("Use -sc to override this.\n")
-                pru.print_error_summary(root, wd)
+                Simulation.error_summary(root, wd, VERBOSE)
                 restore_bakup_pf(root, wd)
                 continue
 
         if rc == 0 or rc == 1:
-            pru.print_error_summary(root, wd)
+            Simulation.error_summary(root, wd, VERBOSE)
         elif rc > 0:
             continue
 
         if CREATE_PLOTS or RUN_SIMS:
-            ppu.windsave2table(root, wd, VERBOSE)
+            WindUtils.windsave2table(root, wd, VERBOSE)
 
         if CREATE_PLOTS:
-            pru.log("Creating plots for the simulation\n")
+            Log.log("Creating plots for the simulation\n")
             plot_model(root, wd)
 
         if TDE_PLOT:
-            pru.log("Creating TDE specific plot for simulation\n")
+            Log.log("Creating TDE specific plot for simulation\n")
             plot_spec_tde(root, wd)
 
         if CREATE_PLOTS or RUN_SIMS:
-            pru.log("Removing the data directory\n")
-            prd.remove_data_dir(wd, VERBOSE)
+            Log.log("Removing the data directory\n")
+            Utils.remove_data_sym_links(wd, VERBOSE)
 
     return
 
@@ -487,10 +555,10 @@ def get_pf_from_file() -> List[str]:
             broken.append(file)
 
     if broken:
-        pru.log("\nSome provided parameter files could not be opened:")
+        Log.log("\nSome provided parameter files could not be opened:")
         for i in range(len(broken)):
             print("\t- {}".format(broken[i]))
-        pru.log("\n------------------------")
+        Log.log("\n------------------------")
         exit(1)
 
     return roots
@@ -582,7 +650,7 @@ def get_run_mode() -> None:
         if 0 < args.clim < 1:
             CONV_LIMIT = args.clim
         else:
-            pru.log("Invalid value for convergence limit {}".format(args.clim))
+            Log.log("Invalid value for convergence limit {}".format(args.clim))
             exit(1)
     if args.dry:
         DRY_RUN = True
@@ -596,27 +664,27 @@ def get_run_mode() -> None:
     if args.polar:
         POLAR = True
 
-    pru.log("------------------------\n")
-    pru.log("Python version ................... {}".format(PY_VERSION))
-    pru.log("Run simulations .................. {}".format(RUN_SIMS))
-    pru.log("Split cycles ..................... {}".format(SPLIT_CYCLES))
-    pru.log("Resume run ....................... {}".format(RESUME_RUN))
-    pru.log("Convergence limit ................ {}".format(CONV_LIMIT))
-    pru.log("Number of cores .................. {}".format(N_CORES))
-    pru.log("Show convergence ................. {}".format(CHECK_CONVERGENCE))
-    pru.log("Create plots ..................... {}".format(CREATE_PLOTS))
-    pru.log("Polar projection ................. {}".format(POLAR))
-    pru.log("Plot TDE ......................... {}".format(TDE_PLOT))
-    pru.log("Don't suppress Python output ..... {}".format(NOT_QUIET))
-    pru.log("Show Verbose Output .............. {}".format(VERBOSE))
+    Log.log("------------------------\n")
+    Log.log("Python version ................... {}".format(PY_VERSION))
+    Log.log("Run simulations .................. {}".format(RUN_SIMS))
+    Log.log("Split cycles ..................... {}".format(SPLIT_CYCLES))
+    Log.log("Resume run ....................... {}".format(RESUME_RUN))
+    Log.log("Convergence limit ................ {}".format(CONV_LIMIT))
+    Log.log("Number of cores .................. {}".format(N_CORES))
+    Log.log("Show convergence ................. {}".format(CHECK_CONVERGENCE))
+    Log.log("Create plots ..................... {}".format(CREATE_PLOTS))
+    Log.log("Polar projection ................. {}".format(POLAR))
+    Log.log("Plot TDE ......................... {}".format(TDE_PLOT))
+    Log.log("Don't suppress Python output ..... {}".format(NOT_QUIET))
+    Log.log("Show Verbose Output .............. {}".format(VERBOSE))
 
     if PY_FLAGS:
-        pru.log("\nUsing these extra python flags:\n\t{}".format(PY_FLAGS))
+        Log.log("\nUsing these extra python flags:\n\t{}".format(PY_FLAGS))
 
     if do_something is False:
-        pru.log("\nNo run mode parameter provided, there is nothing to do!\n")
+        Log.log("\nNo run mode parameter provided, there is nothing to do!\n")
         p.print_help()
-        pru.log("\n------------------------")
+        Log.log("\n------------------------")
         exit(0)
 
     return
@@ -628,37 +696,40 @@ def main() -> None:
     """
 
     outfname = "py_{}{:02d}{:02d}.txt".format(DATE.year, int(DATE.month), int(DATE.day))
-    pru.init_logfile(outfname)
+    Log.init_logfile(outfname)
 
     # Determine which routines to run for each simulation
     get_run_mode()
     if SIMS_FROM_FILE:
         pf_paths = get_pf_from_file()
     else:
-        pf_paths = ppu.find_pf()
+        pf_paths = Utils.find_parameter_files()
     n_sims = len(pf_paths)
     if not n_sims:
-        pru.log("No parameter files found, nothing to do!\n")
-        pru.log("------------------------")
+        Log.log("No parameter files found, nothing to do!\n")
+        Log.log("------------------------")
         exit(0)
 
-    use_mpi, n_procs = pru.ncores(N_CORES)
+    use_mpi = False
+    n_procs = Utils.get_cpu_count()
+    if n_procs > 1:
+        use_mpi = True
 
-    pru.log("\nThe following parameter files were found:\n")
+    Log.log("\nThe following parameter files were found:\n")
     for i in range(len(pf_paths)):
-        pru.log("{}".format(pf_paths[i]))
-    pru.log("")
+        Log.log("{}".format(pf_paths[i]))
+    Log.log("")
 
     if DRY_RUN:
-        pru.log("------------------------")
+        Log.log("------------------------")
         return
 
     # Now run Python, plotting and convergence procedures
     go(pf_paths, use_mpi, n_procs)
 
-    pru.log("------------------------")
+    Log.log("------------------------")
 
-    pru.close_logfile()
+    Log.close_logfile()
 
     return
 
