@@ -509,7 +509,7 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
             continue
 
         if CREATE_PLOTS or RUN_SIMS:
-            WindUtils.windsave2table(root, wd, VERBOSE)
+            Utils.windsave2table(root, wd, VERBOSE)
 
         if CREATE_PLOTS:
             Log.log("Creating plots for the simulation\n")
