@@ -38,6 +38,7 @@ optional arguments:
 """
 
 
+from copy import copy
 import time
 import argparse
 from os import access, R_OK
@@ -137,80 +138,129 @@ CHECK_CONVERGENCE = False
 CONV_LIMIT = 0.80
 CREATE_PLOTS = False
 TDE_PLOT = False
-NOT_QUIET = True
-VERBOSE = False
+VERBOSE = 2
 SPLIT_CYCLES = True
 SIMS_FROM_FILE = False
 POLAR = False
 
 
-def process_line_output(line: str, pcycle: bool, n_cores: int = 1, print_crap: bool = True, verbose: bool = False) \
-        -> bool:
+def get_run_mode() -> None:
     """
-    Process the output from a Python simulation and print something to screen.
-    Very ugly! Very sad!
-
-    Parameters
-    ----------
-    line: str
-        The line to process
-    pcycle: bool
-        If True then the line will be processed as a spectral cycle instead
-    n_cores: int, optional
-        The number of cores the simulation is being run with. This is required
-        to calculate the total photon number
-    print_crap: bool, optional
-        If this is False, then all output to screen will be suppressed
-    verbose: bool, optional
-        If this is True, then every line will be printed to screen
-
-    Returns
-    -------
-    pcycle: bool
-        Indicates if the previously processed line was a spectral cycle line
-        or not
+    Determine the configuration to run the script in by parsing the command
+    line for flags given by the user.
     """
 
-    if verbose:
-        print(line)
-    elif line.find("for defining wind") != -1 and print_crap:
-        line = line.split()
-        cycle = int(line[3])  # + 1
-        ncycles = line[5]
-        current_time = time.strftime("%H:%M")
-        Log.log("{} : Ionisation Cycle ....... {}/{}".format(current_time, cycle, ncycles))
-    elif line.find("to calculate a detailed spectrum") != -1 and print_crap:
-        line = line.split()
-        pcycle = True
-        cycle = int(line[1])  # + 1
-        ncycles = line[3]
-        current_time = time.strftime("%H:%M")
-        Log.log("{} : Spectrum Cycle ......... {}/{}".format(current_time, cycle, ncycles))
-    elif line.find("per cent") != -1 and line.find("Photon") != -1 and print_crap:
-        line = line.split()
-        Log.log("      : {}% of {:1.2e} photons transported".format(line[-3], int(int(line[-5]) * n_cores)))
-    elif line.find("!!Check_converging:") != -1 and print_crap:
-        line = line.split()
-        nconverged = int(line[1])
-        fconverged = line[2]
-        Log.log("      : {} cells converged {}".format(nconverged, fconverged))
-    elif (line.find("Completed ionization cycle") != -1 or line.find("Completed spectrum cycle") != -1) and print_crap:
-        line = line.split()
-        elapsed_time_seconds = float(line[-1])
-        elapsed_time = datetime.timedelta(seconds=elapsed_time_seconds // 1)
-        Log.log("      : Elapsed run time {} hrs:mins:secs".format(elapsed_time))
-    elif line.find("photon transport completed in") != -1 and print_crap:
-        line = line.split()
-        transport_time_seconds = float(line[5])
-        transport_time = datetime.timedelta(seconds=transport_time_seconds // 1)
-        Log.log("      : Photons transported in {} hrs:mins:secs".format(transport_time))
-    elif line.find("Completed entire program.") != -1 and print_crap:
-        line = line.split()
-        tot_run_time_seconds = float(line[-1])
-        tot_run_time = datetime.timedelta(seconds=tot_run_time_seconds // 1)
-        Log.log("\nSimulation completed in {} hrs:mins:secs".format(tot_run_time))
+    global VERBOSE
+    global RUN_SIMS
+    global RESUME_RUN
+    global CHECK_CONVERGENCE
+    global CREATE_PLOTS
+    global CONV_LIMIT
+    global TDE_PLOT
+    global PY_VERSION
+    global PY_FLAGS
+    global DRY_RUN
+    global N_CORES
+    global SPLIT_CYCLES
+    global SIMS_FROM_FILE
+    global POLAR
 
-    return pcycle
+    p = argparse.ArgumentParser(description="General script to run Python simulations")
+
+    # DIFFERENT RUN MODES
+    p.add_argument("-s", action="store_true", help="Run simulations")
+    p.add_argument("-sc", action="store_true", help="Run spectral cycles even if a simulation hasn't converged")
+    p.add_argument("-r", action="store_true", help="Restart a previous run")
+    p.add_argument("-c", action="store_true", help="Check the convergence of runs - calls convergence.py")
+    p.add_argument("-p", action="store_true", help="Run plotting scripts")
+    p.add_argument("-tde", action="store_true", help="Enable TDE plotting")
+    p.add_argument("-path", action="store", help="Provide a list of directories of Python parameter files to run")
+    # SCRIPT CONFIGUARTION PARAMETERS
+    p.add_argument("-py", type=str, action="store", help="Name of the Python executable")
+    p.add_argument("-f", "--py_flags", type=str, action="store", help="Runtime flags to pass to Python")
+    p.add_argument("-clim", type=float, action="store", help="The convergence limit: c_value < 1")
+    p.add_argument("-v", "--verbose", action="store", help="The level of verbosity for the output")
+    p.add_argument("--dry", action="store_true", help="Print the simulations found and exit")
+    p.add_argument("-ncores", action="store", help="The number of processor cores to run Python with")
+    # PARAMETERS TO PASS TO PLOTTING SCRIPTS
+    p.add_argument("-polar", action="store_true", help="Plot using a polar projection")
+
+    args = p.parse_args()
+
+    do_something = False
+
+    # Set up different run modes
+    if args.verbose:
+        try:
+            VERBOSE = int(args.verbose)
+        except ValueError:
+            Log.log("Unable to convert {} into a verbosity level".format(args.verbose))
+    if args.s:
+        RUN_SIMS = True
+        CHECK_CONVERGENCE = True
+        do_something = True
+    if args.path:
+        SIMS_FROM_FILE = args.path
+    if args.c:
+        CHECK_CONVERGENCE = True
+        do_something = True
+    if args.sc:
+        SPLIT_CYCLES = False
+    if args.r:
+        RESUME_RUN = True
+        RUN_SIMS = True
+        do_something = True
+    if args.p:
+        CREATE_PLOTS = True
+        do_something = True
+    if args.tde:
+        TDE_PLOT = True
+        do_something = True
+
+    # Set up script parameters
+    if args.py:
+        PY_VERSION = args.py
+    if args.py_flags:
+        PY_FLAGS = args.py_flags
+    if args.clim:
+        if 0 < args.clim < 1:
+            CONV_LIMIT = args.clim
+        else:
+            Log.log("Invalid value for convergence limit {}".format(args.clim))
+            exit(1)
+    if args.dry:
+        DRY_RUN = True
+        do_something = True
+    if args.ncores:
+        N_CORES = int(args.ncores)
+
+    # Set up plotting parameters
+    if args.polar:
+        POLAR = True
+
+    Log.log("------------------------\n")
+    Log.log("Python  .......................... {}".format(PY_VERSION))
+    Log.log("Run simulations .................. {}".format(RUN_SIMS))
+    Log.log("Split cycles ..................... {}".format(SPLIT_CYCLES))
+    Log.log("Resume run ....................... {}".format(RESUME_RUN))
+    Log.log("Number of cores .................. {}".format(N_CORES))
+    Log.log("Convergence limit ................ {}".format(CONV_LIMIT))
+    Log.log("Show convergence ................. {}".format(CHECK_CONVERGENCE))
+    Log.log("Create plots ..................... {}".format(CREATE_PLOTS))
+    Log.log("Plot TDE ......................... {}".format(TDE_PLOT))
+    Log.log("Polar projection ................. {}".format(POLAR))
+    Log.log("Verbosity level .................. {}".format(VERBOSE))
+
+    if PY_FLAGS:
+        Log.log("\nUsing these extra python flags:\n\t{}".format(PY_FLAGS))
+
+    if do_something is False:
+        Log.log("\nNo run mode parameter provided, there is nothing to do!\n")
+        p.print_help()
+        Log.log("\n------------------------")
+        exit(0)
+
+    return
 
 
 def plot_model(root: str, wd: str) -> None:
@@ -294,7 +344,88 @@ def plot_spec_tde(root: str, wd: str) -> None:
     return
 
 
-def check_python_convergence(root: str, wd: str) -> Union[float, int]:
+def print_python_output(line: str, pcycle: bool, n_cores: int = 1, verbosity: int = 3) -> bool:
+    """
+    Process the output from a Python simulation and print something to screen.
+    Very ugly! Very sad!
+
+    The amount printed to screen will vary depending on the verbosity level
+    chosen.
+
+    Level          Result
+    -----          ------
+    0              Nothing
+    1              Cycle information
+    2              Convergence and all the above
+    3              Transport progress and all of the above
+    4              Everything from Python
+
+    Parameters
+    ----------
+    line: str
+        The line to process
+    pcycle: bool
+        If True then the line will be processed as a spectral cycle instead
+    n_cores: int, optional
+        The number of cores the simulation is being run with. This is required
+        to calculate the total photon number
+    verbosity: bool, optional
+        If this is True, then every line will be printed to screen
+
+    Returns
+    -------
+    pcycle: bool
+        Indicates if the previously processed line was a spectral cycle line
+        or not
+    """
+
+    oline = copy(line)
+    line = line.split()
+
+    # PRINT EVERYTHING
+    if verbosity >= 4:
+        Log.log("{}".format(oline))
+    # PRINT CURRENT IONISATION CYCLE
+    elif oline.find("for defining wind") != -1 and verbosity >= 1:
+        current_cycle = line[3]
+        total_cycles = line[5]
+        current_time = time.strftime("%H:%M")
+        Log.log("{}  Ionisation Cycle ....... {}/{}".format(current_time, current_cycle, total_cycles))
+    # PRINT CURRENT SPECTRUM CYCLE
+    elif oline.find("to calculate a detailed spectrum") != -1 and verbosity >= 1:
+        pcycle = True
+        current_cycle = line[1]
+        total_cycles = line[3]
+        current_time = time.strftime("%H:%M")
+        Log.log("{}  Spectrum Cycle ......... {}/{}".format(current_time, current_cycle, total_cycles))
+    # PRINT COMPLETE RUN TIME
+    elif oline.find("Completed entire program.") != -1 and verbosity >= 1:
+        tot_run_time_seconds = float(line[-1])
+        tot_run_time = datetime.timedelta(seconds=tot_run_time_seconds // 1)
+        Log.log("\nSimulation completed in: {} hrs:mins:secs".format(tot_run_time))
+    # PRINT TOTAL RUN TIME ELAPSED FOR A CYCLE
+    elif (oline.find("Completed ionization cycle") != -1 or oline.find("Completed spectrum cycle") != -1) and verbosity >= 2:
+        elapsed_time_seconds = float(line[-1])
+        elapsed_time = datetime.timedelta(seconds=elapsed_time_seconds // 1)
+        Log.log("       Run time: {} hrs:mins:secs".format(elapsed_time))
+    # PRINT CONVERGENCE
+    elif oline.find("!!Check_converging") != -1 and verbosity >= 2:
+        nconverged = line[1]
+        fconverged = line[2]
+        Log.log("       {} cells converged {}".format(nconverged, fconverged))
+    # PRINT PHOTON TRANSPORT REPORT
+    elif oline.find("per cent") != -1 and oline.find("Photon") != -1 and verbosity >= 3:
+        Log.log("         - {}% of {:1.2e} photons transported".format(line[-3], int(int(line[-5]) * n_cores)))
+    # PRINT PHOTON TRANSPORT RUN TIME
+    elif oline.find("photon transport completed in") != -1 and verbosity >= 3:
+        transport_time_seconds = float(line[5])
+        transport_time = datetime.timedelta(seconds=transport_time_seconds // 1)
+        Log.log("       Photons transported in {} hrs:mins:secs".format(transport_time))
+
+    return pcycle
+
+
+def convergence_check(root: str, wd: str) -> Union[float, int]:
     """
     Check the convergence of a Python simulation by parsing the master diag file.
 
@@ -332,8 +463,8 @@ def check_python_convergence(root: str, wd: str) -> Union[float, int]:
     return rc
 
 
-def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = False, split_cycles: bool = False,
-           restart_from_spec: bool = False) -> int:
+def run_python_simulation(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = False,
+                          split_cycles: bool = False, restart_from_spec: bool = False) -> int:
     """
     The purpose of this function is to use the Subprocess library to call
     Python. Unfortunately, to cover a wide range of situations with how one
@@ -367,15 +498,20 @@ def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = 
         The return code from the Python simulation
     """
 
+    if VERBOSE > 4:
+        verbose = True
+    else:
+        verbose = False
+
     logfile_name = "{}/{}_{}{:02d}{:02d}.txt".format(wd, root, DATE.year, int(DATE.month), int(DATE.day))
     logfile = open(logfile_name, "a")
     pf = root + ".pf"
 
     if split_cycles and restart_from_spec is False:
-        Grid.change_parameter(pf, "Spectrum_cycles", "0", backup=True, verbose=VERBOSE)
+        Grid.change_parameter(pf, "Spectrum_cycles", "0", backup=True, verbose=verbose)
     if split_cycles and restart_from_spec:
-        Grid.change_parameter(pf, "Spectrum_cycles", "5", backup=False, verbose=VERBOSE)
-        Grid.change_parameter(pf, "Photons_per_cycle", "1e6", backup=False, verbose=VERBOSE)
+        Grid.change_parameter(pf, "Spectrum_cycles", "5", backup=False, verbose=verbose)
+        Grid.change_parameter(pf, "Photons_per_cycle", "1e6", backup=False, verbose=verbose)
 
     # Construct shell command to run Python and use subprocess to run
     command = "cd {}; Setup_Py_Dir; ".format(wd)
@@ -400,6 +536,7 @@ def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = 
     cmd = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
 
     # This next bit provides real time output of Python's output...
+    # TODO: I think pcycle is redundant..?
     if split_cycles:
         pcycle = True
     else:
@@ -409,10 +546,11 @@ def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = 
             break
         line = stdout_line.decode("utf-8").replace("\n", "")
         logfile.write("{}\n".format(line))
-        pcycle = process_line_output(line, pcycle, n_cores, NOT_QUIET, VERBOSE)
+        pcycle = print_python_output(line, pcycle, n_cores, VERBOSE)
 
-    if not NOT_QUIET:
+    if not verbose:
         Log.log("")
+
     logfile.close()
 
     # Sometimes with Subprocess, if the output buffer is too large then subprocess
@@ -429,16 +567,16 @@ def python(root: str, wd: str, use_mpi: bool, n_cores: int, restart_run: bool = 
     rc = cmd.returncode
     if rc:
         print("Python exited with non-zero exit code: {}\n".format(rc))
-        Simulation.error_summary(root, wd, VERBOSE)
+        Simulation.error_summary(root, wd, verbose)
 
-    version, hash = Utils.get_python_version(PY_VERSION, VERBOSE)
+    version, hash = Utils.get_python_version(PY_VERSION, verbose)
     with open("version", "w") as f:
         f.write("{}\n{}".format(version, hash))
 
     return rc
 
 
-def restore_bakup_pf(root: str, wd: str):
+def restore_backup_pf(root: str, wd: str):
     """
     Copy a backup parameter file back to the original parameter file
     destination.
@@ -472,6 +610,11 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
         If use_mpi is True, this will be the number of cores to run Python with.
     """
 
+    if VERBOSE > 4:
+        verbose = True
+    else:
+        verbose = False
+
     n_sims = len(roots)
 
     if CHECK_CONVERGENCE:
@@ -488,28 +631,29 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
 
         if RUN_SIMS:
             Log.log("Running the simulation: {}\n".format(root))
-            rc = python(root, wd, use_mpi, n_cores, RESUME_RUN, SPLIT_CYCLES)
+            rc = run_python_simulation(root, wd, use_mpi, n_cores, RESUME_RUN, SPLIT_CYCLES)
 
         if CHECK_CONVERGENCE:
             Log.log("Checking the convergence of the simulation:\n")
-            c = check_python_convergence(root, wd)
+            c = convergence_check(root, wd)
             if c and SPLIT_CYCLES and RUN_SIMS:
-                rc = python(root, wd, use_mpi, n_cores, True, True, True)
-                restore_bakup_pf(root, wd)
+                rc = run_python_simulation(root, wd, use_mpi, n_cores, True, True, True)
+                restore_backup_pf(root, wd)
             elif not c and SPLIT_CYCLES and RUN_SIMS:
                 print("Simulation has not converged, hence no spectral cycles will be run.")
                 print("Use -sc to override this.\n")
-                Simulation.error_summary(root, wd, VERBOSE)
-                restore_bakup_pf(root, wd)
+                Simulation.error_summary(root, wd, True)
+                restore_backup_pf(root, wd)
                 continue
 
         if rc == 0 or rc == 1:
-            Simulation.error_summary(root, wd, VERBOSE)
-        elif rc > 0:
+            Simulation.error_summary(root, wd, N_CORES, True)
+            Log.log("")
+        if rc > 1:
             continue
 
         if CREATE_PLOTS or RUN_SIMS:
-            Utils.windsave2table(root, wd, VERBOSE)
+            Utils.windsave2table(root, wd, verbose)
 
         if CREATE_PLOTS:
             Log.log("Creating plots for the simulation\n")
@@ -521,7 +665,7 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
 
         if CREATE_PLOTS or RUN_SIMS:
             Log.log("Removing the data directory\n")
-            Utils.remove_data_sym_links(wd, VERBOSE)
+            Utils.remove_data_sym_links(wd, verbose)
 
     return
 
@@ -564,130 +708,7 @@ def get_pf_from_file() -> List[str]:
     return roots
 
 
-def get_run_mode() -> None:
-    """
-    Determine the configuration to run the script in by parsing the command
-    line for flags given by the user.
-    """
 
-    global VERBOSE
-    global RUN_SIMS
-    global RESUME_RUN
-    global CHECK_CONVERGENCE
-    global CREATE_PLOTS
-    global CONV_LIMIT
-    global TDE_PLOT
-    global PY_VERSION
-    global PY_FLAGS
-    global DRY_RUN
-    global NOT_QUIET
-    global N_CORES
-    global SPLIT_CYCLES
-    global SIMS_FROM_FILE
-    global POLAR
-
-    p = argparse.ArgumentParser(description="General script to run Python simulations")
-    # Different run modes
-    p.add_argument("-d", action="store_true", help="Run with -s -c -p")
-    p.add_argument("-s", action="store_true", help="Run simulations")
-    p.add_argument("-sc", action="store_true", help="Run spectral cycles even if a simulation hasn't converged")
-    p.add_argument("-r", action="store_true", help="Restart a previous run")
-    p.add_argument("-c", action="store_true", help="Check the convergence of runs - calls convergence.py")
-    p.add_argument("-p", action="store_true", help="Run plotting scripts")
-    p.add_argument("-tde", action="store_true", help="Enable TDE plotting")
-    p.add_argument("-path", action="store", help="Provide a list of directories of Python parameter files to run")
-    # Script Parameters
-    p.add_argument("-py_ver", type=str, action="store", help="Name of the Python executable")
-    p.add_argument("-f", "--py_flags", type=str, action="store", help="Runtime flags to pass to Python")
-    p.add_argument("-clim", type=float, action="store", help="The convergence limit: c_value < 1")
-    p.add_argument("-v", "--verbose", action="store_true", help="Verbose outputting")
-    p.add_argument("--dry", action="store_true", help="Print the simulations found and exit")
-    p.add_argument("-q", action="store_true", help="Enable quiet mode")
-    p.add_argument("-n_cores", action="store", help="The number of processor cores to run Python with")
-    # Plot Parameters
-    p.add_argument("-polar", action="store_true", help="Plot using a polar projection")
-
-    args = p.parse_args()
-
-    do_something = False
-
-    # Set up different run modes
-    if args.d:
-        RUN_SIMS = True
-        CHECK_CONVERGENCE = True
-        CREATE_PLOTS = True
-        do_something = True
-    if args.verbose:
-        VERBOSE = True
-    if args.s:
-        RUN_SIMS = True
-        CHECK_CONVERGENCE = True
-        do_something = True
-    if args.path:
-        SIMS_FROM_FILE = args.path
-    if args.c:
-        CHECK_CONVERGENCE = True
-        do_something = True
-    if args.sc:
-        SPLIT_CYCLES = False
-    if args.r:
-        RESUME_RUN = True
-        RUN_SIMS = True
-        do_something = True
-    if args.p:
-        CREATE_PLOTS = True
-        do_something = True
-    if args.tde:
-        TDE_PLOT = True
-        do_something = True
-
-    # Set up script parameters
-    if args.py_ver:
-        PY_VERSION = args.py_ver
-    if args.py_flags:
-        PY_FLAGS = args.py_flags
-    if args.clim:
-        if 0 < args.clim < 1:
-            CONV_LIMIT = args.clim
-        else:
-            Log.log("Invalid value for convergence limit {}".format(args.clim))
-            exit(1)
-    if args.dry:
-        DRY_RUN = True
-        do_something = True
-    if args.q:
-        NOT_QUIET = False
-    if args.n_cores:
-        N_CORES = int(args.n_cores)
-
-    # Set up plotting parameters
-    if args.polar:
-        POLAR = True
-
-    Log.log("------------------------\n")
-    Log.log("Python version ................... {}".format(PY_VERSION))
-    Log.log("Run simulations .................. {}".format(RUN_SIMS))
-    Log.log("Split cycles ..................... {}".format(SPLIT_CYCLES))
-    Log.log("Resume run ....................... {}".format(RESUME_RUN))
-    Log.log("Convergence limit ................ {}".format(CONV_LIMIT))
-    Log.log("Number of cores .................. {}".format(N_CORES))
-    Log.log("Show convergence ................. {}".format(CHECK_CONVERGENCE))
-    Log.log("Create plots ..................... {}".format(CREATE_PLOTS))
-    Log.log("Polar projection ................. {}".format(POLAR))
-    Log.log("Plot TDE ......................... {}".format(TDE_PLOT))
-    Log.log("Don't suppress Python output ..... {}".format(NOT_QUIET))
-    Log.log("Show Verbose Output .............. {}".format(VERBOSE))
-
-    if PY_FLAGS:
-        Log.log("\nUsing these extra python flags:\n\t{}".format(PY_FLAGS))
-
-    if do_something is False:
-        Log.log("\nNo run mode parameter provided, there is nothing to do!\n")
-        p.print_help()
-        Log.log("\n------------------------")
-        exit(0)
-
-    return
 
 
 def main() -> None:
@@ -711,7 +732,10 @@ def main() -> None:
         exit(0)
 
     use_mpi = False
-    n_procs = Utils.get_cpu_count()
+    if N_CORES:
+        n_procs = N_CORES
+    else:
+        n_procs = Utils.get_cpu_count()
     if n_procs > 1:
         use_mpi = True
 
