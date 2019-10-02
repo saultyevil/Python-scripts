@@ -138,10 +138,17 @@ CHECK_CONVERGENCE = False
 CONV_LIMIT = 0.80
 CREATE_PLOTS = False
 TDE_PLOT = False
-VERBOSE = 2
+VERBOSITY = 2
 SPLIT_CYCLES = True
 SIMS_FROM_FILE = False
 POLAR = False
+
+# Verbosity levels
+VERBOSE_SILENT = 0
+VERBOSE_PROGRESS_REPORT = 1
+VERBOSE_EXTRA_INFORMATION = 2
+VERBOSE_EXTRA_INFORMATION_TRANSPORT = 3
+VERBOSE_ALL = 4
 
 
 def get_run_mode() -> None:
@@ -150,7 +157,7 @@ def get_run_mode() -> None:
     line for flags given by the user.
     """
 
-    global VERBOSE
+    global VERBOSITY
     global RUN_SIMS
     global RESUME_RUN
     global CHECK_CONVERGENCE
@@ -192,7 +199,7 @@ def get_run_mode() -> None:
     # Set up different run modes
     if args.verbose:
         try:
-            VERBOSE = int(args.verbose)
+            VERBOSITY = int(args.verbose)
         except ValueError:
             Log.log("Unable to convert {} into a verbosity level".format(args.verbose))
     if args.s:
@@ -249,7 +256,7 @@ def get_run_mode() -> None:
     Log.log("Create plots ..................... {}".format(CREATE_PLOTS))
     Log.log("Plot TDE ......................... {}".format(TDE_PLOT))
     Log.log("Polar projection ................. {}".format(POLAR))
-    Log.log("Verbosity level .................. {}".format(VERBOSE))
+    Log.log("Verbosity level .................. {}".format(VERBOSITY))
 
     if PY_FLAGS:
         Log.log("\nUsing these extra python flags:\n\t{}".format(PY_FLAGS))
@@ -291,7 +298,7 @@ def plot_model(root: str, wd: str) -> None:
     output = stdout.decode("utf-8")
     err = stderr.decode("utf-8")
 
-    if VERBOSE:
+    if VERBOSITY >= VERBOSE_ALL:
         Log.log("\n{}".format(output))
     if err:
         Log.log("\nCaptured from stderr:")
@@ -333,7 +340,7 @@ def plot_spec_tde(root: str, wd: str) -> None:
         out = stdout.decode("utf-8")
         err = stderr.decode("utf-8")
 
-        if VERBOSE:
+        if VERBOSITY > VERBOSE_ALL:
             Log.log("\n{}".format(out))
         if err:
             Log.log("Captured from stderr:")
@@ -344,7 +351,7 @@ def plot_spec_tde(root: str, wd: str) -> None:
     return
 
 
-def print_python_output(line: str, pcycle: bool, n_cores: int = 1, verbosity: int = 3) -> bool:
+def print_python_output(line: str, pcycle: bool, n_cores: int = 1, verbosity: int = VERBOSE_PROGRESS_REPORT) -> bool:
     """
     Process the output from a Python simulation and print something to screen.
     Very ugly! Very sad!
@@ -383,44 +390,46 @@ def print_python_output(line: str, pcycle: bool, n_cores: int = 1, verbosity: in
     line = line.split()
 
     # PRINT EVERYTHING
-    if verbosity >= 4:
+    if verbosity >= VERBOSE_ALL:
         Log.log("{}".format(oline))
     # PRINT CURRENT IONISATION CYCLE
-    elif oline.find("for defining wind") != -1 and verbosity >= 1:
+    elif oline.find("for defining wind") != -1 and verbosity >= VERBOSE_PROGRESS_REPORT:
         current_cycle = line[3]
         total_cycles = line[5]
         current_time = time.strftime("%H:%M")
         Log.log("{}  Ionisation Cycle ....... {}/{}".format(current_time, current_cycle, total_cycles))
     # PRINT CURRENT SPECTRUM CYCLE
-    elif oline.find("to calculate a detailed spectrum") != -1 and verbosity >= 1:
+    elif oline.find("to calculate a detailed spectrum") != -1 and verbosity >= VERBOSE_PROGRESS_REPORT:
         pcycle = True
         current_cycle = line[1]
         total_cycles = line[3]
         current_time = time.strftime("%H:%M")
         Log.log("{}  Spectrum Cycle ......... {}/{}".format(current_time, current_cycle, total_cycles))
     # PRINT COMPLETE RUN TIME
-    elif oline.find("Completed entire program.") != -1 and verbosity >= 1:
+    elif oline.find("Completed entire program.") != -1 and verbosity >= VERBOSE_PROGRESS_REPORT:
         tot_run_time_seconds = float(line[-1])
         tot_run_time = datetime.timedelta(seconds=tot_run_time_seconds // 1)
         Log.log("\nSimulation completed in: {} hrs:mins:secs".format(tot_run_time))
     # PRINT TOTAL RUN TIME ELAPSED FOR A CYCLE
-    elif (oline.find("Completed ionization cycle") != -1 or oline.find("Completed spectrum cycle") != -1) and verbosity >= 2:
+    elif (oline.find("Completed ionization cycle") != -1 or oline.find("Completed spectrum cycle") != -1) and \
+            verbosity >= VERBOSE_EXTRA_INFORMATION:
         elapsed_time_seconds = float(line[-1])
         elapsed_time = datetime.timedelta(seconds=elapsed_time_seconds // 1)
-        Log.log("       Run time: {} hrs:mins:secs".format(elapsed_time))
+        Log.log("         Run time: {} hrs:mins:secs".format(elapsed_time))
     # PRINT CONVERGENCE
-    elif oline.find("!!Check_converging") != -1 and verbosity >= 2:
+    elif oline.find("!!Check_converging") != -1 and verbosity >= VERBOSE_EXTRA_INFORMATION:
         nconverged = line[1]
         fconverged = line[2]
-        Log.log("       {} cells converged {}".format(nconverged, fconverged))
+        Log.log("         {} cells converged {}".format(nconverged, fconverged))
     # PRINT PHOTON TRANSPORT REPORT
-    elif oline.find("per cent") != -1 and oline.find("Photon") != -1 and verbosity >= 3:
-        Log.log("         - {}% of {:1.2e} photons transported".format(line[-3], int(int(line[-5]) * n_cores)))
+    elif oline.find("per cent") != -1 and oline.find("Photon") != -1 \
+            and verbosity >= VERBOSE_EXTRA_INFORMATION_TRANSPORT:
+        Log.log("           - {}% of {:1.2e} photons transported".format(line[-3], int(int(line[-5]) * n_cores)))
     # PRINT PHOTON TRANSPORT RUN TIME
-    elif oline.find("photon transport completed in") != -1 and verbosity >= 3:
+    elif oline.find("photon transport completed in") != -1 and verbosity >= VERBOSE_EXTRA_INFORMATION_TRANSPORT:
         transport_time_seconds = float(line[5])
         transport_time = datetime.timedelta(seconds=transport_time_seconds // 1)
-        Log.log("       Photons transported in {} hrs:mins:secs".format(transport_time))
+        Log.log("         Photons transported in {} hrs:mins:secs".format(transport_time))
 
     return pcycle
 
@@ -456,7 +465,12 @@ def convergence_check(root: str, wd: str) -> Union[float, int]:
             f.write("{}\t{}.pf\t{}\n".format(wd, root, c_fraction))
     elif c_fraction >= CONV_LIMIT:
         Log.log(CONVERGED)
+        with open("converged.txt", "a") as f:
+            f.write("{}\t{}.pf\t{}\n".format(wd, root, c_fraction))
         rc = True
+
+    with open("convergence_report.txt", "a") as f:
+        f.write("{}\t{}.pf\t{}\n".format(wd, root, c_fraction))
 
     Log.log("")
 
@@ -498,20 +512,20 @@ def run_python_simulation(root: str, wd: str, use_mpi: bool, n_cores: int, resta
         The return code from the Python simulation
     """
 
-    if VERBOSE > 4:
+    verbose = False
+    if VERBOSITY >= VERBOSE_ALL:
         verbose = True
-    else:
-        verbose = False
+
 
     logfile_name = "{}/{}_{}{:02d}{:02d}.txt".format(wd, root, DATE.year, int(DATE.month), int(DATE.day))
     logfile = open(logfile_name, "a")
     pf = root + ".pf"
 
     if split_cycles and restart_from_spec is False:
-        Grid.change_parameter(pf, "Spectrum_cycles", "0", backup=True, verbose=verbose)
+        Grid.change_parameter(wd + pf, "Spectrum_cycles", "0", backup=True, verbose=verbose)
     if split_cycles and restart_from_spec:
-        Grid.change_parameter(pf, "Spectrum_cycles", "5", backup=False, verbose=verbose)
-        Grid.change_parameter(pf, "Photons_per_cycle", "1e6", backup=False, verbose=verbose)
+        Grid.change_parameter(wd + pf, "Spectrum_cycles", "5", backup=False, verbose=verbose)
+        Grid.change_parameter(wd + pf, "Photons_per_cycle", "1e6", backup=False, verbose=verbose)
 
     # Construct shell command to run Python and use subprocess to run
     command = "cd {}; Setup_Py_Dir; ".format(wd)
@@ -546,7 +560,7 @@ def run_python_simulation(root: str, wd: str, use_mpi: bool, n_cores: int, resta
             break
         line = stdout_line.decode("utf-8").replace("\n", "")
         logfile.write("{}\n".format(line))
-        pcycle = print_python_output(line, pcycle, n_cores, VERBOSE)
+        pcycle = print_python_output(line, pcycle, n_cores, VERBOSITY)
 
     if not verbose:
         Log.log("")
@@ -610,15 +624,16 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
         If use_mpi is True, this will be the number of cores to run Python with.
     """
 
-    if VERBOSE > 4:
+    verbose = False
+    if VERBOSITY >= VERBOSE_ALL:
         verbose = True
-    else:
-        verbose = False
 
     n_sims = len(roots)
 
     if CHECK_CONVERGENCE:
         open("not_converged.txt", "w").close()
+        open("converged.txt", "w").close()
+        open("convergence_report.txt", "w").close()
 
     for i, path in enumerate(roots):
         rc = -1
@@ -706,9 +721,6 @@ def get_pf_from_file() -> List[str]:
         exit(1)
 
     return roots
-
-
-
 
 
 def main() -> None:
