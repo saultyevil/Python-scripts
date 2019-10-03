@@ -108,8 +108,9 @@ def sightline_coords(x: np.ndarray, theta: float):
     return x * np.tan(np.pi / 2 - theta)
 
 
-def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800, wmax: float = 3600, label: str = None,
-                     return_figure: bool = False, figure: Tuple[plt.Figure, plt.Axes] = None) -> Union[None, Tuple[plt.Figure, plt.Axes]]:
+def model_comparison(direcs: List[str], disk_specs: List[str] = None, extrafname: str = "", wmin: float = 800,
+                     wmax: float = 3600, label: str = None, return_figure: bool = False,
+                     figure: Tuple[plt.Figure, plt.Axes] = None) -> Union[None, Tuple[plt.Figure, plt.Axes]]:
     """
     Plot a 3 x 3 grid of model comparisons for the three TDE geometries, AGN,
     CV and spherical. Each model will have a low, a medium and high inclination
@@ -120,6 +121,8 @@ def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800,
     ----------
     direcs: List[str]
         The directories containing the spectra to plot
+    disk_specs: List[str]
+        The directories containing disk spectrum to plot
     extrafname: str, optional
         Append an extra string to the end of the output filename
     wmin: float, optional
@@ -172,7 +175,7 @@ def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800,
             "75", "75", "75"]
     iidx = 0
 
-    ylims = [(2e-3, 0.5), (0.8e-3, 0.2), (6e-4, 0.1)]
+    ylims = [(2e-3, 0.5), (0.8e-3, 0.2), (1e-4, 0.1)]
 
     for i in range(nrows):
         for j in range(ncols):
@@ -192,6 +195,21 @@ def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800,
             # else:
             #     labels = True
             # ax[i, j] = plot_line_id(ax[i, j], labels)
+
+    if disk_specs and not return_figure:
+        dspecs = []
+        for i in range(len(disk_specs)):
+            dspecs.append(SpectrumUtils.read_spec(pdir + disk_specs[i]))
+        for i in range(nrows):
+            for j in range(ncols):
+                dwl = dspecs[j]["Lambda"].values.astype(float)
+                try:
+                    dfl = dspecs[j][incl[iidx - 1]].values.astype(float)
+                except KeyError:
+                    print("Unable to find inclination {} in disk spectrum".format(incl[iidx]))
+                    continue
+                ax[i, j].semilogy(dwl, SpectrumUtils.smooth_spectrum(dfl, SMOOTH), alpha=0.5, zorder=2,
+                                  label="Disk Continuum")
 
     mnames = ["Conical Wind Model", "Equatorial Wind Model", "Spherical Wind Model"]
     for i in range(ncols):
@@ -396,16 +414,21 @@ def main(argc: int, argv: List[str]) -> None:
                   "paper_models/smooth/agn/cno/tde_agn.spec",
                   "paper_models/smooth/spherical/cno/tde_spherical.spec"]
 
-    fig, ax = model_comparison(solar_smooth.copy(), "_solar_cno_smooth_abundances", wmin, wmax, label="Solar Abundance", return_figure=True)
-    model_comparison(cno_smooth.copy(), "_solar_cno_smooth_abundances", wmin, wmax, return_figure=False, figure=(fig, ax),
-                     label="CNO Processed Abundance\nHe = 2 x Solar\nC = 0.5 x Solar\nN = 7 x Solar")
+    disk = ["paper_models/disk_spectra/cv/tde_cv.spec",
+            "paper_models/disk_spectra/agn/tde_agn.spec",
+            "paper_models/disk_spectra/spherical/tde_spherical.spec"]
+
+    fig, ax = model_comparison(solar_smooth.copy(), disk, "_solar_cno_smooth_abundances", wmin, wmax,
+                               label="Solar Abundance", return_figure=True)
+    model_comparison(cno_smooth.copy(), disk, "_solar_cno_smooth_abundances", wmin, wmax, return_figure=False,
+                     figure=(fig, ax), label="CNO Processed Abundance\nHe = 2 x Solar\nC = 0.5 x Solar\nN = 7 x Solar")
 
     solar_clump = ["paper_models/clump/1e-1/cv/solar/tde_cv.spec",
                     "paper_models/clump/1e-1/agn/solar/tde_agn.spec",
                     "paper_models/clump/1e-1/spherical/solar/tde_spherical.spec"]
 
-    fig, ax = model_comparison(solar_smooth.copy(), "_solar_clump", wmin, wmax, label="f = 1", return_figure=True)
-    model_comparison(solar_clump.copy(), "_solar_clump", wmin, wmax, label="f = 0.1", return_figure=False,
+    fig, ax = model_comparison(solar_smooth.copy(), disk, "_solar_clump", wmin, wmax, label="f = 1", return_figure=True)
+    model_comparison(solar_clump.copy(), disk, "_solar_clump", wmin, wmax, label="f = 0.1", return_figure=False,
                      figure=(fig, ax))
 
     wind_geos(solar_smooth.copy())

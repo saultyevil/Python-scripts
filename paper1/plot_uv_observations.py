@@ -127,6 +127,32 @@ def blackbody_flux(T: float, lamda: np.ndarray) -> np.ndarray:
     return b_lambda * ANGSTROM
 
 
+def blueshifted_wavelength(w0: float, vel: float):
+    """
+    Return the wavelength of a line which has been blue shifted.
+
+    Parameters
+    ----------
+    w0: float
+        The rest frame wavelength in Angstrom
+    vel: float
+        The velocity to shift by in km/s
+
+    Returns
+    -------
+    wl: float
+        The observer frame wavelength
+    """
+
+    KMS = 1e5
+    vel *= KMS
+    f0 = C / (w0 * ANGSTROM)
+    f = (1 + vel / C) * f0
+    wl = (C / 1e2) / f / (ANGSTROM * 1e-2)
+
+    return wl
+
+
 def plot_uv_observations() -> None:
     """
     Plot four UV observations of TDE around ~55d. Also plot the SDSS composite
@@ -137,27 +163,49 @@ def plot_uv_observations() -> None:
     asassn14li = tu.asassn14li_spec(SMOOTH, VERBOSITY)
     iptf16fnl = tu.iptf16fnl_spec(SMOOTH, VERBOSITY)
     at2018zr = tu.at2018zr_spec(SMOOTH, VERBOSITY)
-    # composite_qso = tu.sdss_qso_spec(VERBOSE)
     lobal = tu.lobal_qso_spec(VERBOSITY)
-    composite_qso = lobal
 
     nspec = 5
-    spec_list = [lobal, asassn14li, iptf16fnl, iptf15af, at2018zr]
+    spec_list = [lobal, 
+                 iptf15af, 
+                 asassn14li, 
+                 iptf16fnl, 
+                 at2018zr]
     spec_names = ["Composite LoBALQSO",
+                  r"iPTF15af $\Delta t = $52 d" + "\n" + r"$T_{bb} = 43,300$K",
                   r"ASASSN14li $\Delta t = $60 d" + "\n" + r"$T_{bb} = 35,000$K",
                   r"iPTF16fnl $\Delta t = $51 d" + "\n" + r"$T_{bb} = 19,000$K",
-                  r"iPTF15af $\Delta t = $52 d" + "\n" + r"$T_{bb} = 43,300$K",
                   r"AT2018zr $\Delta t = $59 d" + "\n" + r"$T_{bb} = 22,000$K"]
-    name_x = [0.8, 6.1, 100, 1200, 60000]
-    spec_z = [0, 0.02058, 0.0163, 0.07897, 0.071]
-    bb_temp = [0, 35000, 19000, 43300, 22000]
-    bb_radius = [0, 1.35e14, 1.1e14, 1.35e14, 4e14]
-    dl = np.array([0, 90, 67, 358, 337]) * 1e6 * PARSEC
+    name_x = [0.8,
+              6.1,
+              100,
+              3470,
+              60000]
+    spec_z = [0,
+              0.07897,
+              0.02058,
+              0.0163,
+              0.071]
+    bb_temp = [0,
+               43300,
+               35000,
+               19000,
+               22000]
+    bb_radius = [0,
+                 1.35e14,
+                 1.35e14,
+                 1.1e14,
+                 4e14]
+    dl = np.array([0,
+                   358,
+                   90,
+                   67,
+                   337]) * 1e6 * PARSEC
 
     wmin = 1000
     wmax = 3000
 
-    offsets = [1, 10, 700, 2e4, 5e5]
+    offsets = [1, 100, 170, 2e4, 5e5]
 
     fig, ax = plt.subplots(1, 1, figsize=(9.5, 11))
     ax.set_xlim(wmin, wmax)
@@ -178,6 +226,16 @@ def plot_uv_observations() -> None:
 
     ax.set_ylim(0.05, 4e6)
     ax = plot_line_id(ax)
+
+    blue_vel = 5500 # km/s
+    blue_lines = [1550, 1400, 1240]
+    heights = [0.24, 0.26, 0.27]
+    labels = ["C IV", "Si IV", "N V"]
+    for i in range(len(blue_lines)):
+        ax.axvline(blueshifted_wavelength(blue_lines[i], blue_vel), 0.23, heights[i], color="k")
+    ax.axhline(3.2, 0.108, 0.261, color="k")
+    for i in range(len(labels)):
+        ax.text(blueshifted_wavelength(blue_lines[i], blue_vel), 2.25, labels[i], ha="center", va="center", fontsize=11)
 
     ax.set_xlabel(r"Rest Wavelength [$\AA$]", fontsize=15)
     ax.set_ylabel(r"Normalised Flux $F_{\lambda}$ + Offset", fontsize=15)

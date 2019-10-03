@@ -24,7 +24,7 @@ TDE_OBJ = "iPTF15af"
 DEFAULT_DIST = 100 * PARSEC
 FTYPE = "png"
 PLOT_LINE_IDS = True
-VERBOSE = False
+VERBOSITY = False
 
 copypasta = \
     """I have put you on a permanent ignore, public and private. I have found you disturbing, rude and generally
@@ -58,12 +58,12 @@ def get_tde_spectrum() -> Tuple[np.array, float, str]:
         z = 0.07897
         reference = "Blagorodnova et al. (2019)"
         observe_dist = 350 * 1e6 * PARSEC
-        tde_spec = tde_util.iptf15af_spec(SMOOTH, VERBOSE)
+        tde_spec = tde_util.iptf15af_spec(SMOOTH, VERBOSITY)
     elif TDE_OBJ == "ASASSN14li" or TDE_OBJ == "asassn14li":
         z = 0.02058
         reference = "Cenko et al. (2016)"
         observe_dist = 90 * 1e6 * PARSEC
-        tde_spec = tde_util.asassn14li_spec(SMOOTH, VERBOSE)
+        tde_spec = tde_util.asassn14li_spec(SMOOTH, VERBOSITY)
     else:
         print("tde_spec_plot.get_tde_spectrum: can't find spectrum for object {}".format(TDE_OBJ))
         exit(1)
@@ -332,7 +332,7 @@ def main() -> None:
 
     global SMOOTH
     global FTYPE
-    global VERBOSE
+    global VERBOSITY
     global WMIN
     global WMAX
     global TDE_OBJ

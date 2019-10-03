@@ -92,7 +92,7 @@ def get_convergence(filename: str) -> Tuple[np.ndarray, np.ndarray]:
     """
 
     # Create a grep command and pass to subprocess to get stdout and stderr
-    grep = r"grep '\!\!Check_convergence' {}".format(filename)
+    grep = r"grep '\!\!Check_converging' {}".format(filename)
     stdout, stderr = Popen(grep, stdout=PIPE, stderr=PIPE, shell=True).communicate()
     conv_out = stdout.decode("utf-8").split()
     if len(conv_out) == 0:

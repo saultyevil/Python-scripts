@@ -415,9 +415,10 @@ def print_python_output(line: str, pcycle: bool, n_cores: int = 1, verbosity: in
             verbosity >= VERBOSE_EXTRA_INFORMATION:
         elapsed_time_seconds = float(line[-1])
         elapsed_time = datetime.timedelta(seconds=elapsed_time_seconds // 1)
-        Log.log("         Run time: {} hrs:mins:secs".format(elapsed_time))
+        Log.log("         Elapsed run time: {} hrs:mins:secs".format(elapsed_time))
     # PRINT CONVERGENCE
-    elif oline.find("!!Check_converging") != -1 and verbosity >= VERBOSE_EXTRA_INFORMATION:
+    elif (oline.find("!!Check_converging") != -1 or oline.find("!!Check_convergence") != -1) \
+            and verbosity >= VERBOSE_EXTRA_INFORMATION:
         nconverged = line[1]
         fconverged = line[2]
         Log.log("         {} cells converged {}".format(nconverged, fconverged))
@@ -516,16 +517,19 @@ def run_python_simulation(root: str, wd: str, use_mpi: bool, n_cores: int, resta
     if VERBOSITY >= VERBOSE_ALL:
         verbose = True
 
-
     logfile_name = "{}/{}_{}{:02d}{:02d}.txt".format(wd, root, DATE.year, int(DATE.month), int(DATE.day))
     logfile = open(logfile_name, "a")
     pf = root + ".pf"
 
-    if split_cycles and restart_from_spec is False:
-        Grid.change_parameter(wd + pf, "Spectrum_cycles", "0", backup=True, verbose=verbose)
-    if split_cycles and restart_from_spec:
-        Grid.change_parameter(wd + pf, "Spectrum_cycles", "5", backup=False, verbose=verbose)
-        Grid.change_parameter(wd + pf, "Photons_per_cycle", "1e6", backup=False, verbose=verbose)
+    try:
+        if split_cycles and restart_from_spec is False:
+            Grid.change_parameter(wd + pf, "Spectrum_cycles", "0", backup=True, verbose=verbose)
+        if split_cycles and restart_from_spec:
+            Grid.change_parameter(wd + pf, "Spectrum_cycles", "5", backup=False, verbose=verbose)
+            Grid.change_parameter(wd + pf, "Photons_per_cycle", "1e6", backup=False, verbose=verbose)
+    except IOError:
+        print("Unable to open parameter file {} to change any parameters".format(wd + pf))
+        return 1
 
     # Construct shell command to run Python and use subprocess to run
     command = "cd {}; Setup_Py_Dir; ".format(wd)

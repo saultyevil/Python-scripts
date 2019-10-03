@@ -28,7 +28,7 @@ randseed = np.random.randint(int(1e9))
 SEED = 349903800
 print("Random seed in use:", SEED)
 N_BINS = CHAND_SLAB_SOL.shape[0]
-VERBOSE = False
+VERBOSITY = False
 WRITE_PHOT_INFO = False  # This will probably make things slowwwww
 
 # Parameters which control photon transport and path stretching, changing these

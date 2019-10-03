@@ -50,7 +50,7 @@ from PyPython import SpectrumUtils, Utils, WindUtils
 
 PLOTS = "all"
 POLAR_PROJECTION = False
-VERBOSE = False
+VERBOSITY = False
 SHOW_PLOT = False
 PLOT_LOG = False
 DIMS = "2d"
@@ -76,7 +76,7 @@ def get_script_arguments() -> str:
 
     global PLOTS
     global POLAR_PROJECTION
-    global VERBOSE
+    global VERBOSITY
     global SHOW_PLOT
     global PLOT_LOG
     global WMIN
@@ -794,7 +794,7 @@ def main() -> None:
         inclinations = all_inclinations(input_files)
         print("\nPlotting spectra".format(input_files))
         plot_spectra(input_files, inclinations, output_name, wmin=WMIN, wmax=WMAX, smooth=SMOOTH, filetype=FILETYPE,
-                     show_plot=SHOW_PLOT, verbose=VERBOSE)
+                     show_plot=SHOW_PLOT, verbose=VERBOSITY)
 
     # IF THIS IS CALLED IN A DIRECTORY WITH A SINGLE SIMULATION
     if len(input_files) == 1:
@@ -805,7 +805,7 @@ def main() -> None:
             print("\nPlotting spectrum components")
             input_files[0] = input_files[0].replace(".pf", ".spec")
             plot_spec_comps(input_files[0], output_name, semilogy_scale=PLOT_LOG, smooth=SMOOTH, filetype=FILETYPE,
-                            show_plot=SHOW_PLOT, verbose=VERBOSE)
+                            show_plot=SHOW_PLOT, verbose=VERBOSITY)
 
         # CREATE OPTICAL DEPTH SPECTRUM
         if PLOTS == "tau_spec" or PLOTS == "all":
@@ -816,7 +816,7 @@ def main() -> None:
         if PLOTS == "wind" or PLOTS == "ions" or PLOTS == "all":
             if not os.path.isfile("{}.ep.complete".format(root)):
                 try:
-                    Utils.windsave2table(root, path, VERBOSE)
+                    Utils.windsave2table(root, path, VERBOSITY)
                 except:
                     return
 
@@ -834,6 +834,9 @@ def main() -> None:
             inames = ["", "H", "He", "C", "N", "O", "Si"]
             dims = [(4, 2), (1, 2), (2, 2), (3, 2), (4, 2), (4, 2), (5, 3)]
             size = [(15, 20), (15, 5), (15, 10), (15, 15), (15, 20), (15, 20), (22.5, 25)]
+            # inames = ["", "H", "He", "C", "N", "O", "Al", "Si", "S"]
+            # dims = [(4, 2), (1, 2), (2, 2), (3, 2), (4, 2), (4, 2), (5, 3), (5, 3), (6, 3)]
+            # size = [(15, 20), (15, 5), (15, 10), (15, 15), (15, 20), (15, 20), (22.5, 25), (22.5, 25), (22.5, 30)]
             ions = [
                 ["O_i05", "Si_i04", "Si_i05", "N_i04", "N_i05", "N_i06", "C_i04", "C_i05"],
                 ["H_i01", "H_i02"],
@@ -841,8 +844,12 @@ def main() -> None:
                 ["C_i01", "C_i02", "C_i03", "C_i04", "C_i05", "C_i06"],
                 ["N_i01", "N_i02", "N_i03", "N_i04", "N_i05", "N_i06", "N_i07", "N_i08"],
                 ["O_i01", "O_i02", "O_i03", "O_i04", "O_i05", "O_i06", "O_i07", "O_i08"],
+                # ["Al_i01", "Al_i02", "Al_i03", "Al_i04", "Al_i05", "Al_i06", "Al_i07", "Al_i08", "Al_i09", "Al_i10",
+                #  "Al_i11", "Al_i12", "Al_i13", "Al_i14"],
                 ["Si_i01", "Si_i02", "Si_i03", "Si_i04", "Si_i05", "Si_i06", "Si_i07", "Si_i08", "Si_i09", "Si_i10",
-                 "Si_i11", "Si_i12", "Si_i13", "Si_i14", "Si_i15"]
+                 "Si_i11", "Si_i12", "Si_i13", "Si_i14", "Si_i15"],
+                # ["S_i01", "S_i02", "S_i03", "S_i04", "S_i05", "S_i06", "S_i07", "S_i08", "S_i09", "S_i10", "S_i11",
+                #  "S_i12", "S_i13", "S_i14", "S_i15", "S_i16", "S_i17"]
             ]
             for i in range(len(ions)):
                 print("\tCreating ion plot {}".format(inames[i]))
@@ -850,10 +857,10 @@ def main() -> None:
                 name = "_" + inames[i] + "_ions"
                 var_types = ["ion"] * len(vars)
                 plot_wind(root, output_name + name, vars, var_types, path, projection=projection, filetype=FILETYPE,
-                          ndims=DIMS, verbose=VERBOSE, show_plot=SHOW_PLOT, subplot_dims=dims[i], fig_size=size[i])
+                          ndims=DIMS, verbose=VERBOSITY, show_plot=SHOW_PLOT, subplot_dims=dims[i], fig_size=size[i])
 
         # REMOVE DATA SYMBOLIC LINK TO KEEP THINGS CLEAN FOR DROPBOX
-        Utils.remove_data_sym_links(path, VERBOSE)
+        Utils.remove_data_sym_links(path, VERBOSITY)
 
     elif len(input_files) > 1 and PLOTS != "spec":
         print("Can only plot {} when one root in folder :^)".format(PLOTS))
