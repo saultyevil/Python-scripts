@@ -42,7 +42,10 @@ LINES = [
     ["Fe II / CII]", 0],
     ["Fe II", 0],
     ["Fe II", 0],
-    ["Mg II", 2798]
+    ["Mg II", 2798],
+    ["He II", 4686],
+    [r"H$_{\beta}$", 4861],
+    [r"H$_{\alpha}$", 6564],
 ]
 
 
@@ -75,12 +78,12 @@ def plot_line_id(ax: plt.Axes) -> plt.Axes:
         ax.axvline(x, ymax=1, linestyle="--", linewidth=0.45, color="k")
         x = x - 25
         xnorm = (x - xlims[0]) / (xlims[1] - xlims[0])
-        ax.text(xnorm, 0.92, lab, ha="center", va="center", rotation="vertical", transform=ax.transAxes, fontsize=13)
+        ax.text(xnorm, 0.90, lab, ha="center", va="center", rotation="vertical", transform=ax.transAxes, fontsize=13)
 
     return ax
 
 
-def plot_against_data(dfname: List[str], inclinations: List[str]):
+def plot_against_data(dfname: List[str], inclinations: List[str], name: str):
     """
 
     Parameters
@@ -91,8 +94,12 @@ def plot_against_data(dfname: List[str], inclinations: List[str]):
     inclinations: List[str]
         The inclinations to plot - this should be the inclination for the BAL
         followed by the BEL model
+    name: str
+        A identification name for the plot to make. Allowed values are smooth
+        and clump.
     """
 
+    alpha = 0.7
     wmin = 1000
     wmax = 3000
 
@@ -105,8 +112,8 @@ def plot_against_data(dfname: List[str], inclinations: List[str]):
         pdir = "/home/saultyevil/PySims/tde/"
     for i in range(len(dfname)):
         dfname[i] = pdir + dfname[i]
-    mspec = SpectrumUtils.read_spec(dfname[0], numpy=True)
-    cnospec = SpectrumUtils.read_spec(dfname[1], numpy=True)
+    mspec = SpectrumUtils.read_spec(dfname[0])
+    cnospec = SpectrumUtils.read_spec(dfname[1])
 
     fig, ax = plt.subplots(2, 1, figsize=(9.5, 11), sharex="col")
 
@@ -118,12 +125,18 @@ def plot_against_data(dfname: List[str], inclinations: List[str]):
     cnospec_fl = cnospec[inclination].values.astype(float)
     cnospec_fl *= (100 * PARSEC) ** 2 / (350 * 1e6 * PARSEC) ** 2
 
+    if name == "smooth":
+        ax[0].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="Solar Abundance")
+        ax[0].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), "--", label="CNO Abundance")
+    elif name == "clump":
+        ax[0].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="f = 1")
+        ax[0].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), "--", label="f = 0.1")
+
     ax[0].semilogy(iptf[:, 0] / (0.07897 + 1), SpectrumUtils.smooth_spectrum(iptf[:, 1], SMOOTH),
-                   label=r"iPTF15af $\Delta t = $52 d")
-    ax[0].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="Solar Abundance")
-    ax[0].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), label="CNO Abundance")
+                   label=r"iPTF15af $\Delta t = $52 d", alpha=alpha, zorder=2)
+
     ax[0].set_xlim(wmin, wmax)
-    ax[0].set_ylim(3e-17, 9e-15)
+    ax[0].set_ylim(5e-17, 2e-14)
     ax[0] = plot_line_id(ax[0])
     ax[0].text(0.68, 0.06, r"$i = $" + inclination + "$^{\circ}$", transform=ax[0].transAxes, fontsize=15)
     ax[0].legend(loc="lower right", fontsize=9)
@@ -131,17 +144,23 @@ def plot_against_data(dfname: List[str], inclinations: List[str]):
     inclination = inclinations[1]
     mspec_wl = mspec["Lambda"].values.astype(float)
     mspec_fl = mspec[inclination].values.astype(float)
-    mspec_fl *= (100 * PARSEC) ** 2 / (55 * 1e6 * PARSEC) ** 2
+    mspec_fl *= (100 * PARSEC) ** 2 / (90 * 1e6 * PARSEC) ** 2
     cnospec_wl = cnospec["Lambda"].values.astype(float)
     cnospec_fl = cnospec[inclination].values.astype(float)
-    cnospec_fl *= (100 * PARSEC) ** 2 / (55 * 1e6 * PARSEC) ** 2
+    cnospec_fl *= (100 * PARSEC) ** 2 / (90 * 1e6 * PARSEC) ** 2
+
+    if name == "smooth":
+        ax[1].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="Solar Abundance")
+        ax[1].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), "--", label="CNO Abundance")
+    elif name == "clump":
+        ax[1].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="f = 1")
+        ax[1].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), "--", label="f = 0.1")
 
     ax[1].semilogy(assa[:, 0] / (0.02058 + 1), SpectrumUtils.smooth_spectrum(assa[:, 1], SMOOTH),
-                   label=r"ASASSN14li $\Delta t = $60 d")
-    ax[1].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="Solar Abundance")
-    ax[1].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), label="CNO Abundance")
+                   label=r"ASASSN14li $\Delta t = $60 d", alpha=alpha, zorder=2)
+
     ax[1].set_xlim(wmin, wmax)
-    ax[1].set_ylim(9e-16, 8e-14)
+    ax[1].set_ylim(9e-16, 2e-13)
     ax[1] = plot_line_id(ax[1])
     ax[1].text(0.67, 0.06, r"$i = $" + inclination + "$^{\circ}$", transform=ax[1].transAxes, fontsize=15)
     ax[1].legend(loc="lower right", fontsize=9)
@@ -152,7 +171,11 @@ def plot_against_data(dfname: List[str], inclinations: List[str]):
     fig.tight_layout(rect=[0.03, 0.03, 0.97, 0.97])
     fig.subplots_adjust(hspace=0, wspace=0)
 
-    plt.savefig("best_model_comparison.png")
+    if name == "smooth":
+        plt.savefig("best_model_smooth.png")
+    elif name == "clump":
+        plt.savefig("best_model_clump.png")
+
     plt.show()
 
     return
@@ -170,9 +193,15 @@ def main(argc: int, argv: List[str]):
         The command line arguments provided
     """
 
-    plot_against_data(["nv_fitting/zzzgood/tde_agn_5rwind_mdot_ratio_5e-2/tde_agn.spec",
-                       "running/tde_agn_5rwind_mdot_ratio_5e-2_cno/tde_agn.spec"],
-                      ["80", "85"])
+    plot_against_data(["paper_models/smooth/cv/solar/tde_cv.spec",
+                       "paper_models/smooth/cv/cno/tde_cv.spec"],
+                      ["60", "85"],
+                      "smooth")
+
+    plot_against_data(["paper_models/clump/1e-1/cv/solar/tde_cv.spec",
+                       "paper_models/clump/1e-1/cv/cno/tde_cv.spec"],
+                      ["60", "85"],
+                      "clump")
 
     return
 

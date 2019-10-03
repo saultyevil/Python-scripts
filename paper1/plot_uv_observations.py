@@ -15,8 +15,8 @@ else:
 from consts import *
 import tde_util as tu
 
-SMOOTH = 5
-VERBOSE = False
+SMOOTH = 15
+VERBOSITY = False
 
 LINES = [
     ["O VI", 0],
@@ -24,10 +24,9 @@ LINES = [
     ["N III]", 0],
     [r"Ly$\alpha$/N V", 1216],
     ["", 1240],
-    # [r"Ly$\alpha$", 1216],
-    # ["N V", 1240],
     ["O I", 0],
-    ["Si IV", 1400],
+    ["O V/Si IV", 1371],
+    ["", 1400],
     ["N IV]", 1489],
     ["C IV",  1549],
     ["He II", 1640],
@@ -76,7 +75,10 @@ def plot_line_id(ax: plt.Axes) -> plt.Axes:
     return ax
 
 
-def rescale_flux(input_flux: np.ndarray):
+NORM = 6.652348e-15
+
+
+def normalise_flux(input_flux: np.ndarray):
     """
     Rescale the input flux between 0 and 1.
 
@@ -93,9 +95,7 @@ def rescale_flux(input_flux: np.ndarray):
 
     assert(type(input_flux) == np.ndarray), "input flux must be a Numpy array"
 
-    fmax = np.max(input_flux)
-    fmin = np.min(input_flux)
-    output_flux = (input_flux - fmin) / (fmax - fmin)
+    output_flux = input_flux / NORM
 
     return output_flux
 
@@ -133,46 +133,54 @@ def plot_uv_observations() -> None:
     QSO as a base for comparison.
     """
 
-    iptf15af = tu.iptf15af_spec(SMOOTH, VERBOSE)
-    asassn14li = tu.asassn14li_spec(SMOOTH, VERBOSE)
-    iptf16fnl = tu.iptf16fnl_spec(SMOOTH, VERBOSE)
-    at2018zr = tu.at2018zr_spec(SMOOTH, VERBOSE)
-    composite_qso = tu.sdss_qso_spec(VERBOSE)
-    lobal = tu.lobal_qso_spec(VERBOSE)
+    iptf15af = tu.iptf15af_spec(SMOOTH, VERBOSITY)
+    asassn14li = tu.asassn14li_spec(SMOOTH, VERBOSITY)
+    iptf16fnl = tu.iptf16fnl_spec(SMOOTH, VERBOSITY)
+    at2018zr = tu.at2018zr_spec(SMOOTH, VERBOSITY)
+    # composite_qso = tu.sdss_qso_spec(VERBOSE)
+    lobal = tu.lobal_qso_spec(VERBOSITY)
+    composite_qso = lobal
 
-    nspec = 6
-    spec_list = [composite_qso, lobal, asassn14li, iptf15af, iptf16fnl, at2018zr]
-    spec_names = ["SDSS Composite QSO", "Composite LoBALQSO", r"ASASSN14li $\Delta t = $60 d",
-                  r"iPTF15af $\Delta t = $52 d", r"iPTF16fnl $\Delta t = $51 d", r"AT2018zr $\Delta t = $59 d"]
-    name_x = [0.28, 1.45, 2.23, 3.27, 4.32, 5.55]
-    spec_z = [0,  0, 0.02058, 0.07897, 0.0163, 0.071]
-    bb_temp = [0, 0, 35000, 43300, 19000, 22000]
-    bb_radius = [0, 0, 1.35e14, 1.35e14, 1.1e14, 4e14]
-    dl = np.array([0, 0, 90, 358, 67, 337]) * 1e6 * PARSEC
+    nspec = 5
+    spec_list = [lobal, asassn14li, iptf16fnl, iptf15af, at2018zr]
+    spec_names = ["Composite LoBALQSO",
+                  r"ASASSN14li $\Delta t = $60 d" + "\n" + r"$T_{bb} = 35,000$K",
+                  r"iPTF16fnl $\Delta t = $51 d" + "\n" + r"$T_{bb} = 19,000$K",
+                  r"iPTF15af $\Delta t = $52 d" + "\n" + r"$T_{bb} = 43,300$K",
+                  r"AT2018zr $\Delta t = $59 d" + "\n" + r"$T_{bb} = 22,000$K"]
+    name_x = [0.8, 6.1, 100, 1200, 60000]
+    spec_z = [0, 0.02058, 0.0163, 0.07897, 0.071]
+    bb_temp = [0, 35000, 19000, 43300, 22000]
+    bb_radius = [0, 1.35e14, 1.1e14, 1.35e14, 4e14]
+    dl = np.array([0, 90, 67, 358, 337]) * 1e6 * PARSEC
 
     wmin = 1000
     wmax = 3000
 
+    offsets = [1, 10, 700, 2e4, 5e5]
+
     fig, ax = plt.subplots(1, 1, figsize=(9.5, 11))
     ax.set_xlim(wmin, wmax)
-    # ax = plot_line_id(ax, nspec + 0.17)
     for i in range(nspec):
-        offset = 1 * 10 ** i
+        offset = offsets[i]
         wlength = spec_list[i][:, 0] / (1 + spec_z[i])
         flux = SpectrumUtils.smooth_spectrum(spec_list[i][:, 1], SMOOTH)
-        ax.loglog(wlength, flux, label=spec_names[i])
+        flux = normalise_flux(flux)
+        ax.semilogy(wlength, flux * offset, label=spec_names[i])
 
         if bb_temp[i]:
             twl = wlength
             bbfl = blackbody_flux(bb_temp[i], twl)
             bbfl *= np.pi * bb_radius[i] ** 2 / dl[i] ** 2
-            # bbfl = rescale_flux(bbfl)
-            ax.loglog(twl, bbfl, linestyle="--", alpha=0.5, color="k")
+            bbfl = normalise_flux(bbfl)
+            ax.semilogy(twl, bbfl * offset, linestyle="--", alpha=0.5, color="k")
+        ax.text(2200, name_x[i], spec_names[i], fontsize=13)
 
-        # ax.text(2200, name_x[i], spec_names[i], fontsize=15)
-    # ax.set_ylim(0, nspec + 0.7)
+    ax.set_ylim(0.05, 4e6)
+    ax = plot_line_id(ax)
+
     ax.set_xlabel(r"Rest Wavelength [$\AA$]", fontsize=15)
-    ax.set_ylabel(r"Rescaled Flux $F_{\lambda}$ + Offset", fontsize=15)
+    ax.set_ylabel(r"Normalised Flux $F_{\lambda}$ + Offset", fontsize=15)
     ax.tick_params(axis="x", labelsize=13)
     ax.tick_params(axis="y", labelsize=13)
 

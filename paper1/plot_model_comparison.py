@@ -22,7 +22,7 @@ import numpy as np
 from PyPython import SpectrumUtils, Utils, WindUtils
 
 SMOOTH = 10
-VERBOSE = False
+VERBOSITY = False
 
 LINES = [
     # ["O VI", 0],
@@ -172,7 +172,7 @@ def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800,
             "75", "75", "75"]
     iidx = 0
 
-    ylims = [(2e-3, 0.5), (0.8e-3, 0.2), (9e-4, 0.1)]
+    ylims = [(2e-3, 0.5), (0.8e-3, 0.2), (6e-4, 0.1)]
 
     for i in range(nrows):
         for j in range(ncols):
@@ -193,7 +193,7 @@ def model_comparison(direcs: List[str], extrafname: str = "", wmin: float = 800,
             #     labels = True
             # ax[i, j] = plot_line_id(ax[i, j], labels)
 
-    mnames = ["Biconical Wind Model", "Equatorial Wind Model", "Spherical Model"]
+    mnames = ["Conical Wind Model", "Equatorial Wind Model", "Spherical Wind Model"]
     for i in range(ncols):
         ax[0, i].text(0.5, 1.1, mnames[i], va="center", ha="center", rotation="horizontal", fontsize=13,
                       transform=ax[0, i].transAxes)
@@ -246,7 +246,7 @@ def wind_geos(direcs) -> Union[plt.Figure, list]:
         A list containing plt.Axes for each panel of the figure
     """
 
-    ncols = 3
+    nplots = 6
     incls = ["30", "60", "75"]
     lstyle = ["k--", "k-.", "k:"]
 
@@ -263,48 +263,92 @@ def wind_geos(direcs) -> Union[plt.Figure, list]:
         wx, wz, ww = WindUtils.extract_wind_var(root, "rho", "wind", wd, coords[i])
         modelwind.append([wx, wz, np.log10(ww)])
 
-    fig = plt.figure(figsize=(15, 4))
-    ax1 = plt.subplot(1, 3, 1)
-    ax2 = plt.subplot(1, 3, 2)
-    ax3 = plt.subplot(1, 3, 3, projection="polar") 
-    ax = [ax1, ax2, ax3]
+    fig = plt.figure(figsize=(15, 8))
+    ax1 = plt.subplot(2, 3, 1)
+    ax2 = plt.subplot(2, 3, 2)
+    ax3 = plt.subplot(2, 3, 3, projection="polar")
+    ax4 = plt.subplot(2, 3, 4)
+    ax5 = plt.subplot(2, 3, 5)
+    # ax6 = plt.subplot(2, 3, 6, projection="polar")
+    ax = [ax1, ax2, ax3, ax4, ax5]
 
-    for i in range(ncols):
-        wx, wz, ww = modelwind[i]
-              
-        if coords[i] != "polar":
-            im = ax[i].pcolor(np.log10(wx), np.log10(wz), ww)
-            ax[i].set_xlim(np.log10(wx[1, 1]), np.log10(wx[-1, -1]))
-            ax[i].set_ylim(np.log10(wz[1, 1]), np.log10(wz[-1, -1]))
-            ax[i].set_xlabel("Log[x]")
-            ax[i].set_ylabel("Log[z]")
-        else:
-            ax[i].set_theta_zero_location("N")
-            ax[i].set_theta_direction(-1)
-            im = ax[i].pcolor(np.deg2rad(wz), np.log10(wx), ww)
-            ax[i].set_thetamin(0)
-            ax[i].set_thetamax(90)
-            ax[i].set_rlim(np.log10(wx[1][0]), np.log10(wx[-2][0]))
-            ax[i].set_xticklabels([])
-            ax[i].set_ylabel("Log[R]")
-            ax[i].set_rlabel_position(90)
-
-        plt.colorbar(im, ax=ax[i])
-
-        for j in range(len(incls)):
+    for i in range(nplots):
+        # Log-Log plots
+        if i < 3:
+            wx, wz, ww = modelwind[i]
             if coords[i] != "polar":
-                xsight = np.linspace(0, np.max(wx), 1e5)
-                zsight = sightline_coords(xsight, np.deg2rad(float(incls[j])))
-                ax[i].plot(np.log10(xsight), np.log10(zsight), lstyle[j], 
-                           label=incls[j] + r"$^{\circ}$ line of sight")
+                im = ax[i].pcolor(np.log10(wx), np.log10(wz), ww)
+                ax[i].set_xlim(np.log10(wx[1, 1]), np.log10(wx[-1, -1]))
+                ax[i].set_ylim(np.log10(wz[1, 1]), np.log10(wz[-1, -1]))
+                ax[i].set_xlabel("Log[x]")
+                ax[i].set_ylabel("Log[z]")
             else:
-                xsight = np.linspace(0, 1e17, 1e5)
-                zsight = sightline_coords(xsight, np.deg2rad(90 - float(incls[j])))
-                rsight = np.sqrt(xsight ** 2 + zsight ** 2)
-                thetasight = np.arctan(zsight / xsight)
-                ax[i].plot(thetasight, np.log10(rsight), lstyle[j], label=incls[j] + r"$^{\circ}$ line of sight")
+                ax[i].set_theta_zero_location("N")
+                ax[i].set_theta_direction(-1)
+                im = ax[i].pcolor(np.deg2rad(wz), np.log10(wx), ww)
+                ax[i].set_thetamin(0)
+                ax[i].set_thetamax(90)
+                ax[i].set_rlim(np.log10(wx[1][0]), np.log10(wx[-2][0]))
+                ax[i].set_xticklabels([])
+                ax[i].set_ylabel("Log[R]")
+                ax[i].set_rlabel_position(90)
+
+            plt.colorbar(im, ax=ax[i])
+
+            for j in range(len(incls)):
+                if coords[i] != "polar":
+                    xsight = np.linspace(0, np.max(wx), 1e5)
+                    zsight = sightline_coords(xsight, np.deg2rad(float(incls[j])))
+                    ax[i].plot(np.log10(xsight), np.log10(zsight), lstyle[j],
+                               label=incls[j] + r"$^{\circ}$ line of sight")
+                else:
+                    xsight = np.linspace(0, 1e17, 1e5)
+                    zsight = sightline_coords(xsight, np.deg2rad(90 - float(incls[j])))
+                    rsight = np.sqrt(xsight ** 2 + zsight ** 2)
+                    thetasight = np.arctan(zsight / xsight)
+                    ax[i].plot(thetasight, np.log10(rsight), lstyle[j], label=incls[j] + r"$^{\circ}$ line of sight")
+        # Lin-Lin plots
+        else:
+            ii = i - 3
+            wx, wz, ww = modelwind[ii]
+            if coords[ii] != "polar":
+                im = ax[i].pcolor(wx, wz, ww)
+                ax[i].set_xlim(wx[1, 1], 5.5e17)
+                ax[i].set_ylim(wz[1, 1], 5.5e17)
+                ax[i].set_xlabel("x")
+                ax[i].set_ylabel("z")
+            else:
+                continue
+                # ax[i].set_theta_zero_location("N")
+                # ax[i].set_theta_direction(-1)
+                # im = ax[i].pcolor(np.deg2rad(wz), wx, ww)
+                # ax[i].set_thetamin(0)
+                # ax[i].set_thetamax(90)
+                # ax[i].set_xticklabels([])
+                # ax[i].set_ylabel("R")
+                # ax[i].set_rlabel_position(90)
+                # ax[i].set_rlim(1e13, 1e17)
+
+            plt.colorbar(im, ax=ax[i])
+
+            for j in range(len(incls)):
+                if coords[ii] != "polar":
+                    xsight = np.linspace(0, np.max(wx), 1e5)
+                    zsight = sightline_coords(xsight, np.deg2rad(float(incls[j])))
+                    ax[i].plot(xsight, zsight, lstyle[j], label=incls[j] + r"$^{\circ}$ line of sight")
+                # else:
+                #     xsight = np.linspace(0, 1e17, 1e5)
+                #     zsight = sightline_coords(xsight, np.deg2rad(90 - float(incls[j])))
+                #     rsight = np.sqrt(xsight ** 2 + zsight ** 2)
+                #     thetasight = np.arctan(zsight / xsight)
+                #     ax[i].plot(thetasight, rsight, lstyle[j], label=incls[j] + r"$^{\circ}$ line of sight")
 
     ax[0].legend()
+
+    mnames = ["Conical Wind Model", "Equatorial Wind Model", "Spherical Wind Model"]
+    for i in range(nplots - 3):
+        ax[i].text(0.5, 1.1, mnames[i], va="center", ha="center", rotation="horizontal", fontsize=13,
+                   transform=ax[i].transAxes)
 
     fig.tight_layout(rect=[0.03, 0.03, 0.97, 0.97])
     
@@ -344,24 +388,27 @@ def main(argc: int, argv: List[str]) -> None:
         print(__doc__)
         exit(1)
 
-    # solar = ["cv_macro/zorig/tde_cv.spec", "agn_macro/zorig/tde_agn.spec",
-    #          "spherical_macro/zorig_angles/tde_spherical.spec"]
-    #
-    # cno = ["cno_processed/cv_macro_cno/zorig/tde_cv.spec", "cno_processed/agn_macro_cno/zorig/tde_agn.spec",
-    #        "cno_processed/spherical_macro_cno/zorig_angles_cno/tde_spherical.spec"]
+    solar_smooth = ["paper_models/smooth/cv/solar/tde_cv.spec",
+                    "paper_models/smooth/agn/solar/tde_agn.spec",
+                    "paper_models/smooth/spherical/solar/tde_spherical.spec"]
 
-    solar = ["paper_models/smooth/cv/solar/tde_cv.spec",
-             "paper_models/smooth/agn/solar/tde_agn.spec",
-             "paper_models/smooth/spherical/solar/tde_spherical.spec"]
+    cno_smooth = ["paper_models/smooth/cv/cno/tde_cv.spec",
+                  "paper_models/smooth/agn/cno/tde_agn.spec",
+                  "paper_models/smooth/spherical/cno/tde_spherical.spec"]
 
-    cno = ["paper_models/smooth/cv/cno/tde_cv.spec",
-            "paper_models/smooth/agn/cno/tde_agn.spec",
-            "paper_models/smooth/spherical/cno/tde_spherical.spec"]
+    fig, ax = model_comparison(solar_smooth.copy(), "_solar_cno_smooth_abundances", wmin, wmax, label="Solar Abundance", return_figure=True)
+    model_comparison(cno_smooth.copy(), "_solar_cno_smooth_abundances", wmin, wmax, return_figure=False, figure=(fig, ax),
+                     label="CNO Processed Abundance\nHe = 2 x Solar\nC = 0.5 x Solar\nN = 7 x Solar")
 
-    fig, ax = model_comparison(solar.copy(), "_solar_cno", wmin, wmax, label="Solar Abundance", return_figure=True)
-    model_comparison(cno.copy(), "_solar_cno", wmin, wmax, label="CNO Processed Abundance", return_figure=False,
+    solar_clump = ["paper_models/clump/1e-1/cv/solar/tde_cv.spec",
+                    "paper_models/clump/1e-1/agn/solar/tde_agn.spec",
+                    "paper_models/clump/1e-1/spherical/solar/tde_spherical.spec"]
+
+    fig, ax = model_comparison(solar_smooth.copy(), "_solar_clump", wmin, wmax, label="f = 1", return_figure=True)
+    model_comparison(solar_clump.copy(), "_solar_clump", wmin, wmax, label="f = 0.1", return_figure=False,
                      figure=(fig, ax))
-    wind_geos(solar.copy())
+
+    wind_geos(solar_smooth.copy())
 
     return
 

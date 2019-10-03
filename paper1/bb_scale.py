@@ -16,7 +16,7 @@ from consts import *
 import tde_util as tu
 
 SMOOTH = 5
-VERBOSE = False
+VERBOSITY = False
 
 
 def blackbody_flux(T: float, lamda: np.ndarray) -> np.ndarray:
@@ -52,10 +52,10 @@ def plot_uv_observations() -> None:
     QSO as a base for comparison.
     """
 
-    iptf15af = tu.iptf15af_spec(SMOOTH, VERBOSE)
-    asassn14li = tu.asassn14li_spec(SMOOTH, VERBOSE)
-    iptf16fnl = tu.iptf16fnl_spec(SMOOTH, VERBOSE)
-    at2018zr = tu.at2018zr_spec(SMOOTH, VERBOSE)
+    iptf15af = tu.iptf15af_spec(SMOOTH, VERBOSITY)
+    asassn14li = tu.asassn14li_spec(SMOOTH, VERBOSITY)
+    iptf16fnl = tu.iptf16fnl_spec(SMOOTH, VERBOSITY)
+    at2018zr = tu.at2018zr_spec(SMOOTH, VERBOSITY)
 
     spec_list = [asassn14li, iptf15af, iptf16fnl, at2018zr]
     spec_names = [r"ASASSN14li $\Delta t = $60 d", r"iPTF15af $\Delta t = $52 d", r"iPTF16fnl $\Delta t = $51 d",
