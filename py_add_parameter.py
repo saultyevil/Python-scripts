@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Update an already existing parameter to a parameter file.
+Add a parameter to an already existing parameter file.
 
 The script will search recursively from the calling directory for parameter
 files. If a root name is provided, however, then the script will only operate
@@ -22,15 +22,15 @@ Usage
 
 
 from sys import argv, exit
-from PyPython import Utils, Grid
 from typing import List
+from PyPython import Utils, Grid
 
 
-def change_pfs(wdpf: List[str], parameter: str, value: str) -> None:
+def add_parameter(wdpf: List[str], parameter: str, value: str):
     """
-    Iterate over a list of pfs, and update the parameter given by the variable
-    parameter with the new value given by value. This function will also
-    print out verbose, because it seems most sensible to be loud about this.
+    Iterate over a list of pfs, and add the parameter given to the end of
+    the parameter file. This function will also print out verbose, because it
+    seems the most sensible to be loud about this.
 
     Parameters
     ----------
@@ -43,7 +43,7 @@ def change_pfs(wdpf: List[str], parameter: str, value: str) -> None:
     """
 
     for i in range(len(wdpf)):
-        Grid.change_parameter(wdpf[i], parameter, value, verbose=True)
+        Grid.add_parameter(wdpf[i], parameter, value, verbose=True)
 
     return
 
@@ -79,9 +79,19 @@ def get_pfs(root: str = None) -> List[str]:
     return pfs
 
 
-if __name__ == "__main__":
+def main(argc: int, argv: List[str]):
+    """
+    Main function.
+
+    Parameters
+    ----------
+    argc: int
+        The number of command line arguments provided.
+    argv: List[str]
+        The command line arguments provided.
+    """
+
     root = None
-    argc = len(argv)
     if argc == 2 and argv[1] == "-h":
         print(__doc__)
         exit(0)
@@ -100,4 +110,10 @@ if __name__ == "__main__":
         print("Unknown arguments provided: ", argv[1:])
         print(__doc__)
         exit(1)
-    change_pfs(get_pfs(root), parameter, value)
+    add_parameter(get_pfs(root), parameter, value)
+
+    return
+
+
+if __name__ == "__main__":
+    main(len(argv), argv)
