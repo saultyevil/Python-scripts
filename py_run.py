@@ -403,9 +403,10 @@ def print_python_output(line: str, pcycle: bool, n_cores: int = 1,
     # PRINT CONVERGENCE
     elif (oline.find("!!Check_converging:") != -1 or oline.find("!!Check_convergence:") != -1) \
             and verbosity >= VERBOSE_EXTRA_INFORMATION:
-        nconverged = line[1]
-        fconverged = line[2]
-        Log.log("         {} cells converged {}".format(nconverged, fconverged))
+        if len(line) == 11:
+            nconverged = line[1]
+            fconverged = line[2]
+            Log.log("         {} cells converged {}".format(nconverged, fconverged))
     # PRINT PHOTON TRANSPORT REPORT
     elif oline.find("per cent") != -1 and oline.find("Photon") != -1 \
             and verbosity >= VERBOSE_EXTRA_INFORMATION_TRANSPORT:
@@ -414,7 +415,16 @@ def print_python_output(line: str, pcycle: bool, n_cores: int = 1,
                 Log.log("         Beginning photon transport")
         except ValueError:
             pass
-        Log.log("           - {}% of {:1.2e} photons transported".format(line[-3], int(int(line[-5]) * n_cores)))
+        try:
+            percent = round(float(line[-3]), 0)
+        except ValueError:
+            percent = line[-3]
+        try:
+            nphots = round(int(line[-5]) * n_cores, 0)
+            nphots = "{:1.2e}".format(nphots)
+        except ValueError:
+            nphots = line[-5]
+        Log.log("           - {}% of {} photons transported".format(percent, nphots))
     # PRINT PHOTON TRANSPORT RUN TIME
     elif oline.find("photon transport completed in") != -1 and verbosity >= VERBOSE_EXTRA_INFORMATION_TRANSPORT:
         transport_time_seconds = float(line[5])
