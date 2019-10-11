@@ -7,34 +7,6 @@ for Python pfs (disregarding anything which is py_wind.pf or .out.pf files) and
 execute a number of commands depending on what is requested by the user.
 
 The script can also be run in a directory containing only one Python pf.
-
-usage: py_run.py [-h] [-d] [-s] [-sc] [-r] [-c] [-p] [-tde] [-path PATH]
-                 [-py_ver PY_VER] [-f PY_FLAGS] [-clim CLIM] [-v] [--dry] [-q]
-                 [-n_cores N_CORES] [-polar]
-
-General script to run Python simulations
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -d                    Run with -s -c -p
-  -s                    Run simulations
-  -sc                   Run spectral cycles even if a simulation hasn't
-                        converged
-  -r                    Restart a previous run
-  -c                    Check the convergence of runs - calls convergence.py
-  -p                    Run plotting scripts
-  -tde                  Enable TDE plotting
-  -path PATH            Provide a list of directories of Python parameter
-                        files to run
-  -py_ver PY_VER        Name of the Python executable
-  -f PY_FLAGS, --py_flags PY_FLAGS
-                        Runtime flags to pass to Python
-  -clim CLIM            The convergence limit: c_value < 1
-  -v, --verbose         Verbose outputting
-  --dry                 Print the simulations found and exit
-  -q                    Enable quiet mode
-  -n_cores N_CORES      The number of processor cores to run Python with
-  -polar                Plot using a polar projection
 """
 
 
@@ -142,6 +114,7 @@ VERBOSITY = 2
 SPLIT_CYCLES = True
 SIMS_FROM_FILE = False
 POLAR = False
+PRINT_ERRORS_ONLY = False
 
 # Verbosity levels
 VERBOSE_SILENT = 0
@@ -171,6 +144,7 @@ def get_run_mode() -> None:
     global SPLIT_CYCLES
     global SIMS_FROM_FILE
     global POLAR
+    global PRINT_ERRORS_ONLY
 
     p = argparse.ArgumentParser(description="General script to run Python simulations")
 
@@ -182,6 +156,7 @@ def get_run_mode() -> None:
     p.add_argument("-p", action="store_true", help="Run plotting scripts")
     p.add_argument("-tde", action="store_true", help="Enable TDE plotting")
     p.add_argument("-path", action="store", help="Provide a list of directories of Python parameter files to run")
+    p.add_argument("-e", action="store_true", help="Print the list of errors")
     # SCRIPT CONFIGUARTION PARAMETERS
     p.add_argument("-py", type=str, action="store", help="Name of the Python executable")
     p.add_argument("-f", "--py_flags", type=str, action="store", help="Runtime flags to pass to Python")
@@ -222,6 +197,9 @@ def get_run_mode() -> None:
         do_something = True
     if args.tde:
         TDE_PLOT = True
+        do_something = True
+    if args.e:
+        PRINT_ERRORS_ONLY = True
         do_something = True
 
     # Set up script parameters
@@ -326,7 +304,12 @@ def plot_spec_tde(root: str, wd: str) -> None:
         Log.log("{}:{}: tde_spec_path.py not in $PATH and executable".format(__file__, plot_spec_tde.__name__))
         return
 
-    incs = SpectrumUtils.spec_inclinations([wd + root + ".spec"])
+    try:
+        incs = SpectrumUtils.spec_inclinations([wd + root + ".spec"])
+    except IOError:
+        Log.log("{} does not exist, so cannot plot\n".format(wd + root + ".spec"))
+        return
+
     nincs = len(incs)
 
     commands = ["cd {}; tde_spec_plot.py {}".format(wd, root)]
@@ -351,7 +334,8 @@ def plot_spec_tde(root: str, wd: str) -> None:
     return
 
 
-def print_python_output(line: str, pcycle: bool, n_cores: int = 1, verbosity: int = VERBOSE_PROGRESS_REPORT) -> bool:
+def print_python_output(line: str, pcycle: bool, n_cores: int = 1, 
+                        verbosity: int = 3) -> bool:
     """
     Process the output from a Python simulation and print something to screen.
     Very ugly! Very sad!
@@ -359,13 +343,13 @@ def print_python_output(line: str, pcycle: bool, n_cores: int = 1, verbosity: in
     The amount printed to screen will vary depending on the verbosity level
     chosen.
 
-    Level          Result
-    -----          ------
-    0              Nothing
-    1              Cycle information
-    2              Convergence and all the above
-    3              Transport progress and all of the above
-    4              Everything from Python
+    Level                                     Result
+    -----                                     ------
+    0: VERBOSE_SILENT                         Nothing
+    1: VERBOSE_PROGRESS_REPORT                Cycle information
+    2: VERBOSE_EXTRA_INFORMATION              Convergence plus the above
+    3: VERBOSE_EXTRA_INFORMATION_TRANSPORT    Transport progress plus the above
+    4: VERBOSE_ALL                            Everything from Python
 
     Parameters
     ----------
@@ -417,7 +401,7 @@ def print_python_output(line: str, pcycle: bool, n_cores: int = 1, verbosity: in
         elapsed_time = datetime.timedelta(seconds=elapsed_time_seconds // 1)
         Log.log("         Elapsed run time: {} hrs:mins:secs".format(elapsed_time))
     # PRINT CONVERGENCE
-    elif (oline.find("!!Check_converging") != -1 or oline.find("!!Check_convergence") != -1) \
+    elif (oline.find("!!Check_converging:") != -1 or oline.find("!!Check_convergence:") != -1) \
             and verbosity >= VERBOSE_EXTRA_INFORMATION:
         nconverged = line[1]
         fconverged = line[2]
@@ -425,6 +409,11 @@ def print_python_output(line: str, pcycle: bool, n_cores: int = 1, verbosity: in
     # PRINT PHOTON TRANSPORT REPORT
     elif oline.find("per cent") != -1 and oline.find("Photon") != -1 \
             and verbosity >= VERBOSE_EXTRA_INFORMATION_TRANSPORT:
+        try:
+            if int(line[6]) == 0:
+                Log.log("         Beginning photon transport")
+        except ValueError:
+            pass
         Log.log("           - {}% of {:1.2e} photons transported".format(line[-3], int(int(line[-5]) * n_cores)))
     # PRINT PHOTON TRANSPORT RUN TIME
     elif oline.find("photon transport completed in") != -1 and verbosity >= VERBOSE_EXTRA_INFORMATION_TRANSPORT:
@@ -585,7 +574,6 @@ def run_python_simulation(root: str, wd: str, use_mpi: bool, n_cores: int, resta
     rc = cmd.returncode
     if rc:
         print("Python exited with non-zero exit code: {}\n".format(rc))
-        Simulation.error_summary(root, wd, verbose)
 
     version, hash = Utils.get_python_version(PY_VERSION, verbose)
     with open("version", "w") as f:
@@ -610,6 +598,26 @@ def restore_backup_pf(root: str, wd: str):
     opf = "{}/{}.pf".format(wd, root)
     bak = opf + ".bak"
     copyfile(bak, opf)
+
+    return
+
+
+def print_errors(error: dict,root: str):
+    """
+    Print an errors dictionary.
+
+    Parameters
+    ----------
+    error: dict
+        A dictionary where the keys are the error messages and the values are
+        the number of times the error happened.
+    root: str
+        The root name of the Python simulation
+    """
+
+    Log.log("Total errors reported for {}:\n".format(root))
+    for key in error.keys():
+        Log.log("  {:6d} -- {}".format(error[key], key))
 
     return
 
@@ -661,12 +669,14 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
             elif not c and SPLIT_CYCLES and RUN_SIMS:
                 print("Simulation has not converged, hence no spectral cycles will be run.")
                 print("Use -sc to override this.\n")
-                Simulation.error_summary(root, wd, True)
+                errors = Simulation.error_summary(root, wd, N_CORES)
+                print_errors(errors, root)
                 restore_backup_pf(root, wd)
                 continue
 
-        if rc == 0 or rc == 1:
-            Simulation.error_summary(root, wd, N_CORES, True)
+        if rc == 0 or rc == 1 or PRINT_ERRORS_ONLY:
+            errors = Simulation.error_summary(root, wd, N_CORES)
+            print_errors(errors, root)
             Log.log("")
         if rc > 1:
             continue
@@ -732,7 +742,7 @@ def main() -> None:
     Main control function of the script.
     """
 
-    outfname = "py_{}{:02d}{:02d}.txt".format(DATE.year, int(DATE.month), int(DATE.day))
+    outfname = "py_run_{}{:02d}{:02d}.txt".format(str(DATE.year)[-2:], int(DATE.month), int(DATE.day))
     Log.init_logfile(outfname)
 
     # Determine which routines to run for each simulation
