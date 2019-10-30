@@ -15,7 +15,7 @@ else:
 from consts import *
 import tde_util as tu
 
-SMOOTH = 15
+SMOOTH = 7
 VERBOSITY = False
 
 LINES = [
@@ -75,7 +75,9 @@ def plot_line_id(ax: plt.Axes) -> plt.Axes:
     return ax
 
 
-NORM = 6.652348e-15
+# NORM = 1.684635e-16
+# NORM = 2.1862745e-17
+NORM = 1.6126823e-16
 
 
 def normalise_flux(input_flux: np.ndarray):
@@ -162,57 +164,48 @@ def plot_uv_observations() -> None:
     iptf15af = tu.iptf15af_spec(SMOOTH, VERBOSITY)
     asassn14li = tu.asassn14li_spec(SMOOTH, VERBOSITY)
     iptf16fnl = tu.iptf16fnl_spec(SMOOTH, VERBOSITY)
+    iptf16fnl = iptf16fnl[5:, :]
     at2018zr = tu.at2018zr_spec(SMOOTH, VERBOSITY)
     lobal = tu.lobal_qso_spec(VERBOSITY)
+    nrich = tu.n_rich_qso_spec(VERBOSITY)
 
-    nspec = 5
-    spec_list = [lobal, 
+    nspec = 6
+    spec_list = [nrich,
+                 lobal,
                  iptf15af, 
                  asassn14li, 
                  iptf16fnl, 
                  at2018zr]
-    spec_names = ["Composite LoBALQSO",
+    spec_names = ["Nitrogen Rich QSO",
+                  "Composite LoBALQSO",
                   r"iPTF15af $\Delta t = $52 d" + "\n" + r"$T_{bb} = 43,300$K",
                   r"ASASSN14li $\Delta t = $60 d" + "\n" + r"$T_{bb} = 35,000$K",
                   r"iPTF16fnl $\Delta t = $51 d" + "\n" + r"$T_{bb} = 19,000$K",
                   r"AT2018zr $\Delta t = $59 d" + "\n" + r"$T_{bb} = 22,000$K"]
-    name_x = [0.8,
-              6.1,
-              100,
-              3470,
-              60000]
-    spec_z = [0,
-              0.07897,
-              0.02058,
-              0.0163,
-              0.071]
-    bb_temp = [0,
-               43300,
-               35000,
-               19000,
-               22000]
-    bb_radius = [0,
-                 1.35e14,
-                 1.35e14,
-                 1.1e14,
-                 4e14]
-    dl = np.array([0,
-                   358,
-                   90,
-                   67,
-                   337]) * 1e6 * PARSEC
+    name_x = [0.45, 30, 1100, 37000, 4e6, 3.5e8]
+    spec_z = [0, 0, 0.07897, 0.02058, 0.016328, 0.071]
+    bb_temp = [0, 0, 43300, 35000, 19000, 22000]
+    bb_radius = [0, 0, 1.35e14, 1.35e14, 1.1e14, 4e14]
+    dl = np.array([0, 0, 358, 90, 67, 337]) * 1e6 * PARSEC
+    offsets = [1, 0.8, 400, 1200, 5e5, 7e7]
 
     wmin = 1000
     wmax = 3000
-
-    offsets = [1, 100, 170, 2e4, 5e5]
 
     fig, ax = plt.subplots(1, 1, figsize=(9.5, 11))
     ax.set_xlim(wmin, wmax)
     for i in range(nspec):
         offset = offsets[i]
         wlength = spec_list[i][:, 0] / (1 + spec_z[i])
-        flux = SpectrumUtils.smooth_spectrum(spec_list[i][:, 1], SMOOTH)
+        if spec_z[i] == 0.071:
+            flux = SpectrumUtils.smooth_spectrum(spec_list[i][:, 1], 15)  # TODO: what the fuck?
+        elif spec_names[i] == "Nitrogen Rich QSO":
+            yy = 15
+            zz = len(spec_list[i][:, 0]) - 15
+            wlength = spec_list[i][yy:zz, 0]
+            flux = SpectrumUtils.smooth_spectrum(spec_list[i][yy:zz, 1], 15)
+        else:
+            flux = SpectrumUtils.smooth_spectrum(spec_list[i][:, 1], SMOOTH)
         flux = normalise_flux(flux)
         ax.semilogy(wlength, flux * offset, label=spec_names[i])
 
@@ -224,21 +217,22 @@ def plot_uv_observations() -> None:
             ax.semilogy(twl, bbfl * offset, linestyle="--", alpha=0.5, color="k")
         ax.text(2200, name_x[i], spec_names[i], fontsize=13)
 
-    ax.set_ylim(0.05, 4e6)
+    ax.set_ylim(0.05, 6e10)
     ax = plot_line_id(ax)
 
-    blue_vel = 5500 # km/s
+    blue_vel = 5500  # km/s
     blue_lines = [1550, 1400, 1240]
-    heights = [0.24, 0.26, 0.27]
+    heights = [0.34, 0.345, 0.349]
     labels = ["C IV", "Si IV", "N V"]
     for i in range(len(blue_lines)):
-        ax.axvline(blueshifted_wavelength(blue_lines[i], blue_vel), 0.23, heights[i], color="k")
-    ax.axhline(3.2, 0.108, 0.261, color="k")
+        ax.axvline(blueshifted_wavelength(blue_lines[i], blue_vel), 0.31, heights[i], color="k")
+    ax.axhline(262, 0.109, 0.261, color="k")
     for i in range(len(labels)):
-        ax.text(blueshifted_wavelength(blue_lines[i], blue_vel), 2.25, labels[i], ha="center", va="center", fontsize=11)
+        ax.text(blueshifted_wavelength(blue_lines[i], blue_vel), 160, labels[i], ha="center", va="center", fontsize=11)
+    ax.text(1550, 295, r"$\Delta V \approx $" + str(blue_vel) + " km/s", fontsize=11)
 
     ax.set_xlabel(r"Rest Wavelength [$\AA$]", fontsize=15)
-    ax.set_ylabel(r"Normalised Flux $F_{\lambda}$ + Offset", fontsize=15)
+    ax.set_ylabel(r"Log[Normalised Flux] $F_{\lambda}$ $\times$ Offset", fontsize=15)
     ax.tick_params(axis="x", labelsize=13)
     ax.tick_params(axis="y", labelsize=13)
 

@@ -612,7 +612,7 @@ def restore_backup_pf(root: str, wd: str):
     return
 
 
-def print_errors(error: dict,root: str):
+def print_errors(error: dict, root: str):
     """
     Print an errors dictionary.
 
@@ -680,14 +680,16 @@ def go(roots: List[str], use_mpi: bool, n_cores: int) -> None:
                 print("Simulation has not converged, hence no spectral cycles will be run.")
                 print("Use -sc to override this.\n")
                 errors = Simulation.error_summary(root, wd, N_CORES)
-                print_errors(errors, root)
+                if errors:
+                    print_errors(errors, root)
                 restore_backup_pf(root, wd)
                 continue
 
         if rc == 0 or rc == 1 or PRINT_ERRORS_ONLY:
             errors = Simulation.error_summary(root, wd, N_CORES)
-            print_errors(errors, root)
-            Log.log("")
+            if errors:
+                print_errors(errors, root)
+                Log.log("")
         if rc > 1:
             continue
 

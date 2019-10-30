@@ -273,6 +273,42 @@ def lobal_qso_spec(verbose: bool = False) -> np.array:
     return
 
 
+def n_rich_qso_spec(verbose: bool = False) -> np.array:
+    """
+    UV spectrum for the Nitrogen Rich Quasar SDSS J164148.20+223225.22.
+
+    Parameters
+    ----------
+    verbose             bool, optional
+                        Enable verbose logging
+    """
+
+    spec_dir = ""
+    sys = system()
+    if sys == "Linux":
+        spec_dir = "/home/saultyevil/"
+    elif sys == "Darwin":
+        spec_dir = "/Users/saultyevil/"
+    else:
+        print("py_util.n_rich_qso_spec: unknown system type {}".format(sys))
+        exit(1)
+    spec_dir += "PySims/tde/observed_spec/sdss_J164148.20+223225.22_n_rich_QSO.dat"
+    # spec_dir += "PySims/tde/observed_spec/nrichqso.dat"
+
+    if verbose:
+        print("Hostname: {}".format(gethostname()))
+        print("N Rich QSO spectra being read in from {}".format(spec_dir))
+
+    try:
+        return np.loadtxt(spec_dir)
+    except IOError:
+        print("py_util.n_rich_qso_spec: Unable to open the N Rich QSO spectrum from the following path {}. "
+              "Update the directories in the script".format(spec_dir))
+        exit(1)
+
+    return
+
+
 def get_tde_spec(name: str, plot: bool = False, verbose: bool = False):
     """
 

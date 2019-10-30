@@ -83,7 +83,7 @@ def plot_line_id(ax: plt.Axes) -> plt.Axes:
     return ax
 
 
-def plot_against_data(dfname: List[str], inclinations: List[str], name: str):
+def plot_against_data(dfname: List[str], disk: str, inclinations: List[str], name: str):
     """
 
     Parameters
@@ -91,6 +91,8 @@ def plot_against_data(dfname: List[str], inclinations: List[str], name: str):
     dfname: List[str]
         The file names of the models to plot - typically the solar and cno
         abundance models are given.
+    disk: str
+        The file names of the disk conts. to plot
     inclinations: List[str]
         The inclinations to plot - this should be the inclination for the BAL
         followed by the BEL model
@@ -99,7 +101,7 @@ def plot_against_data(dfname: List[str], inclinations: List[str], name: str):
         and clump.
     """
 
-    alpha = 0.7
+    alpha = 0.5
     wmin = 1000
     wmax = 3000
 
@@ -114,6 +116,7 @@ def plot_against_data(dfname: List[str], inclinations: List[str], name: str):
         dfname[i] = pdir + dfname[i]
     mspec = SpectrumUtils.read_spec(dfname[0])
     cnospec = SpectrumUtils.read_spec(dfname[1])
+    disk_spec = SpectrumUtils.read_spec(pdir + disk)
 
     fig, ax = plt.subplots(2, 1, figsize=(9.5, 11), sharex="col")
 
@@ -124,21 +127,26 @@ def plot_against_data(dfname: List[str], inclinations: List[str], name: str):
     cnospec_wl = cnospec["Lambda"].values.astype(float)
     cnospec_fl = cnospec[inclination].values.astype(float)
     cnospec_fl *= (100 * PARSEC) ** 2 / (350 * 1e6 * PARSEC) ** 2
+    disk_wl = disk_spec["Lambda"].values.astype(float)
+    disk_fl = disk_spec[inclination].values.astype(float)
+    disk_fl *= (100 * PARSEC) ** 2 / (350 * 1e6 * PARSEC) ** 2
 
     if name == "smooth":
-        ax[0].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="Solar Abundance")
-        ax[0].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), "--", label="CNO Abundance")
+        ax[0].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="Solar Abundance", zorder=4)
+        ax[0].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), "--", label="CNO Abundance",
+                       zorder=4)
     elif name == "clump":
-        ax[0].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="f = 1")
-        ax[0].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), "--", label="f = 0.1")
+        ax[0].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="f = 1", zorder=4)
+        ax[0].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), "--", label="f = 0.1", zorder=4)
 
+    # ax[0].semilogy(disk_wl, SpectrumUtils.smooth_spectrum(disk_fl, 15), "-.", label="Disk Continuum")
     ax[0].semilogy(iptf[:, 0] / (0.07897 + 1), SpectrumUtils.smooth_spectrum(iptf[:, 1], SMOOTH),
-                   label=r"iPTF15af $\Delta t = $52 d", alpha=alpha, zorder=2)
+                   "k", label=r"iPTF15af $\Delta t = $52 d", alpha=alpha, zorder=2)
 
     ax[0].set_xlim(wmin, wmax)
-    ax[0].set_ylim(5e-17, 2e-14)
+    ax[0].set_ylim(2e-17, 2e-14)
     ax[0] = plot_line_id(ax[0])
-    ax[0].text(0.68, 0.06, r"$i = $" + inclination + "$^{\circ}$", transform=ax[0].transAxes, fontsize=15)
+    ax[0].text(0.68, 0.06, r"$i = $" + inclination + r"$^{\circ}$", transform=ax[0].transAxes, fontsize=15)
     ax[0].legend(loc="lower right", fontsize=9)
 
     inclination = inclinations[1]
@@ -148,19 +156,24 @@ def plot_against_data(dfname: List[str], inclinations: List[str], name: str):
     cnospec_wl = cnospec["Lambda"].values.astype(float)
     cnospec_fl = cnospec[inclination].values.astype(float)
     cnospec_fl *= (100 * PARSEC) ** 2 / (90 * 1e6 * PARSEC) ** 2
+    disk_wl = disk_spec["Lambda"].values.astype(float)
+    disk_fl = disk_spec[inclination].values.astype(float)
+    disk_fl *= (100 * PARSEC) ** 2 / (90 * 1e6 * PARSEC) ** 2
 
     if name == "smooth":
-        ax[1].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="Solar Abundance")
-        ax[1].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), "--", label="CNO Abundance")
+        ax[1].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="Solar Abundance", zorder=4)
+        ax[1].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), "--", label="CNO Abundance",
+                       zorder=4)
     elif name == "clump":
-        ax[1].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="f = 1")
-        ax[1].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), "--", label="f = 0.1")
+        ax[1].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="f = 1", zorder=4)
+        ax[1].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), "--", label="f = 0.1", zorder=4)
 
+    # ax[1].semilogy(disk_wl, SpectrumUtils.smooth_spectrum(disk_fl, 15), "-.", label="Disk Continuum")
     ax[1].semilogy(assa[:, 0] / (0.02058 + 1), SpectrumUtils.smooth_spectrum(assa[:, 1], SMOOTH),
-                   label=r"ASASSN14li $\Delta t = $60 d", alpha=alpha, zorder=2)
+                   "k", label=r"ASASSN14li $\Delta t = $60 d", alpha=alpha, zorder=2)
 
     ax[1].set_xlim(wmin, wmax)
-    ax[1].set_ylim(9e-16, 2e-13)
+    ax[1].set_ylim(4e-16, 2e-13)
     ax[1] = plot_line_id(ax[1])
     ax[1].text(0.67, 0.06, r"$i = $" + inclination + "$^{\circ}$", transform=ax[1].transAxes, fontsize=15)
     ax[1].legend(loc="lower right", fontsize=9)
@@ -195,12 +208,14 @@ def main(argc: int, argv: List[str]):
 
     plot_against_data(["paper_models/smooth/cv/solar/tde_cv.spec",
                        "paper_models/smooth/cv/cno/tde_cv.spec"],
-                      ["60", "85"],
+                      "paper_models/disk_spectra/cv/tde_cv.spec",
+                      ["60", "75"],
                       "smooth")
 
-    plot_against_data(["paper_models/clump/1e-1/cv/solar/tde_cv.spec",
-                       "paper_models/clump/1e-1/cv/cno/tde_cv.spec"],
-                      ["60", "85"],
+    plot_against_data(["paper_models/smooth/cv/solar/tde_cv.spec",
+                       "paper_models/clump/1e-1/cv/solar/tde_cv.spec"],
+                      "paper_models/disk_spectra/cv/tde_cv.spec",
+                      ["60", "75"],
                       "clump")
 
     return

@@ -53,7 +53,7 @@ def create_grid(pf: str, parameter: str, grid: List[str]) -> List[str]:
 
     sl = 0
     for i, line in enumerate(pf):  # This iterates over the pf file path
-        if line == "/":
+        if line == "/":  # TODO: rfind exists u nonce
             sl = i  # This will find the index of the final /
     pl = pf.find(".pf")
     root = pf[sl:pl]  # Now we can extract just the root name from the file path
@@ -102,10 +102,10 @@ def run_grid() -> List[str]:
     """
 
     # This is the parameter which will be changed
-    root = "base.pf"
-    parameter = "Disk.mdot(msol/yr)"
+    root = "../tde_cv.pf"
+    parameter = "SV.acceleration_exponent"
 
-    tmp = [9e-2, 1e-1, 3e-1, 4e-1]
+    tmp = [0.7, 0.9, 1.1, 1.3]
     grid = []
     for i in range(len(tmp)):
         grid.append("{:.4e}".format(tmp[i]))
@@ -118,7 +118,10 @@ def run_grid() -> List[str]:
     print("Parameter: {}".format(parameter))
     print("Grid values: {}".format(grid))
 
+
     pfs = create_grid(root, parameter, grid)
+
+    print(pfs)
 
     return pfs
 

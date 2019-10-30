@@ -10,7 +10,7 @@ SMOOTH = 15
 VERBOSITY = False
 
 
-def plot_optical(mod_spec_path: str, opt_spec_path: str, obj_name: str, days: str):
+def plot_optical(mod_spec_path: str, opt_spec_path: str, obj_name: str, days: str, z: float):
     """
     Parameters
     ----------
@@ -44,6 +44,8 @@ def plot_optical(mod_spec_path: str, opt_spec_path: str, obj_name: str, days: st
 
     if obj_name.lower() == "at2018zr":
         ospec[:, 1] *= 1e-15
+    else:
+        ospec[:, 0] /= (z + 1)
 
     ax[0].semilogy(ospec[:, 0], SpectrumUtils.smooth_spectrum(ospec[:, 1], 3),
                    label=obj_name + r"$\Delta t$ = " + days)
@@ -82,6 +84,12 @@ def plot_optical(mod_spec_path: str, opt_spec_path: str, obj_name: str, days: st
 
 if __name__ == "__main__":
     plot_optical("/home/saultyevil/PySims/tde/paper_models/He_II/cv_star_model_original/tde.spec",
+                 # "/home/saultyevil/PySims/tde/observed_spec/iPTF16fnl_optical_55d.dat",
                  "/home/saultyevil/PySims/tde/observed_spec/at2018zr_50d_optical.dat",
+                 # "iPTF16fnl",
                  "AT2018zr",
-                 "50")
+                 # "55",
+                 "50",
+                 # 0.062,
+                 0.404
+                 )

@@ -61,6 +61,7 @@ SMOOTH = 5
 DEFAULT_DIST = 100 * PARSEC
 OBSERVE_DIST = 100 * PARSEC
 MIN_FLUX = 1e-20
+PLOT_OBS_LOS = False
 ROOT = False
 
 
@@ -86,6 +87,7 @@ def get_script_arguments() -> str:
     global OBSERVE_DIST
     global DIMS
     global ROOT
+    global PLOT_OBS_LOS
 
     p = argparse.ArgumentParser(description="")
     p.add_argument("output_name", type=str, help="The base name for the output")
@@ -95,6 +97,7 @@ def get_script_arguments() -> str:
     p.add_argument("-filetype", type=str, action="store", help="The file format of the output")
     p.add_argument("-smooth", type=float, action="store", help="The amount of smoothing of the spectra")
     p.add_argument("-dist", type=float, action="store", help="Distance of the observer")
+    p.add_argument("-los", action="store_true", help="Plot the observer line of sights in the simulation")
     p.add_argument("-p", "--polar", action="store_true", help="Project the wind on polar axes")
     p.add_argument("--dim_1d", action="store_true", help="Plot 1D data")
     p.add_argument("-v", "--verbose", action="store_true", help="Increase output to screen")
@@ -128,6 +131,8 @@ def get_script_arguments() -> str:
         DIMS = "1d"
     if args.root:
         ROOT = True
+    if args.los:
+        PLOT_OBS_LOS = True
 
     return args.output_name
 
@@ -179,8 +184,30 @@ def all_inclinations(spec_names: List[str], delim: str = None) -> np.array:
     return inclinations
 
 
+def sightline_coords(x: np.ndarray, theta: float):
+    """
+    Return the vertical coordinates for a sightline given the x coordinates
+    and the inclination of the sightline.
+
+    Parameters
+    ----------
+    x: np.ndarray[float]
+        The x-coordinates of the sightline
+    theta: float
+        The opening angle of the sightline
+
+    Returns
+    -------
+    z: np.ndarray[float]
+        The z-coordinates of the sightline
+    """
+
+    return x * np.tan(np.pi / 2 - theta)
+
+
 def rectilinear_wind_plot(fig: plt.Figure, ax: plt.Axes, x: np.ndarray, z: np.ndarray, w: np.ndarray, i: int, j: int,
-                          wvar: str, wvar_t: str, loglog_scale: bool = True) -> Tuple[plt.Figure, plt.axes]:
+                          wvar: str, wvar_t: str, loglog_scale: bool = True, inclination_angles: List[float] = None) \
+                          -> Tuple[plt.Figure, plt.axes]:
     """
     Create a wind plot in rectilinear coordinates.
 
@@ -209,6 +236,9 @@ def rectilinear_wind_plot(fig: plt.Figure, ax: plt.Axes, x: np.ndarray, z: np.nd
         The type of the wind variable being plotted in the panel
     loglog_scale: bool, optional
         If this is True then the figure will be created on a loglog scale
+    inclination_angles: List[float], optional
+        If this is provided, line of sights for each inclination angle
+        will be overplotted the wind
 
     Returns
     -------
@@ -219,7 +249,7 @@ def rectilinear_wind_plot(fig: plt.Figure, ax: plt.Axes, x: np.ndarray, z: np.nd
     """
 
     with np.errstate(divide="ignore"):
-        if wvar == "converge":
+        if wvar == "converge" or wvar == "converging":
             im = ax[i, j].pcolor(x, z, w)
         elif wvar_t == "ion":
             im = ax[i, j].pcolor(x, z, np.log10(w), vmin=-5, vmax=0)
@@ -229,11 +259,18 @@ def rectilinear_wind_plot(fig: plt.Figure, ax: plt.Axes, x: np.ndarray, z: np.nd
             print("{}:{}: type {} not recognised".format(__file__, rectilinear_wind_plot.__name__, wvar_t))
             return fig, ax
 
+    if inclination_angles:
+        xsight = np.linspace(0, np.max(x), int(1e5))
+        for inc in inclination_angles:
+            zsight = sightline_coords(xsight, np.deg2rad(inc))
+            ax[i, j].plot(xsight, zsight, label="i = {}".format(inc) + r"$^{\circ}$ sightline")
+        ax[i, j].legend()
+
     fig.colorbar(im, ax=ax[i, j])
     ax[i, j].set_xlabel("x")
     ax[i, j].set_ylabel("z")
-    if wvar == "converge":
-        ax[i, j].set_title(r"convergence")
+    if wvar == "converge" or wvar == "converging":
+        ax[i, j].set_title(wvar)
     else:
         ax[i, j].set_title(r"$\log_{10}$(" + wvar + ")")
 
@@ -248,7 +285,7 @@ def rectilinear_wind_plot(fig: plt.Figure, ax: plt.Axes, x: np.ndarray, z: np.nd
 
 
 def polar_wind_plot(r: np.ndarray, theta: np.ndarray, w: np.ndarray, index: int, wvar: str, wvar_t: str,
-                    subplot_dims: Tuple[int, int]) -> None:
+                    subplot_dims: Tuple[int, int], inclination_angles: List[float] = None) -> None:
     """
     Create a subplot panel for a polar plot. By itself, this can actually make
     a single panel. However, the intended use of this function is to be
@@ -259,7 +296,7 @@ def polar_wind_plot(r: np.ndarray, theta: np.ndarray, w: np.ndarray, index: int,
     r: np.array[float]
         The r coordinate points for the wind variable
     theta: np.array[float]
-        The theta coordinate points for the wind vairbale
+        The theta coordinate points for the wind variable
     w: np.ndarray[float]
         The wind variable to be plotted - this should be a 2d masked array
     index: int
@@ -271,9 +308,11 @@ def polar_wind_plot(r: np.ndarray, theta: np.ndarray, w: np.ndarray, index: int,
         The type of the wind variable being plotted in the panel
     subplot_dims: Tuple[int, int]
         The number of rows and columns of subplot panels, (nrows, ncols)
+    inclination_angles: List[float], optional
+        If this is provided, line of sights for each inclination angle
+        will be overplotted the wind
     """
 
-    theta = np.deg2rad(theta)
     ax = plt.subplot(subplot_dims[0], subplot_dims[1], index + 1, projection="polar")
 
     with np.errstate(divide="ignore"):
@@ -284,9 +323,22 @@ def polar_wind_plot(r: np.ndarray, theta: np.ndarray, w: np.ndarray, index: int,
         elif wvar_t == "ion":
             im = ax.pcolor(theta, np.log10(r), np.log10(w), vmin=-5, vmax=0)
 
+    if inclination_angles:
+        xsight = np.linspace(0, np.max(r), int(1e5))
+        for inc in inclination_angles:
+            zsight = sightline_coords(xsight, np.deg2rad(90 - inc))
+            rsight = np.sqrt(xsight ** 2 + zsight ** 2)
+            thetasight = np.arctan2(zsight, xsight)
+            ax.plot(thetasight, np.log10(rsight), label="i = {}".format(inc) + r"$^{\circ}$ sightline")
+        # ax.legend()
+
     plt.colorbar(im, ax=ax)
+    ax.set_theta_zero_location("N")
+    ax.set_theta_direction(-1)
     ax.set_thetamin(0)
     ax.set_thetamax(90)
+    ax.set_rlabel_position(90)
+    ax.set_ylabel("Log[R]")
     rmin = r[1][0]
     rmax = r[-2][0]
     ax.set_rlim(np.log10(rmin), np.log10(rmax))
@@ -302,7 +354,8 @@ def polar_wind_plot(r: np.ndarray, theta: np.ndarray, w: np.ndarray, index: int,
 def plot_wind(root: str, output_name: str, wvars: List[str], wvar_types: List[str], path: str = "./",
               ndims: str = "2d", projection: str = "rectilinear", subplot_dims: Tuple[int, int] = None,
               fig_size: Tuple[int, int] = (10, 15), plot_title: str = None, loglog_scale: bool = True,
-              filetype: str = "png", show_plot: bool = False, verbose: bool = False) -> None:
+              filetype: str = "png", show_plot: bool = False, verbose: bool = False,
+              input_file: str = None, inclination_angles: bool = None) -> None:
     """
     Creates a 2D figure with subplot panels for each provided wind variable
     given in the wvars list; for each wvar, there should be a provided variable
@@ -352,6 +405,9 @@ def plot_wind(root: str, output_name: str, wvars: List[str], wvar_types: List[st
         Show the figure after saving the figure to disk
     verbose: bool, optional
         Enable verbose logging
+    input_file: str
+        If a specific input file is required to use, then use this file path
+        instead.
     """
 
     if ndims.lower() != "2d":
@@ -389,16 +445,16 @@ def plot_wind(root: str, output_name: str, wvars: List[str], wvar_types: List[st
             if verbose:
                 print("\tPlotting {} of type {}".format(wvar, wvar_t))
             try:
-                x, z, w = WindUtils.extract_wind_var(root, wvar, wvar_t, path, projection)
-            except Exception as e:
-                print(e)
-                print("Exception occured: Unable to plot {}".format(wvar))
+                x, z, w = WindUtils.extract_wind_var(root, wvar, wvar_t, path, projection, input_file=input_file)
+            except Exception:
+                print("Exception occured: Unable to plot {} for some god forsaken fucking cunting bastard reason".format(wvar))
+                index += 1
                 continue
 
             if projection == "rectilinear":
-                fig, ax = rectilinear_wind_plot(fig, ax, x, z, w, i, j, wvar, wvar_t, loglog_scale)
+                fig, ax = rectilinear_wind_plot(fig, ax, x, z, w, i, j, wvar, wvar_t, loglog_scale, inclination_angles)
             elif projection == "polar":
-                polar_wind_plot(x, z, w, index, wvar, wvar_t, subplot_dims)
+                polar_wind_plot(x, z, w, index, wvar, wvar_t, subplot_dims, inclination_angles=inclination_angles)
 
             index += 1
 
@@ -799,13 +855,21 @@ def main() -> None:
     # IF THIS IS CALLED IN A DIRECTORY WITH A SINGLE SIMULATION
     if len(input_files) == 1:
         root, path = Utils.split_root_directory(input_files[0])
+        if ROOT:
+            root = output_name
+
+        if PLOT_OBS_LOS:
+            spec_path = "{}/{}.spec".format(path, root)
+            inclination_angles = SpectrumUtils.spec_inclinations(spec_path)
+        else:
+            inclination_angles = None
 
         # CREATE SPECTRUM COMPONENTS FILE
         if PLOTS == "spec_comps" or PLOTS == "all":
             print("\nPlotting spectrum components")
             input_files[0] = input_files[0].replace(".pf", ".spec")
             plot_spec_comps(input_files[0], output_name, semilogy_scale=PLOT_LOG, smooth=SMOOTH, filetype=FILETYPE,
-                            show_plot=SHOW_PLOT, verbose=VERBOSITY)
+                            show_plot=SHOW_PLOT, verbose=VERBOSITY, wmin=WMIN, wmax=WMAX)
 
         # CREATE OPTICAL DEPTH SPECTRUM
         if PLOTS == "tau_spec" or PLOTS == "all":
@@ -823,10 +887,10 @@ def main() -> None:
         # CREATE WIND VARIABLE PLOT
         if PLOTS == "wind" or PLOTS == "all":
             print("\nPlotting wind quantities")
-            vars = ["t_e", "t_r", "ne", "rho", "w", "converge", "ip", "ntot"]
+            vars = ["t_e", "t_r", "ne", "rho", "c4", "converge", "ip", "ntot"]
             var_types = ["wind"] * len(vars)
             plot_wind(root, output_name + "_wind", vars, var_types, path, projection=projection, filetype=FILETYPE,
-                      ndims=DIMS, show_plot=SHOW_PLOT, verbose=True)
+                      ndims=DIMS, show_plot=SHOW_PLOT, verbose=True, inclination_angles=inclination_angles)
 
         # CREATE ION PLOTS
         if PLOTS == "ions" or PLOTS == "all":
@@ -857,7 +921,8 @@ def main() -> None:
                 name = "_" + inames[i] + "_ions"
                 var_types = ["ion"] * len(vars)
                 plot_wind(root, output_name + name, vars, var_types, path, projection=projection, filetype=FILETYPE,
-                          ndims=DIMS, verbose=VERBOSITY, show_plot=SHOW_PLOT, subplot_dims=dims[i], fig_size=size[i])
+                          ndims=DIMS, verbose=VERBOSITY, show_plot=SHOW_PLOT, subplot_dims=dims[i], fig_size=size[i],
+                          inclination_angles=inclination_angles)
 
         # REMOVE DATA SYMBOLIC LINK TO KEEP THINGS CLEAN FOR DROPBOX
         Utils.remove_data_sym_links(path, VERBOSITY)

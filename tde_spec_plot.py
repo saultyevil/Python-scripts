@@ -16,6 +16,7 @@ from consts import *
 from typing import Tuple
 from matplotlib import pyplot as plt
 from PyPython import SpectrumUtils, Utils
+from PyPython import Quotes
 
 SMOOTH = 5
 WMIN = 1000
@@ -25,13 +26,6 @@ DEFAULT_DIST = 100 * PARSEC
 FTYPE = "png"
 PLOT_LINE_IDS = True
 VERBOSITY = False
-
-copypasta = \
-    """I have put you on a permanent ignore, public and private. I have found you disturbing, rude and generally
-not worth talking to. According to the channels you hang on, it strengtens  the effect of wanting to put
-you on ignore because of my lack of interest in you as a person. This message is not meant to be rude to
-you, just to inform you that i won't see anything of what you type from now on.
-"""
 
 
 def get_tde_spectrum() -> Tuple[np.array, float, str]:
@@ -254,24 +248,31 @@ def spec_plot_comparison(name: str, inc: str = None):
     nrows, ncols = Utils.subplot_dims(n_specs)
     fig, ax = plt.subplots(nrows, ncols, figsize=size, squeeze=False, sharex="col")
 
+    cspec = SpectrumUtils.read_spec("/home/saultyevil/Dropbox/DiskWinds/PySims/tde/paper_models/clump/1e-1/cv/solar/tde_cv.spec")
+
     index = 0
     for i in range(nrows):
         for j in range(ncols):
+            if index > n_specs - 1:
+                break
             if i == nrows - 1:
                 ax[i, j].set_xlabel(r"Wavelength ($\AA$)")
             if j == 0:
                 ax[i, j].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)")
-            if index > n_specs - 1:
-                break
 
             if TDE_OBJ and TDE_OBJ != "None".lower():
                 ax[i, j].semilogy(tde[:, 0], tde[:, 1], label=TDE_OBJ)
+
 
             # If a specific inclination angle has been provided, then use this
             if inc:
                 ii = inc
             else:
                 ii = inclination[index]
+
+            # cflux = SpectrumUtils.smooth_spectrum(cspec[ii].values.astype(float), SMOOTH)
+            # cflux *= DEFAULT_DIST ** 2 / observe_dist ** 2
+            # ax[i, j].semilogy(cspec["Lambda"].values.astype(float), cflux, "k", label="original model")
 
             ymin = +1e99
             ymax = -1e99
@@ -292,15 +293,15 @@ def spec_plot_comparison(name: str, inc: str = None):
                 # Plot the spectrum for a model
                 ax[i, j].semilogy(wavelength, flux, label=r"{}/{}: $i$: {}".format(dir, root, ii) + r"$^{\circ}$")
 
-                tmax, tmin = SpectrumUtils.ylims(wavelength, flux, WMIN, WMAX, scale=13)
-                if tmax == 0 or tmin == 0:
-                    ymin = None
-                    ymax = None
-                else:
-                    if tmax > ymax:
-                        ymax = tmax
-                    if tmin < ymin:
-                        ymin = tmin
+                # tmax, tmin = SpectrumUtils.ylims(wavelength, flux, WMIN, WMAX, scale=13)
+                # if tmax == 0 or tmax is None or tmin == 0 or tmin is None:
+                #     ymin = None
+                #     ymax = None
+                # else:
+                #     if tmax > ymax:
+                #         ymax = tmax
+                #     if tmin < ymin:
+                #         ymin = tmin
 
             # Finishing touches to plot
             ax[i, j].set_xlim(WMIN, WMAX)
@@ -318,7 +319,7 @@ def spec_plot_comparison(name: str, inc: str = None):
     fname = "{}_comparison".format(name)
     if inc:
         fname += "_i{}".format(inc)
-    plt.savefig("{}:{}".format(fname, FTYPE))
+    plt.savefig("{}.{}".format(fname, FTYPE))
     plt.close()
 
     return
@@ -369,6 +370,9 @@ def main() -> None:
         PLOT_LINE_IDS = False
 
     print("--------------------------\n")
+
+    Quotes.random_quote()
+    print()
 
     if args.inclination and not args.comparison:
         print("Plotting {} spectrum for inclination {}".format(root, args.inclination))

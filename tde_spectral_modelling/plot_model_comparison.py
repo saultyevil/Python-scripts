@@ -12,7 +12,6 @@ Usage: [python] plot_model_comparison.py [wmin] [wmax]
 Note that wmin and wmax have to be both provided at the same time.
 """
 
-import sys
 from sys import exit
 from platform import system
 from sys import argv
@@ -21,70 +20,8 @@ from typing import List, Tuple, Union
 import numpy as np
 from PyPython import SpectrumUtils, Utils, WindUtils
 
-SMOOTH = 10
+SMOOTH = 5
 VERBOSITY = False
-
-LINES = [
-    # ["O VI", 0],
-    ["P V", 1118],
-    # ["N III]", 0],
-    [r"Ly$\alpha$/N V", 1216],
-    ["", 1240],
-    ["O V/Si IV", 1371],
-    ["", 1400],
-    # ["N IV]", 1489],
-    ["C IV",  1549],
-    ["He II", 1640],
-    # ["O III]", 0],
-    # ["N III]", 1750],
-    # ["C III]", 1908],
-    # ["Fe II", 0],
-    # ["Fe II / CII]", 0],
-    # ["Fe II", 0],
-    # ["Fe II", 0],
-    # ["Mg II", 2798]
-]
-
-
-def plot_line_id(ax: plt.Axes, labels: bool) -> plt.Axes:
-    """
-    Plot labels and vertical lines to indicate important atomic transitions.
-
-    Parameters
-    ----------
-    ax: plt.Axes
-        The Axes object to add line ID labels to.
-    xlims: Tuple[float, float]
-        The x coordinate limits for the figure. Line labels outside of this
-        range will not be added to the plot.
-
-    Returns
-    -------
-    ax: plt.Axes
-        The input Axes object with additional line IDs.
-    """
-
-    xlims = ax.get_xlim()
-    nlines = len(LINES)
-
-    for i in range(nlines):
-        lab = LINES[i][0]
-        x = LINES[i][1]
-        if x < xlims[0]:
-            continue
-        elif x > xlims[1]:
-            continue
-
-        ax.axvline(x, ymax=1, linestyle="--", linewidth=0.45, color="k")
-
-        if labels is False:
-            continue
-
-        x = x - 25
-        xnorm = (x - xlims[0]) / (xlims[1] - xlims[0])
-        ax.text(xnorm, 0.92, lab, ha="center", va="center", rotation="vertical", transform=ax.transAxes, fontsize=10)
-
-    return ax
 
 
 def sightline_coords(x: np.ndarray, theta: float):
@@ -160,22 +97,22 @@ def model_comparison(direcs: List[str], disk_specs: List[str] = None, extrafname
         modelspecs.append(SpectrumUtils.read_spec(direcs[i]))
 
     ncols = 3
-    nrows = 3
+    nrows = 4
 
     if figure:
         fig, ax = figure[0], figure[1]
         lstyle = "--"
     else:
-        fig, ax = plt.subplots(nrows, ncols, figsize=(9.5, 11), sharex="col", sharey="row")
+        fig, ax = plt.subplots(nrows, ncols, figsize=(11, 14.5), sharex="col", sharey="row")
         lstyle = "-"
 
     #       CV    AGN   Spherical
-    incl = ["30", "30", "30",
+    incl = ["10", "10", "10",
+            "30", "30", "30",
             "60", "60", "60",
             "75", "75", "75"]
     iidx = 0
-
-    ylims = [(2e-3, 0.5), (0.8e-3, 0.2), (1e-4, 0.1)]
+    ylims = [(2e-3, 1), (2e-3, 0.8), (0.8e-3, 0.5), (1e-4, 0.2)]
 
     for i in range(nrows):
         for j in range(ncols):
@@ -185,44 +122,43 @@ def model_comparison(direcs: List[str], disk_specs: List[str] = None, extrafname
                 iidx += 1
             except KeyError:
                 print("Inclination {} w/ iidx {} not found for model with x,y indices {},{}: {}".format(incl[iidx], iidx, i, j, direcs[j]))
+                print("Current headings: ", modelspecs[j].columns.values)
                 iidx += 1
                 continue
-            ax[i, j].semilogy(wl, SpectrumUtils.smooth_spectrum(fl, SMOOTH), lstyle, label=label)
+            ax[i, j].semilogy(wl, SpectrumUtils.smooth_spectrum(fl, SMOOTH), lstyle, label=label, zorder=3)
             ax[i, j].set_xlim(wmin, wmax)
             ax[i, j].set_ylim(ylims[i])
-            # if i != 0:
-            #     labels = False
-            # else:
-            #     labels = True
-            # ax[i, j] = plot_line_id(ax[i, j], labels)
 
     if disk_specs and not return_figure:
         dspecs = []
         for i in range(len(disk_specs)):
             dspecs.append(SpectrumUtils.read_spec(pdir + disk_specs[i]))
+        iidx = 0
         for i in range(nrows):
             for j in range(ncols):
                 dwl = dspecs[j]["Lambda"].values.astype(float)
                 try:
-                    dfl = dspecs[j][incl[iidx - 1]].values.astype(float)
+                    dfl = dspecs[j][incl[iidx]].values.astype(float)
                 except KeyError:
-                    print("Unable to find inclination {} in disk spectrum".format(incl[iidx]))
+                    print("Unable to find inclination {} in disk spectrum {}".format(incl[iidx], disk_specs[j]))
+                    iidx += 1
                     continue
-                ax[i, j].semilogy(dwl, SpectrumUtils.smooth_spectrum(dfl, SMOOTH), alpha=0.5, zorder=2,
+                ax[i, j].semilogy(dwl, SpectrumUtils.smooth_spectrum(dfl, 15), "-.", alpha=0.5, zorder=2,
                                   label="Disk Continuum")
+                iidx += 1
 
-    mnames = ["Conical Wind Model", "Equatorial Wind Model", "Spherical Wind Model"]
+    mnames = ["Polar Wind Model", "Equatorial Wind Model", "Spherical Wind Model"]
     for i in range(ncols):
         ax[0, i].text(0.5, 1.1, mnames[i], va="center", ha="center", rotation="horizontal", fontsize=13,
                       transform=ax[0, i].transAxes)
         ax[-1, i].tick_params(axis="x", rotation=30, labelsize=12)
 
-    incls = ["30", "60", "75"]
+    incls = ["10", "30", "60", "75"]
     for i in range(nrows):
         ax[i, 0].tick_params(axis="y", labelsize=12)
         tstr = r"$i = $" + incls[i] + r"$^{\circ}$"
         ax[i, -1].text(0.85, 0.93, tstr, ha="center", va="center", rotation="horizontal", fontsize=12,
-                    transform=ax[i, j].transAxes)
+                    transform=ax[i, -1].transAxes)
 
     if figure:
         ax[-1, 0].legend(loc="lower center")
@@ -240,7 +176,7 @@ def model_comparison(direcs: List[str], disk_specs: List[str] = None, extrafname
 
     if not return_figure:
         plt.savefig(fname)
-        plt.show()
+        plt.show(block=False)
     else:
         return fig, ax
 
@@ -264,9 +200,9 @@ def wind_geos(direcs) -> Union[plt.Figure, list]:
         A list containing plt.Axes for each panel of the figure
     """
 
-    nplots = 6
-    incls = ["30", "60", "75"]
-    lstyle = ["k--", "k-.", "k:"]
+    nplots = 5
+    incls = ["10", "30", "60", "75"]
+    lstyle = ["k-", "k--", "k-.", "k:"]
 
     if system() == "Darwin":
         pdir = "/Users/saultyevil/PySims/tde/"
@@ -287,7 +223,6 @@ def wind_geos(direcs) -> Union[plt.Figure, list]:
     ax3 = plt.subplot(2, 3, 3, projection="polar")
     ax4 = plt.subplot(2, 3, 4)
     ax5 = plt.subplot(2, 3, 5)
-    # ax6 = plt.subplot(2, 3, 6, projection="polar")
     ax = [ax1, ax2, ax3, ax4, ax5]
 
     for i in range(nplots):
@@ -298,33 +233,31 @@ def wind_geos(direcs) -> Union[plt.Figure, list]:
                 im = ax[i].pcolor(np.log10(wx), np.log10(wz), ww)
                 ax[i].set_xlim(np.log10(wx[1, 1]), np.log10(wx[-1, -1]))
                 ax[i].set_ylim(np.log10(wz[1, 1]), np.log10(wz[-1, -1]))
-                ax[i].set_xlabel("Log[x]")
-                ax[i].set_ylabel("Log[z]")
+                ax[i].set_xlabel("Log[x] [cm]")
+                ax[i].set_ylabel("Log[z] [cm]")
             else:
                 ax[i].set_theta_zero_location("N")
                 ax[i].set_theta_direction(-1)
-                im = ax[i].pcolor(np.deg2rad(wz), np.log10(wx), ww)
+                im = ax[i].pcolor(wz, np.log10(wx), ww)
                 ax[i].set_thetamin(0)
                 ax[i].set_thetamax(90)
                 ax[i].set_rlim(np.log10(wx[1][0]), np.log10(wx[-2][0]))
                 ax[i].set_xticklabels([])
-                ax[i].set_ylabel("Log[R]")
+                ax[i].set_ylabel("Log[R] [cm]")
                 ax[i].set_rlabel_position(90)
-
             plt.colorbar(im, ax=ax[i])
-
             for j in range(len(incls)):
                 if coords[i] != "polar":
                     xsight = np.linspace(0, np.max(wx), 1e5)
                     zsight = sightline_coords(xsight, np.deg2rad(float(incls[j])))
                     ax[i].plot(np.log10(xsight), np.log10(zsight), lstyle[j],
-                               label=incls[j] + r"$^{\circ}$ line of sight")
+                               label=incls[j] + r"$^{\circ}$ sightline")
                 else:
                     xsight = np.linspace(0, 1e17, 1e5)
                     zsight = sightline_coords(xsight, np.deg2rad(90 - float(incls[j])))
                     rsight = np.sqrt(xsight ** 2 + zsight ** 2)
                     thetasight = np.arctan(zsight / xsight)
-                    ax[i].plot(thetasight, np.log10(rsight), lstyle[j], label=incls[j] + r"$^{\circ}$ line of sight")
+                    ax[i].plot(thetasight, np.log10(rsight), lstyle[j], label=incls[j] + r"$^{\circ}$ sightline")
         # Lin-Lin plots
         else:
             ii = i - 3
@@ -333,45 +266,28 @@ def wind_geos(direcs) -> Union[plt.Figure, list]:
                 im = ax[i].pcolor(wx, wz, ww)
                 ax[i].set_xlim(wx[1, 1], 5.5e17)
                 ax[i].set_ylim(wz[1, 1], 5.5e17)
-                ax[i].set_xlabel("x")
-                ax[i].set_ylabel("z")
+                ax[i].set_xlabel("x [cm]")
+                ax[i].set_ylabel("z [cm]")
             else:
                 continue
-                # ax[i].set_theta_zero_location("N")
-                # ax[i].set_theta_direction(-1)
-                # im = ax[i].pcolor(np.deg2rad(wz), wx, ww)
-                # ax[i].set_thetamin(0)
-                # ax[i].set_thetamax(90)
-                # ax[i].set_xticklabels([])
-                # ax[i].set_ylabel("R")
-                # ax[i].set_rlabel_position(90)
-                # ax[i].set_rlim(1e13, 1e17)
-
             plt.colorbar(im, ax=ax[i])
-
             for j in range(len(incls)):
                 if coords[ii] != "polar":
                     xsight = np.linspace(0, np.max(wx), 1e5)
                     zsight = sightline_coords(xsight, np.deg2rad(float(incls[j])))
-                    ax[i].plot(xsight, zsight, lstyle[j], label=incls[j] + r"$^{\circ}$ line of sight")
-                # else:
-                #     xsight = np.linspace(0, 1e17, 1e5)
-                #     zsight = sightline_coords(xsight, np.deg2rad(90 - float(incls[j])))
-                #     rsight = np.sqrt(xsight ** 2 + zsight ** 2)
-                #     thetasight = np.arctan(zsight / xsight)
-                #     ax[i].plot(thetasight, rsight, lstyle[j], label=incls[j] + r"$^{\circ}$ line of sight")
+                    ax[i].plot(xsight, zsight, lstyle[j], label=incls[j] + r"$^{\circ}$ sightline")
 
-    ax[0].legend()
+    ax[0].legend(loc="lower right")
 
-    mnames = ["Conical Wind Model", "Equatorial Wind Model", "Spherical Wind Model"]
-    for i in range(nplots - 3):
+    mnames = ["Polar Wind Model", "Equatorial Wind Model", "Spherical Wind Model"]
+    for i in range(3):
         ax[i].text(0.5, 1.1, mnames[i], va="center", ha="center", rotation="horizontal", fontsize=13,
                    transform=ax[i].transAxes)
 
     fig.tight_layout(rect=[0.03, 0.03, 0.97, 0.97])
     
     plt.savefig("tde_model_comparison_wind_geo.png")
-    plt.show()
+    plt.show(block=True)
 
     return fig, ax
 
@@ -422,13 +338,23 @@ def main(argc: int, argv: List[str]) -> None:
                                label="Solar Abundance", return_figure=True)
     model_comparison(cno_smooth.copy(), disk, "_solar_cno_smooth_abundances", wmin, wmax, return_figure=False,
                      figure=(fig, ax), label="CNO Processed Abundance\nHe = 2 x Solar\nC = 0.5 x Solar\nN = 7 x Solar")
-
+    
     solar_clump = ["paper_models/clump/1e-1/cv/solar/tde_cv.spec",
-                    "paper_models/clump/1e-1/agn/solar/tde_agn.spec",
-                    "paper_models/clump/1e-1/spherical/solar/tde_spherical.spec"]
+                   "paper_models/clump/1e-1/agn/solar/tde_agn.spec",
+                   "paper_models/clump/1e-1/spherical/solar/tde_spherical.spec"]
 
+    cno_clump = ["paper_models/clump/1e-1/cv/cno/tde_cv.spec",
+                 "paper_models/clump/1e-1/agn/cno/tde_agn.spec",
+                 "paper_models/clump/1e-1/spherical/cno/tde_spherical.spec"]
+    
     fig, ax = model_comparison(solar_smooth.copy(), disk, "_solar_clump", wmin, wmax, label="f = 1", return_figure=True)
     model_comparison(solar_clump.copy(), disk, "_solar_clump", wmin, wmax, label="f = 0.1", return_figure=False,
+                     figure=(fig, ax))
+
+    fig, ax = model_comparison(solar_clump.copy(), disk, "_solar_cno_clump", wmin, wmax,
+                               label="Solar Abundance: f = 0.1", return_figure=True)
+    model_comparison(cno_clump.copy(), disk, "_solar_cno_clump", wmin, wmax,
+                     label="CNO Processed Abundance: f = 0.1", return_figure=False,
                      figure=(fig, ax))
 
     wind_geos(solar_smooth.copy())

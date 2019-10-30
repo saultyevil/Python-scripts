@@ -204,6 +204,7 @@ def plot_power_law():
             vl[i] = wind.poloidal_velocity(l[i], r0)
         vinf = wind.vinf * wind.vesc(r0)
         plt.plot(l / wind.Rv, vl / vinf, label=r"$\alpha$ = {}".format(al))
+    print("vinf = {:.3f} c".format(vinf / C))
 
     plt.xlabel(r"$l$/$R_{v}$", fontsize=15)
     plt.ylabel(r"$v_{l}$/$v_{\infty}$", fontsize=15)

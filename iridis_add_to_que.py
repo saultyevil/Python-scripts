@@ -122,7 +122,7 @@ def main(argc: int, argv: List[str]) -> None:
     """
 
     slurmf = find_slurm_files()
-    print("The following .slurm files will be added to the queue:")
+    print("The following .slurm files will be added to the queue:\n")
     for i in range(len(slurmf)):
         print("\t{}".format(slurmf[i]))
     print("")

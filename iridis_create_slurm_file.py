@@ -64,8 +64,8 @@ export PYTHON="$HOME/python"
 export PYTHON_BIN="$HOME/python/bin"
 cd $DIR
 $PYTHON_BIN/Setup_Py_Dir
-mpirun -np $N_TASKS $PYTHON_BIN/$PY_VER $PY_FLAGS $ROOT >> {}_out.txt
-$HOME/Scripts/py_check_run.py {}""".format(ncores, thours, ncores, vers, thours * 3600 - 60, flags, root, name, root)
+mpirun -np $N_TASKS $PYTHON_BIN/$PY_VER $PY_FLAGS $ROOT >> {}_out.txt""".format(ncores, thours, ncores, vers, 
+                                                                                thours * 3600 - 60, flags, root, name)
 
     fname = name + ".slurm"
     with open(fname, "w") as f:
