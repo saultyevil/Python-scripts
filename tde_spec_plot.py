@@ -372,7 +372,6 @@ def main() -> None:
     print("--------------------------\n")
 
     Quotes.random_quote()
-    print()
 
     if args.inclination and not args.comparison:
         print("Plotting {} spectrum for inclination {}".format(root, args.inclination))

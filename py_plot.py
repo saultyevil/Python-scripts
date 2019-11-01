@@ -14,29 +14,6 @@ will be plotted.
 You do not have to include the Python root name as an argument for this script,
 as it uses the Unix find command to search for .spec files recursively to find
 Python simulations.
-
-usage: py_plot.py [-h] [-wmin WMIN] [-wmax WMAX] [-filetype FILETYPE]
-                  [-smooth SMOOTH] [-dist DIST] [-p] [--dim_1d] [-v] [-s]
-                  [-log] [-r]
-                  output_name [plots]
-
-positional arguments:
-  output_name         The base name for the output
-  plots               The type of plot to create
-
-optional arguments:
-  -h, --help          show this help message and exit
-  -wmin WMIN          The smallest wavelength to show
-  -wmax WMAX          The largest wavelength to show
-  -filetype FILETYPE  The file format of the output
-  -smooth SMOOTH      The amount of smoothing of the spectra
-  -dist DIST          Distance of the observer
-  -p, --polar         Project the wind on polar axes
-  --dim_1d            Plot 1D data
-  -v, --verbose       Increase output to screen
-  -s, --show          Show the plots on screen
-  -log                Enable log log axes
-  -r, --root          Enables providing a root name instead
 """
 
 import os
@@ -46,7 +23,7 @@ import numpy as np
 from consts import *
 from matplotlib import pyplot as plt
 from typing import List, Tuple, Union
-from PyPython import SpectrumUtils, Utils, WindUtils
+from PyPython import SpectrumUtils, Utils, WindUtils, Quotes
 
 PLOTS = "all"
 POLAR_PROJECTION = False
@@ -89,7 +66,7 @@ def get_script_arguments() -> str:
     global ROOT
     global PLOT_OBS_LOS
 
-    p = argparse.ArgumentParser(description="")
+    p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("output_name", type=str, help="The base name for the output")
     p.add_argument("plots", nargs="?", type=str, help="The type of plot to create")
     p.add_argument("-wmin", type=float, action="store", help="The smallest wavelength to show")
@@ -816,6 +793,8 @@ def main() -> None:
         projection = "rectilinear"
 
     print("--------------------------\n")
+
+    Quotes.random_quote()
 
     global PLOTS
     PLOTS = PLOTS.lower()

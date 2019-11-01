@@ -19,7 +19,7 @@ from sys import exit
 from shutil import which, copyfile
 from typing import Union, List
 from subprocess import Popen, PIPE
-from PyPython import Grid, Simulation, Utils, Log, SpectrumUtils, WindUtils
+from PyPython import Grid, Simulation, Utils, Log, SpectrumUtils, Quotes
 
 
 CONVERGED = \
@@ -146,7 +146,7 @@ def get_run_mode() -> None:
     global POLAR
     global PRINT_ERRORS_ONLY
 
-    p = argparse.ArgumentParser(description="General script to run Python simulations")
+    p = argparse.ArgumentParser(description=__doc__)
 
     # DIFFERENT RUN MODES
     p.add_argument("-s", action="store_true", help="Run simulations")
@@ -223,7 +223,6 @@ def get_run_mode() -> None:
     if args.polar:
         POLAR = True
 
-    Log.log("------------------------\n")
     Log.log("Python  .......................... {}".format(PY_VERSION))
     Log.log("Run simulations .................. {}".format(RUN_SIMS))
     Log.log("Split cycles ..................... {}".format(SPLIT_CYCLES))
@@ -334,8 +333,7 @@ def plot_spec_tde(root: str, wd: str) -> None:
     return
 
 
-def print_python_output(line: str, pcycle: bool, n_cores: int = 1, 
-                        verbosity: int = 3) -> bool:
+def print_python_output(line: str, pcycle: bool, n_cores: int = 1, verbosity: int = 3) -> bool:
     """
     Process the output from a Python simulation and print something to screen.
     Very ugly! Very sad!
@@ -757,6 +755,9 @@ def main() -> None:
     outfname = "py_run_{}{:02d}{:02d}.txt".format(str(DATE.year)[-2:], int(DATE.month), int(DATE.day))
     Log.init_logfile(outfname)
 
+    Log.log("------------------------\n")
+    Quotes.random_quote()
+
     # Determine which routines to run for each simulation
     get_run_mode()
     if SIMS_FROM_FILE:
@@ -777,7 +778,7 @@ def main() -> None:
     if n_procs > 1:
         use_mpi = True
 
-    Log.log("\nThe following parameter files were found:\n")
+    Log.log("\nThe following {} parameter files were found:\n".format(len(pf_paths)))
     for i in range(len(pf_paths)):
         Log.log("{}".format(pf_paths[i]))
     Log.log("")
