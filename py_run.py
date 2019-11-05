@@ -304,7 +304,11 @@ def plot_spec_tde(root: str, wd: str) -> None:
         return
 
     try:
-        incs = SpectrumUtils.spec_inclinations([wd + root + ".spec"])
+        spec = SpectrumUtils.read_spec(wd + root + ".spec")
+        if type(spec) is int and spec == -1:
+            Log.log("{} does not exist, so cannot plot\n".format(wd + root + ".spec"))
+            return
+        incs = SpectrumUtils.spec_inclinations(spec)
     except IOError:
         Log.log("{} does not exist, so cannot plot\n".format(wd + root + ".spec"))
         return
@@ -399,12 +403,14 @@ def print_python_output(line: str, pcycle: bool, n_cores: int = 1, verbosity: in
         elapsed_time = datetime.timedelta(seconds=elapsed_time_seconds // 1)
         Log.log("         Elapsed run time: {} hrs:mins:secs".format(elapsed_time))
     # PRINT CONVERGENCE
-    elif (oline.find("!!Check_converging:") != -1 or oline.find("!!Check_convergence:") != -1) \
+    elif (oline.find("converged") != -1 and oline.find("converging") != -1) \
             and verbosity >= VERBOSE_EXTRA_INFORMATION:
-        if len(line) == 11:
+        try:
             nconverged = line[1]
             fconverged = line[2]
             Log.log("         {} cells converged {}".format(nconverged, fconverged))
+        except IndexError:
+            Log.log("          unable to parse convergence :-(")
     # PRINT PHOTON TRANSPORT REPORT
     elif oline.find("per cent") != -1 and oline.find("Photon") != -1 \
             and verbosity >= VERBOSE_EXTRA_INFORMATION_TRANSPORT:
