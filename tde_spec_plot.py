@@ -10,7 +10,7 @@ would expect in TDE spectrum with high velocity wind outflows.
 
 from sys import exit
 import argparse
-import tde_util
+import tde_spectra
 import numpy as np
 from consts import *
 from typing import Tuple
@@ -33,8 +33,6 @@ def get_tde_spectrum() -> Tuple[np.array, float, str]:
     Return an array containing the TDE spectrum as well as returning the distance
     of the object and a string containing the reference for the observation.
 
-    TODO: remove global variable and pass TDE_OBJ as a parameter
-
     Returns
     -------
     tde_spec: np.array[float]
@@ -52,12 +50,12 @@ def get_tde_spectrum() -> Tuple[np.array, float, str]:
         z = 0.07897
         reference = "Blagorodnova et al. (2019)"
         observe_dist = 350 * 1e6 * PARSEC
-        tde_spec = tde_util.iptf15af_spec(SMOOTH, VERBOSITY)
+        tde_spec = tde_spectra.iptf15af_spec(SMOOTH, VERBOSITY)
     elif TDE_OBJ == "ASASSN14li" or TDE_OBJ == "asassn14li":
         z = 0.02058
         reference = "Cenko et al. (2016)"
         observe_dist = 90 * 1e6 * PARSEC
-        tde_spec = tde_util.asassn14li_spec(SMOOTH, VERBOSITY)
+        tde_spec = tde_spectra.asassn14li_spec(SMOOTH, VERBOSITY)
     else:
         print("tde_spec_plot.get_tde_spectrum: can't find spectrum for object {}".format(TDE_OBJ))
         exit(1)
@@ -67,7 +65,7 @@ def get_tde_spectrum() -> Tuple[np.array, float, str]:
     return tde_spec, observe_dist, reference
 
 
-def spec_plot_inclination(root: str, inc: str) -> None:
+def plot_single_inclination(root: str, inc: str) -> None:
     """
     Plot the spectrum for a single inclination for a Python TDE simulation.
 
@@ -86,16 +84,17 @@ def spec_plot_inclination(root: str, inc: str) -> None:
         tde, observe_dist, reference = get_tde_spectrum()
         ax.semilogy(tde[:, 0], tde[:, 1], label=TDE_OBJ + " " + reference)
 
-    # Get the spectrum from file for the TDE model
     idx = root.find(".pf")
     if idx != -1:
         root = root[:idx]
     spec_file = "{}.spec".format(root)
+
     try:
         spectrum = SpectrumUtils.read_spec(spec_file)
     except IOError:
         print("tde_spec_spec.spec_plot_one: could not open file {}".format(spec_file))
         return
+
     wavelength = spectrum["Lambda"].values.astype(float)
     try:
         raw_flux = spectrum[inc].values.astype(float)
@@ -104,11 +103,9 @@ def spec_plot_inclination(root: str, inc: str) -> None:
         return
     flux = SpectrumUtils.smooth_spectrum(raw_flux, SMOOTH)
     flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
-    ymax, ymin = SpectrumUtils.ylims(wavelength, flux, WMIN, WMAX)
-
-    # Plot the TDE spectrum for the specific inclination angle
     ax.semilogy(wavelength, flux, label="Model at i = {}".format(inc) + r"$^{\circ}$")
 
+    ymax, ymin = SpectrumUtils.ylims(wavelength, flux, WMIN, WMAX)
     ax.set_xlim(WMIN, WMAX)
     ax.set_ylim(ymin, ymax)
     if PLOT_LINE_IDS:
@@ -117,7 +114,6 @@ def spec_plot_inclination(root: str, inc: str) -> None:
     ax.set_xlabel(r"Wavelength ($\AA$)")
     ax.legend(loc="best")
 
-    # Finishing touches to the plot, including title and tight layout
     fig.suptitle(root)
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.savefig("{}_{}_spectra.{}".format(root, inc, FTYPE))
@@ -126,7 +122,7 @@ def spec_plot_inclination(root: str, inc: str) -> None:
     return
 
 
-def spec_plot_multiple(root: str) -> None:
+def plot_all_inclinations(root: str) -> None:
     """
     Plot the spectrum for each inclination angle for a Python TDE simulation on
     a single plot.
@@ -137,60 +133,54 @@ def spec_plot_multiple(root: str) -> None:
         The root name of the Python simulation
     """
 
+    tde = None
     observe_dist = 1
     if TDE_OBJ:
         tde, observe_dist, reference = get_tde_spectrum()
 
-    # Read the spectrum for the TDE into memory
     idx = root.find(".pf")
     if idx != -1:
         root = root[:idx]
     spec_file = "{}.spec".format(root)
+
     try:
         spectrum = SpectrumUtils.read_spec(spec_file)
     except IOError:
         print("tde_spec_plot.spec_plot_multiple: could not open file {}".format(spec_file))
         return
-    wavelength = spectrum["Lambda"].values.astype(float)
-    inclinations = spectrum.columns.values[9:]
 
-    # Figure out the shape of the subplot grid and create the plotting object
+    inclinations = spectrum.columns.values[9:]
     n_spec = len(inclinations)
+    wavelength = spectrum["Lambda"].values.astype(float)
     nrows, ncols = Utils.subplot_dims(n_spec)
     fig, ax = plt.subplots(nrows, ncols, figsize=(17, 12), squeeze=False, sharex="col")
 
     index = 0
     for i in range(nrows):
         for j in range(ncols):
-            # This ensures that the wavelength label will only be put on the bottom plots
-            if i == nrows - 1:
-                ax[i, j].set_xlabel(r"Wavelength ($\AA$)")
             if index > n_spec - 1:
                 break
-            if TDE_OBJ:
+            if i == nrows - 1:
+                ax[i, j].set_xlabel(r"Wavelength ($\AA$)")
+
+            if TDE_OBJ and tde:
                 ax[i, j].semilogy(tde[:, 0], tde[:, 1], label=TDE_OBJ)
 
-            # Extract the flux from the spectrum and scale for distance for a specific inclination
             inc = inclinations[index]
             raw_flux = spectrum[inc].values.astype(float)
             flux = SpectrumUtils.smooth_spectrum(raw_flux, SMOOTH)
             flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
+            ax[i, j].semilogy(wavelength, flux, label=r"$i$ = {}".format(inc) + r"$^{\circ}$")
 
             ymax, ymin = SpectrumUtils.ylims(wavelength, flux, WMIN, WMAX)
-
-            # Plot the TDE spectrum
-            ax[i, j].semilogy(wavelength, flux, label=r"$i$ = {}".format(inc) + r"$^{\circ}$")
             ax[i, j].set_ylim(ymin, ymax)
             ax[i, j].set_xlim(WMIN, WMAX)
             if PLOT_LINE_IDS:
                 ax[i, j] = SpectrumUtils.plot_line_ids(ax[i, j], SpectrumUtils.common_lines())
             ax[i, j].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)")
             ax[i, j].legend(loc="best")
-
-            # Increment index for inclination array
             index += 1
 
-    # Finishing touches to the plot, including title and tight layout
     fig.suptitle(root)
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.savefig("{}_spectra.{}".format(root, FTYPE))
@@ -199,7 +189,7 @@ def spec_plot_multiple(root: str) -> None:
     return
 
 
-def spec_plot_comparison(name: str, inc: str = None):
+def plot_model_comparisons(name: str, inc: str = None):
     """
     Create a comparison plot similar to spec_plot for multiple spectra which are
     search for recursively in the working directory.
@@ -212,8 +202,6 @@ def spec_plot_comparison(name: str, inc: str = None):
         The inclination angle to be plotted
     """
 
-    print("DISCLAIMER: can sometimes not produce the desired plot :^).")
-
     spec_files = SpectrumUtils.find_specs()
     if len(spec_files) == 0:
         print("No spec files found")
@@ -224,11 +212,11 @@ def spec_plot_comparison(name: str, inc: str = None):
     for i in range(len(spec_files)):
         print("\t- {}".format(spec_files[i]))
 
+    tde = None
     observe_dist = 1
     if TDE_OBJ and TDE_OBJ != "None".lower():
         tde, observe_dist, ref = get_tde_spectrum()
 
-    # Figure out the inclinations in the spec files for the simulations
     if inc:
         if inc.isdigit() is False:
             print("Provided inclination angle is not a number: {}".format(inc))
@@ -248,8 +236,6 @@ def spec_plot_comparison(name: str, inc: str = None):
     nrows, ncols = Utils.subplot_dims(n_specs)
     fig, ax = plt.subplots(nrows, ncols, figsize=size, squeeze=False, sharex="col")
 
-    cspec = SpectrumUtils.read_spec("/home/saultyevil/Dropbox/DiskWinds/PySims/tde/paper_models/clump/1e-1/cv/solar/tde_cv.spec")
-
     index = 0
     for i in range(nrows):
         for j in range(ncols):
@@ -259,10 +245,11 @@ def spec_plot_comparison(name: str, inc: str = None):
                 ax[i, j].set_xlabel(r"Wavelength ($\AA$)")
             if j == 0:
                 ax[i, j].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)")
-
-            if TDE_OBJ and TDE_OBJ != "None".lower():
+            if TDE_OBJ and TDE_OBJ != "None".lower() and tde:
                 ax[i, j].semilogy(tde[:, 0], tde[:, 1], label=TDE_OBJ)
 
+            ymin = +1e99
+            ymax = -1e99
 
             # If a specific inclination angle has been provided, then use this
             if inc:
@@ -270,19 +257,13 @@ def spec_plot_comparison(name: str, inc: str = None):
             else:
                 ii = inclination[index]
 
-            # cflux = SpectrumUtils.smooth_spectrum(cspec[ii].values.astype(float), SMOOTH)
-            # cflux *= DEFAULT_DIST ** 2 / observe_dist ** 2
-            # ax[i, j].semilogy(cspec["Lambda"].values.astype(float), cflux, "k", label="original model")
-
-            ymin = +1e99
-            ymax = -1e99
             # Loop over each spectrum from each simulation
             for file in spec_files:
-                # Get the spectrum, flux and scale the flux for distance
                 root, dir = Utils.split_root_directory(file)
 
                 spectrum = SpectrumUtils.read_spec(file)
                 wavelength = spectrum["Lambda"].values.astype(float)
+
                 try:
                     raw_flux = spectrum[ii].values.astype(float)
                 except KeyError:
@@ -290,32 +271,29 @@ def spec_plot_comparison(name: str, inc: str = None):
                 flux = SpectrumUtils.smooth_spectrum(raw_flux, SMOOTH)
                 flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
 
-                # Plot the spectrum for a model
                 ax[i, j].semilogy(wavelength, flux, label=r"{}/{}: $i$: {}".format(dir, root, ii) + r"$^{\circ}$")
 
-                # tmax, tmin = SpectrumUtils.ylims(wavelength, flux, WMIN, WMAX, scale=13)
-                # if tmax == 0 or tmax is None or tmin == 0 or tmin is None:
-                #     ymin = None
-                #     ymax = None
-                # else:
-                #     if tmax > ymax:
-                #         ymax = tmax
-                #     if tmin < ymin:
-                #         ymin = tmin
+                tymax, tymin = SpectrumUtils.ylims(wavelength, flux, WMIN, WMAX)
+                if tymin is not None and tymin < ymin:
+                    ymin = tymin
+                if tymax is not None and tymax > ymax:
+                    ymax = tymax
 
-            # Finishing touches to plot
+            if ymin == +1e99:
+                ymin = None
+            if ymax == -1e99:
+                ymax = None
+
             ax[i, j].set_xlim(WMIN, WMAX)
-            ax[i, j].set_ylim(1e-17, ymax)
+            ax[i, j].set_ylim(ymin, ymax)
             if PLOT_LINE_IDS:
                 SpectrumUtils.plot_line_ids(ax[i, j], SpectrumUtils.common_lines())
             ax[i, j].legend(loc="best")
 
-            # Increment inclination index
             index += 1
 
     fig.suptitle("Model Comparison")
     fig.tight_layout(rect=[0, 0.05, 1, 0.95])
-
     fname = "{}_comparison".format(name)
     if inc:
         fname += "_i{}".format(inc)
@@ -339,7 +317,7 @@ def main() -> None:
     global TDE_OBJ
     global PLOT_LINE_IDS
 
-    p = argparse.ArgumentParser(description="Plot a more TDE inclined spectrum or spectra.")
+    p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("root", type=str, help="The root name of the Python simulation to plot.")
     p.add_argument("-i", "--inclination", type=str, action="store", help="Plot a single inclination angle.")
     p.add_argument("-s", "--smooth", type=int, action="store", help="Window size for the boxcar smooth - default is 15.")
@@ -375,16 +353,16 @@ def main() -> None:
 
     if args.inclination and not args.comparison:
         print("Plotting {} spectrum for inclination {}".format(root, args.inclination))
-        spec_plot_inclination(root, args.inclination)
+        plot_single_inclination(root, args.inclination)
     elif args.comparison:
         print("Plotting comparison spectrum")
         if args.inclination:
-            spec_plot_comparison(root, args.inclination)
+            plot_model_comparisons(root, args.inclination)
         else:
-            spec_plot_comparison(root)
+            plot_model_comparisons(root)
     else:
         print("Plotting {} spectra for all inclination angles".format(root))
-        spec_plot_multiple(root)
+        plot_all_inclinations(root)
 
     print("\n--------------------------")
 

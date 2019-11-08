@@ -18,7 +18,7 @@ if system() == "Darwin":
 else:
     sys.path.append("/home/saultyevil/Scripts")
 
-import tde_util as tu
+import tde_spectra as tu
 from consts import *
 
 SMOOTH = 10

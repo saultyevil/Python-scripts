@@ -13,7 +13,7 @@ else:
     sys.path.append("/home/saultyevil/Scripts")
 
 from consts import H, C, BOLTZMANN, PARSEC
-import tde_util as tu
+import tde_spectra as tu
 
 C_SI = 299792458
 C_CM = 1e2 * C_SI
@@ -75,58 +75,55 @@ def create_line_comparison():
     spec = [iptf15af, asassn14li, at2018zr, iptf16fnl]
     spec = [iptf15af]
 
-    nrows = 1
     ncols = 2
+    nrows = len(spec)
     fig, ax = plt.subplots(nrows, ncols, figsize=(15, 8), squeeze=False)
-    temperature = 43300
 
-    civ = 1549 * ANGSTROM_TO_M
-    civ_range = [[1460, 1590]]
-    civ_Hz = C_SI / (civ * ANGSTROM_TO_M)
-    siiv = 1400
+    carbon4_wavelength = 1549 * ANGSTROM_TO_M
+    carbon_wl_range = [[1460, 1590]]
+    silicon4_wavelength = 1400 * ANGSTROM_TO_M
     siiv_range = [[1290, 1400]]
-    siiv_Hz = C_SI / (siiv * ANGSTROM_TO_M)
-    nv = 1240
+    nitrogen5_wavelength = 1240 * ANGSTROM_TO_M
     nv_range = [[1140, 1340]]
-    nv_Hz = C_SI / (nv * ANGSTROM_TO_M)
 
     ii = 0
     for i in range(nrows):
-        for j in range(ncols):
-            if ii > len(spec) - 1:
-                break
-            
-            # Extract relevant wavlength range
-            wl = spec[ii][:, 0]
-            id1 = SpectrumUtils.get_wavelength_index(wl, civ_range[ii][0])
-            id2 = SpectrumUtils.get_wavelength_index(wl, civ_range[ii][1])
-            wl = wl[id1:id2] * ANGSTROM_TO_M
 
-            wll = spec[ii][:, 0]
-            id11 = SpectrumUtils.get_wavelength_index(wll, siiv_range[ii][0])
-            id21 = SpectrumUtils.get_wavelength_index(wll, siiv_range[ii][1])
-            wll = wll[id11:id21] * ANGSTROM_TO_M
+        # Extract C IV
+        wl_carbon = spec[i][:, 0]
+        id1 = SpectrumUtils.get_wavelength_index(wl_carbon, carbon_wl_range[i][0])
+        id2 = SpectrumUtils.get_wavelength_index(wl_carbon, carbon_wl_range[i][1])
+        wl_carbon = wl_carbon[id1:id2]
+        fl_carbon = spec[i][id1:id2, 1]
+        # Extract Si IV
+        wl_silicon = spec[i][:, 0]
+        id1 = SpectrumUtils.get_wavelength_index(wl_silicon, siiv_range[i][0])
+        id2 = SpectrumUtils.get_wavelength_index(wl_silicon, siiv_range[i][1])
+        wl_silicon = wl_silicon[id1:id2]
+        fl_silicon = spec[i][id1:id2, 1]
+        # Extract N V
+        wl_nitrogen = spec[i][:, 0]
+        id1 = SpectrumUtils.get_wavelength_index(wl_nitrogen, nv_range[i][0])
+        id2 = SpectrumUtils.get_wavelength_index(wl_nitrogen, nv_range[i][1])
+        wl_nitrogen = wl_nitrogen[id1:id2]
+        fl_nitrogen = spec[i][id1:id2, 1]
 
-            # Extract the flux and normalise the line profile
-            # norm = blackbody_flux(bb_temp[ii], civ) 
-            # norm *= np.pi * bb_radius[ii] ** 2 / dl[ii] ** 2
-            # norm = spec[ii][id1, 1]
-            fl = spec[ii][id1:id2, 1]
-            fll = spec[ii][id11:id21, 1]
+        # Convert the line profiles into velocity space
+        carbon4_vel = C_SI * (wl_carbon * ANGSTROM_TO_M / carbon4_wavelength - 1) * MS_TO_KMS
+        silicon4_vel = C_SI * (wl_silicon * ANGSTROM_TO_M / silicon4_wavelength - 1) * MS_TO_KMS
+        nitrogen5_vel = C_SI * (wl_nitrogen * ANGSTROM_TO_M / nitrogen5_wavelength - 1) * MS_TO_KMS
 
-            # Convert to velocity space
-            vel = C_SI * (wl / civ - 1)
-            vel *= MS_TO_KMS   
-            vell = C_SI * (wll / siiv - 1)
-            vell *= MS_TO_KMS         
+        ax[i, 0].plot(carbon4_vel, fl_carbon, label=r"C IV")
+        ax[i, 0].plot(silicon4_vel, fl_silicon, label=r"Si IV")
+        ax[i, 0].legend()
+        ax[i, 0].set_xlabel("Velocity km/s")
+        ax[i, 0].set_ylabel("Normalised Flux")
 
-            # Finally plot :^)
-            ax[i, j].plot(wl / ANGSTROM_TO_M, fl, label="civ")
-            # ax[i, j].plot(wll / ANGSTROM_TO_M, fll, label="siiv")
-            ax[i, j + 1].plot(vel, fl / 1e-15)
-            # ax[i, j + 1].plot(vell, fll / 1e-15)
-            ax[i, j].legend()
-            ii += 1
+        ax[i, 1].plot(carbon4_vel, fl_carbon, label=r"C IV")
+        ax[i, 1].plot(nitrogen5_vel, fl_nitrogen, label=r"N V")
+        ax[i, 1].legend()
+        ax[i, 1].set_xlabel("Velocity km/s")
+        ax[i, 1].set_ylabel("Normalised flux")
 
     plt.show()
 

@@ -13,7 +13,7 @@ else:
     sys.path.append("/home/saultyevil/Scripts")
 
 from consts import *
-import tde_util as tu
+import tde_spectra as tu
 
 SMOOTH = 7
 VERBOSITY = False

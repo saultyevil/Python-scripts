@@ -95,8 +95,10 @@ def main():
             if ii == len(plot):
                 break
             ax[i, j].plot(cycles, plot[ii], "k-")
+            if title[ii] in ["te", "tr", "ip", "c4 frac", "ne"]:
+                ax[i, j].set_yscale("log")
             ax[i, j].text(0.75, 0.1, title[ii], transform=ax[i, j].transAxes, fontsize=14)
-            ax[i, j].set_xlim(1, cycles[-1])
+            ax[i, j].set_xlim(1, len(converge) + 1)
             ii += 1
 
     fig.tight_layout(rect=[0.02, 0.05, 0.98, 0.95])

@@ -339,9 +339,11 @@ def get_tde_spec(name: str, plot: bool = False, verbose: bool = False):
 
 def plot_iPTF15af_photometry(ax):
     """
-    Plot photometric data for the UV spectrum of iPTF15af from Blagordnova et al. 2019.
+    Plot photometric data for the UV spectrum of iPTF15af from Blagordnova
+    et al. 2019.
 
-    Note that the Swift optical filters (U, B, V) are commented out due to contamination from the host galaxy.
+    Note that the Swift optical filters (U, B, V) are commented out due to
+    contamination from the host galaxy.
 
     Returns
     -------

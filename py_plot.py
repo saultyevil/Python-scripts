@@ -138,7 +138,6 @@ def all_inclinations(spec_names: List[str], delim: str = None) -> np.array:
     # Find the viewing angles in each .spec file
     for i in range(len(spec_names)):
         spec = SpectrumUtils.read_spec(spec_names[i], delim)
-
         if type(spec) == pd.core.frame.DataFrame:
             col_names = spec.columns.values
         elif type(spec) == np.ndarray:
@@ -619,12 +618,7 @@ def plot_spec_comps(input_file: str, output_name: str, semilogy_scale: bool = Fa
     headers_top = ["Created", "Emitted"]
     headers_bot = ["CenSrc", "Disk", "Wind", "HitSurf", "Scattered"]
 
-    try:
-        spec = SpectrumUtils.read_spec(input_file)
-    except Exception:
-        print("{}:{}: could not open input file {}".format(__file__, plot_spec_comps.__name__, input_file))
-        return
-
+    spec = SpectrumUtils.read_spec(input_file)
     wavelength = spec["Lambda"].values.astype(float)
 
     # First panel, plot the created and emitted emission
@@ -733,7 +727,9 @@ def plot_spectra(input_files: List[str], figure_inclinations: Union[List, np.arr
 
             # Read in the spectrum and check that it can be plotted for the
             # current inclination
+
             spec = SpectrumUtils.read_spec(file)
+
             allowed_inclination = SpectrumUtils.check_inclination(inclination, spec)
             if not allowed_inclination:
                 continue

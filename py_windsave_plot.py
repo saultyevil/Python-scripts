@@ -24,10 +24,10 @@ def plot_wind_saves():
             root = root[2:]
         print(root)
         sh = "Setup_Py_Dir; windsave2table {}".format(root)
-        # stdout, stderr = Popen(sh, stdout=PIPE, stderr=PIPE, shell=True).communicate()
-        # if stderr:
-            # print(stderr.decode("utf-8"))
-            # break
+        stdout, stderr = Popen(sh, stdout=PIPE, stderr=PIPE, shell=True).communicate()
+        if stderr:
+            print(stderr.decode("utf-8"))
+            break
         # print(stdout.decode("utf-8"))
         input_file = "{}.0.master.txt".format(root)
         py_plot.plot_wind(root, root, vars, var_types, "./", projection=projection, input_file=input_file, verbose=True)

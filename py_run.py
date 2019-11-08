@@ -337,7 +337,8 @@ def plot_spec_tde(root: str, wd: str) -> None:
     return
 
 
-def print_python_output(line: str, pcycle: bool, n_cores: int = 1, verbosity: int = 3) -> bool:
+def print_python_output(line: str, pcycle: bool, n_cores: int = 1,
+                        verbosity: int = VERBOSE_EXTRA_INFORMATION_TRANSPORT) -> bool:
     """
     Process the output from a Python simulation and print something to screen.
     Very ugly! Very sad!
