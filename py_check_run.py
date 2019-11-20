@@ -34,7 +34,7 @@ SHOW_PLOT = False  # If True, the plot will be drawn on screen
 FILE_TYPE = "png"  # The file type of the output
 
 
-def plot_convergence(root: str, converged: List[float], converging: List[float]):
+def plot_convergence(root: str, converged: np.ndarray, converging: np.ndarray) -> None:
     """
     Plot the fraction of converged and converging cells as a function of cycle.
 
@@ -65,7 +65,11 @@ def plot_convergence(root: str, converged: List[float], converging: List[float])
     plt.ylabel("Total Fraction")
     plt.title("Max convergence reached = {}".format(max_convergence))
     plt.savefig("{}_convergence.{}".format(root, FILE_TYPE))
-    plt.show()
+
+    if SHOW_PLOT:
+        plt.show()
+    else:
+        plt.close()
 
     return
 
@@ -150,7 +154,7 @@ def parse_rootname() -> str:
         FILE_TYPE = args.filetype
     if args.show:
         global SHOW_PLOT
-        SHOW_PLOT= args.show
+        SHOW_PLOT = args.show
 
     return args.root
 
@@ -172,9 +176,7 @@ def main():
             sys.exit(1)
 
     converged, converging = get_convergence(filename)
-
-    if SHOW_PLOT:
-        plot_convergence(root, converged, converging)
+    plot_convergence(root, converged, converging)
 
     return
 

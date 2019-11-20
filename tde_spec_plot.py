@@ -163,7 +163,7 @@ def plot_all_inclinations(root: str) -> None:
             if i == nrows - 1:
                 ax[i, j].set_xlabel(r"Wavelength ($\AA$)")
 
-            if TDE_OBJ and tde:
+            if TDE_OBJ:
                 ax[i, j].semilogy(tde[:, 0], tde[:, 1], label=TDE_OBJ)
 
             inc = inclinations[index]

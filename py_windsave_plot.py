@@ -3,6 +3,7 @@
 
 import glob
 import py_plot
+from PyPython import Utils
 from subprocess import Popen, PIPE
 
 
@@ -31,6 +32,8 @@ def plot_wind_saves():
         # print(stdout.decode("utf-8"))
         input_file = "{}.0.master.txt".format(root)
         py_plot.plot_wind(root, root, vars, var_types, "./", projection=projection, input_file=input_file, verbose=True)
+
+    Utils.remove_data_sym_links("./", verbose=True)
 
     return
 

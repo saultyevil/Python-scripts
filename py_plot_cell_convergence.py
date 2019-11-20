@@ -104,7 +104,7 @@ def main():
     fig.tight_layout(rect=[0.02, 0.05, 0.98, 0.95])
     fig.suptitle("icell = {} jcell = {}".format(icell, jcell), fontsize=14)
     plt.savefig("icell{}_jcell{}_convergence.png".format(icell, jcell))
-    plt.show()
+    plt.close()
 
     return
 

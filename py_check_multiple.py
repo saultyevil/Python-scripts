@@ -14,7 +14,7 @@ from typing import List
 from PyPython import Simulation, Utils
 
 
-def check_multiple(wdpf: List[str]):
+def check_multiple(wdpf: List[str]) -> None:
     """
 
     Parameters

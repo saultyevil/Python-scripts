@@ -226,7 +226,7 @@ def rectilinear_wind_plot(fig: plt.Figure, ax: plt.Axes, x: np.ndarray, z: np.nd
 
     with np.errstate(divide="ignore"):
         if wvar == "converge" or wvar == "converging":
-            im = ax[i, j].pcolor(x, z, w)
+            im = ax[i, j].pcolor(x, z, w, vmin=0, vmax=3)
         elif wvar_t == "ion":
             im = ax[i, j].pcolor(x, z, np.log10(w), vmin=-5, vmax=0)
         elif wvar_t == "wind":
@@ -849,7 +849,7 @@ def main() -> None:
         # CREATE OPTICAL DEPTH SPECTRUM
         if PLOTS == "tau_spec" or PLOTS == "all":
             print("\nPlotting optical depth spectrum")
-            plot_tau_spec(root, path, wmin=WMIN, wmax=WMAX, show_plot=SHOW_PLOT,)
+            plot_tau_spec(root, path, wmin=WMIN, wmax=WMAX, show_plot=SHOW_PLOT)
 
         # RUN WINDSAVE2TABLE IF ROOT.EP.COMPLETE FILE IS MISSING
         if PLOTS == "wind" or PLOTS == "ions" or PLOTS == "all":
