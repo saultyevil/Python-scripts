@@ -83,6 +83,9 @@ def py_wind(root: str, nx: int, nz: int, i: int, j: int):
     sh = Popen("py_wind {} < _tmpcmd.txt".format(root), stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = sh.communicate()
 
+    if stderr:
+        print(stderr.decode("utf-8"))
+
     return stdout.decode("utf-8")
 
 
@@ -168,19 +171,21 @@ def plot_cell_sed(model_bands: List[str], filename: str) -> None:
     return
 
 
-def main():
-    """Main function"""
+def main() -> None:
+    """
+    Main function of the script. Parses arguments from the command line.
+    """
 
     p = ap.ArgumentParser(description=__doc__)
+    p.add_argument("root", help="The root name of the Python simulation")
+    p.add_argument("nx", type=int, help="The number of cells in the i-direction")
+    p.add_argument("nz", type=int, help="The number of cells in the j-direction")
+    p.add_argument("i", type=int, help="The i index of the cell")
+    p.add_argument("j", type=int, help="The j index of the cell")
+    args = p.parse_args()
 
-    root = "tde_cv"
-    i = 9
-    j = 6
-    nx = 30
-    nz = 30
-
-    model = get_spec_model(root, nx, nz, i, j)
-    filename = "cell_i{}_j{}".format(i, j)
+    model = get_spec_model(args.root, args.nx, args.nz, args.i, args.j)
+    filename = "cell_i{}_j{}".format(args.i, args.j)
     plot_cell_sed(model, filename)
 
 
