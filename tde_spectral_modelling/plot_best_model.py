@@ -206,14 +206,14 @@ def main(argc: int, argv: List[str]):
         The command line arguments provided
     """
 
-    plot_against_data(["paper_models/smooth/cv/solar/tde_cv.spec",
-                       "paper_models/smooth/cv/cno/tde_cv.spec"],
+    plot_against_data(["paper_models_matrix_pow/smooth/cv/solar/tde_cv.spec",
+                       "paper_models_matrix_pow/smooth/cv/cno/tde_cv.spec"],
                       "paper_models/disk_spectra/cv/tde_cv.spec",
                       ["60", "75"],
                       "smooth")
 
-    plot_against_data(["paper_models/smooth/cv/solar/tde_cv.spec",
-                       "paper_models/clump/1e-1/cv/solar/tde_cv.spec"],
+    plot_against_data(["paper_models_matrix_pow/smooth/cv/solar/tde_cv.spec",
+                       "paper_models_matrix_pow/clump/1e-1/cv/solar/tde_cv.spec"],
                       "paper_models/disk_spectra/cv/tde_cv.spec",
                       ["60", "75"],
                       "clump")

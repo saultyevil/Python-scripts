@@ -322,13 +322,13 @@ def main(argc: int, argv: List[str]) -> None:
         print(__doc__)
         exit(1)
 
-    solar_smooth = ["paper_models/smooth/cv/solar/tde_cv.spec",
-                    "paper_models/smooth/agn/solar/tde_agn.spec",
-                    "paper_models/smooth/spherical/solar/tde_spherical.spec"]
+    solar_smooth = ["paper_models_matrix_pow/smooth/cv/solar/tde_cv.spec",
+                    "paper_models_matrix_pow/smooth/agn/solar/tde_agn.spec",
+                    "paper_models_matrix_pow/smooth/spherical/solar/tde_spherical.spec"]
 
-    cno_smooth = ["paper_models/smooth/cv/cno/tde_cv.spec",
-                  "paper_models/smooth/agn/cno/tde_agn.spec",
-                  "paper_models/smooth/spherical/cno/tde_spherical.spec"]
+    cno_smooth = ["paper_models_matrix_pow/smooth/cv/cno/tde_cv.spec",
+                  "paper_models_matrix_pow/smooth/agn/cno/tde_agn.spec",
+                  "paper_models_matrix_pow/smooth/spherical/cno/tde_spherical.spec"]
 
     disk = ["paper_models/disk_spectra/cv/tde_cv.spec",
             "paper_models/disk_spectra/agn/tde_agn.spec",
@@ -339,13 +339,13 @@ def main(argc: int, argv: List[str]) -> None:
     model_comparison(cno_smooth.copy(), disk, "_solar_cno_smooth_abundances", wmin, wmax, return_figure=False,
                      figure=(fig, ax), label="CNO Processed Abundance\nHe = 2 x Solar\nC = 0.5 x Solar\nN = 7 x Solar")
     
-    solar_clump = ["paper_models/clump/1e-1/cv/solar/tde_cv.spec",
-                   "paper_models/clump/1e-1/agn/solar/tde_agn.spec",
-                   "paper_models/clump/1e-1/spherical/solar/tde_spherical.spec"]
+    solar_clump = ["paper_models_matrix_pow/clump/1e-1/cv/solar/tde_cv.spec",
+                   "paper_models_matrix_pow/clump/1e-1/agn/solar/tde_agn.spec",
+                   "paper_models_matrix_pow/clump/1e-1/spherical/solar/tde_spherical.spec"]
 
-    cno_clump = ["paper_models/clump/1e-1/cv/cno/tde_cv.spec",
-                 "paper_models/clump/1e-1/agn/cno/tde_agn.spec",
-                 "paper_models/clump/1e-1/spherical/cno/tde_spherical.spec"]
+    cno_clump = ["paper_models_matrix_pow/clump/1e-1/cv/cno/tde_cv.spec",
+                 "paper_models_matrix_pow/clump/1e-1/agn/cno/tde_agn.spec",
+                 "paper_models_matrix_pow/clump/1e-1/spherical/cno/tde_spherical.spec"]
     
     fig, ax = model_comparison(solar_smooth.copy(), disk, "_solar_clump", wmin, wmax, label="f = 1", return_figure=True)
     model_comparison(solar_clump.copy(), disk, "_solar_clump", wmin, wmax, label="f = 0.1", return_figure=False,
