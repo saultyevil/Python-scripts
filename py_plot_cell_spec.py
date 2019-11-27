@@ -10,6 +10,7 @@ matrix_pow ionisation solver.
 
 import argparse as ap
 from PyPython import WindUtils
+from PyPython import Utils
 from subprocess import Popen, PIPE
 import numpy as np
 from matplotlib import pyplot as plt
@@ -17,7 +18,7 @@ from typing import List
 from astropy import constants as consts
 
 
-def get_spec_model(root: str, nx: int, nz: int, i: int, j: int, nbands: int = 10) -> List[str]:
+def get_spec_model(root: str, nx: int, nz: int, i: int, j: int, nbands: int = 4) -> List[str]:
     """
     Get the spectral model for a specific cell from py_wind
 
@@ -70,6 +71,8 @@ def py_wind(root: str, nx: int, nz: int, i: int, j: int):
         The i-th index for the grid cell in question.
     j: int
         The j-th index for th grid cell in question.
+    commands: List[str] [optional]
+        Commands for py_wind to run
 
     Returns
     -------
@@ -80,11 +83,13 @@ def py_wind(root: str, nx: int, nz: int, i: int, j: int):
     elem = WindUtils.get_wind_elem_number(nx, nz, i, j)
     cmds = np.array(["1", "e", str(elem)])
     np.savetxt("_tmpcmd.txt", cmds, fmt="%s")
-    sh = Popen("py_wind {} < _tmpcmd.txt".format(root), stdout=PIPE, stderr=PIPE, shell=True)
+    sh = Popen("Setup_Py_Dir; py_wind {} < _tmpcmd.txt".format(root), stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = sh.communicate()
 
     if stderr:
         print(stderr.decode("utf-8"))
+
+    Utils.remove_data_sym_links("./")
 
     return stdout.decode("utf-8")
 
@@ -149,10 +154,10 @@ def plot_cell_sed(model_bands: List[str], filename: str) -> None:
         if freq[i] > 3.288e15:
             xi = xi + ((f_nu[i + 1] + f_nu[i]) / 2.0) * (freq[i + 1] - freq[i])
 
-    fig, ax = plt.subplots(1, 1, figsize=(12, 5))
+    fig, ax = plt.subplots(1, 1, figsize=(8, 5))
 
     ax.loglog(freq, f_nu)
-    plt.xlim(np.min(freq) / 10, np.max(freq) * 10)
+    ax.set_xlim(np.min(freq) / 10, np.max(freq) * 10)
     ax.set_xlabel(r"$\rm{Frequency(Hz)}$")
     ax.set_ylabel(r"$\rm{J_{\nu}~in~cell(ergs~s^{-1}~cm^{-3}~Sr^-1~Hz^-1)}$")
     ax.set_title(filename)

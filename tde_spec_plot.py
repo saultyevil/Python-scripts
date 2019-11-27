@@ -245,7 +245,7 @@ def plot_model_comparisons(name: str, inc: str = None):
                 ax[i, j].set_xlabel(r"Wavelength ($\AA$)")
             if j == 0:
                 ax[i, j].set_ylabel(r"$F_{\lambda}$ (erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$)")
-            if TDE_OBJ and TDE_OBJ != "None".lower() and tde:
+            if TDE_OBJ and TDE_OBJ != "None".lower():
                 ax[i, j].semilogy(tde[:, 0], tde[:, 1], label=TDE_OBJ)
 
             ymin = +1e99
