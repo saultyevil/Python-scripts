@@ -77,8 +77,8 @@ def create_grid(pf: str, parameter: str, grid: List[str]) -> List[str]:
         for line in range(len(new_pf)):
             if new_pf[line][0] == parameter:
                 new_pf[line][1] = grid[i]
-            elif new_pf[line][0] == "Wind.mdot(msol/yr)":
-                new_pf[line][1] = str(0.1 * float(grid[i]))
+            # elif new_pf[line][0] == "Wind.mdot(msol/yr)":
+            #     new_pf[line][1] = str(0.1 * float(grid[i]))
         try:
             os.mkdir(grid[i])
         except OSError:  # if the directory already exists an OS error is raised
@@ -102,10 +102,10 @@ def run_grid() -> List[str]:
     """
 
     # This is the parameter which will be changed
-    root = "../tde_cv.pf"
-    parameter = "SV.acceleration_exponent"
+    root = "tde_cv.pf"
+    parameter = "SV.v_infinity(in_units_of_vescape"
 
-    tmp = [0.7, 0.9, 1.1, 1.3]
+    tmp = [0.2, 0.5, 0.7]
     grid = []
     for i in range(len(tmp)):
         grid.append("{:.4e}".format(tmp[i]))
