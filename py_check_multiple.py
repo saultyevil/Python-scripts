@@ -30,19 +30,29 @@ def check_multiple(wdpf: List[str]) -> None:
         c = Simulation.check_convergence(root, path)
         convergence.append(c)
 
-    print("The following simulations have convergence:\n"
-          "-------------------------------------------")
+    some_convergence = []
     for i in range(len(wdpf)):
         c = convergence[i]
         if c > 0:
-            print(wdpf[i], c)
+            some_convergence.append([wdpf[i], c])
 
-    print("\nThe following simulations have no convergence:\n"
-          "----------------------------------------------")
+    no_convergence = []
     for i in range(len(wdpf)):
         c = convergence[i]
         if c <= 0:
-            print(wdpf[i], c)
+            no_convergence.append([wdpf[i], c])
+
+    if some_convergence:
+        print("The following simulations have convergence:\n"
+              "-------------------------------------------")
+        for i in range(len(some_convergence)):
+                print(some_convergence[i][0], some_convergence[i][1])
+
+    if no_convergence:
+        print("\nThe following simulations have no convergence:\n"
+              "----------------------------------------------")
+        for i in range(len(no_convergence)):
+            print(no_convergence[i][0], no_convergence[i][1])
 
     return
 
