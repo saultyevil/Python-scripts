@@ -20,21 +20,27 @@ COL_WIDTH = 100
 def plot_convergence(root: str, convergence: List[float], converging: List[float] = None, tr: List[float] = None,
                     te: List[float] = None, te_max: List[float] = None, hc: List[float] = None,  wd: str = "./"):
     """
+    Create a detailed plot of the convergence of a Python simulation, including,
+    if provided, a breakdown of the different convergence criteria. 
 
     Parameters
     ----------
-    root
-    convergence
-    converging
-    tr
-    te
-    te_max
-    hc
-    wd
-
-    Returns
-    -------
-
+    root: str
+        The root name of the Python simulation.
+    convergence: List[float]
+        The convergence fraction of the simulation for each cycle.
+    converging: List[float] [optional]
+        The converging fraction of the simulation for each cycle.
+    tr: List[float] [optional]
+        The fraction of cells which have converged radiation temperature.
+    te: List[float] [optional]
+        The fraction of cells which have converged electron temperature.
+    te_max: List[float] [optional]
+        The fraction of cells which hit the electron temperature limit.
+    hc: List[float] [optional]
+        The fraction of cells which have converged heating and cooling rates.
+    wd: str [optional]
+        The directory containing the Python simulation.
     """
 
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
@@ -59,6 +65,7 @@ def plot_convergence(root: str, convergence: List[float], converging: List[float
     ax.legend()
     ax.set_xlabel("Cycle")
     ax.set_ylabel("Fraction of Cells Passed")
+    ax.set_title("Final Convergence = {:4.2f}%".format(float(convergence[-1]) * 100))
     fig.tight_layout(rect=[0.015, 0.015, 0.985, 0.985])
 
     plt.savefig("{}/{}_convergence.png".format(wd, root))
@@ -68,15 +75,15 @@ def plot_convergence(root: str, convergence: List[float], converging: List[float
 
 def get_convergence(root: str, wd: str = "./") -> None:
     """
+    Print out the convergence of a Python simulation and then create a detailed
+    plot of the convergence and convergence break down of the simulation.
 
     Parameters
     ----------
-    root
-    wd
-
-    Returns
-    -------
-
+    root: str
+        The root name of the Python simulation.
+    wd: str [optional]
+        The directory containing the Python simulation.
     """
 
     convergence = Simulation.check_convergence(root, wd, return_per_cycle=True)
@@ -84,7 +91,7 @@ def get_convergence(root: str, wd: str = "./") -> None:
     tr, te, te_max, hc = Simulation.check_convergence_criteria(root, wd)
 
     ncycles = len(convergence)
-    for i in range(ncycles - 1):
+    for i in range(ncycles):
         print("Cycle {:2d} / {:2d}: {:5.2f}% of cells converged and {:5.2f}% of cells are still converging"
               .format(i + 1, ncycles - 1, convergence[i] * 100, converging[i] * 100))
     print("")
