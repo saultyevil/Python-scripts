@@ -8,6 +8,39 @@ C = 299792458
 ANGSTROM = 1e-10
 
 
+def plot_line_id(ax: plt.Axes, LINES) -> plt.Axes:
+    """
+    Plot labels and vertical lines to indicate important atomic transitions.
+
+    Parameters
+    ----------
+    ax: plt.Axes
+        The Axes object to add line ID labels to.
+
+    Returns
+    -------
+    ax: plt.Axes
+        The input Axes object with additional line IDs.
+    """
+
+    xlims = ax.get_xlim()
+    nlines = len(LINES)
+
+    for i in range(nlines):
+        lab = LINES[i][0]
+        x = LINES[i][1]
+        if x < xlims[0]:
+            continue
+        elif x > xlims[1]:
+            continue
+        ax.axvline(x, ymax=1, linestyle="--", linewidth=0.45, color="k")
+        # xnorm = x - 0.05 * x
+        xnorm = x
+        ax.text(xnorm, 2e8, lab, ha="center", va="center", rotation="vertical", fontsize=13)
+
+    return ax
+
+
 def plot_for_model(root, model_fname, disc_fname, los, smooth=10, xlims=([100, 1000], [3000, 6000]),
                    ylims=([1e-7, 1e3], [1e0, 1e2])):
     """
@@ -55,11 +88,12 @@ def plot_for_model(root, model_fname, disc_fname, los, smooth=10, xlims=([100, 1
         ax[i].loglog(disc_x, SpectrumUtils.smooth_spectrum(disc_y, smooth), label="Disc")
         ax[i].set_xlabel(r"Frequency $\nu$", fontsize=15)
         ax[i].set_ylabel(r"$\nu$ F$_{\nu}$ [ergs s$^{-1}$ cm$^{-2}]$", fontsize=15)
-        ax[i].set_xlim(wmin, wmax)
         ax[i].set_ylim(ylims[i][0], ylims[i][1])
         ax[i].legend()
+        plot_line_id(ax[i], SpectrumUtils.common_lines(True))
+        ax[i].set_xlim(wmin, wmax)
 
-    fig.tight_layout(rect=[0.015, 0.015, 0.985, 0.985])
+    # fig.tight_layout(rect=[0.015, 0.015, 0.985, 0.985])
     plt.savefig("{}_disc_plot_i{}.png".format(root, los))
     plt.show()
 

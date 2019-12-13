@@ -13,8 +13,8 @@ def convert_to_wavelength(phot_energy: float):
 
     Parameters
     ----------
-    phot_energy      float
-                     The energy of the photon in eV
+    phot_energy: float
+         The energy of the photon in eV
 
     Returns
     -------

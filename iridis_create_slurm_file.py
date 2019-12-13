@@ -6,20 +6,6 @@ The purpose of this script is to automatically generate a *.slurm file for a
 Python simulation given sensible inputs. This script can also be used to
 update an already existing .slurm file, for example if one wishes to restart
 a Python simulation.
-
-usage: iridis_create_slurm_file.py [-h] [-flags FLAGS] [-vers VERS]
-                                   name root ncores thours
-
-positional arguments:
-  name          The name of the slurm file, i.e. name.slurm
-  root          The root name of the Python simulation
-  ncores        The number of CPUs to use
-  thours        The maximum run time to run
-
-optional arguments:
-  -h, --help    show this help message and exit
-  -flags FLAGS  Any flags to pass to Python
-  -vers VERS    The version of Python to use
 """
 
 

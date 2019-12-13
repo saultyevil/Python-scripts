@@ -208,13 +208,13 @@ def main(argc: int, argv: List[str]):
 
     plot_against_data(["ztodo_iridis/models/smooth/cv/solar/tde_cv.spec",
                        "ztodo_iridis/models/smooth/cv/cno/tde_cv.spec"],
-                      "matrix_bb/paper_models/disk_spectra/cv/tde_cv.spec",
+                      "ztodo_iridis/models/disc/cv/tde_cv.spec",
                       ["60", "75"],
                       "smooth")
 
     plot_against_data(["ztodo_iridis/models/smooth/cv/solar/tde_cv.spec",
                        "ztodo_iridis/models/clump/1e-1/cv/solar/tde_cv.spec"],
-                      "matrix_bb/paper_models/disk_spectra/cv/tde_cv.spec",
+                      "ztodo_iridis/models/disc/cv/tde_cv.spec",
                       ["60", "75"],
                       "clump")
 

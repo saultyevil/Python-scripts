@@ -5,13 +5,6 @@
 The purpose of this script is to find .slurm files recursively from the calling
 directory and then then add these .slurm files to the Iridis 5 queue - or any
 HPC cluster which uses slurm.
-
-Usage:
-
-    [python] iridis_add_to_que.py [-check] [-h]
-
-        - check     Prints the slurm files found and then exits
-        - h         Prints this help message and then exits
 """
 
 

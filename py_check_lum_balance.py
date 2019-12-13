@@ -24,7 +24,8 @@ def get_input():
 
     Returns
     -------
-
+    args.root: str
+        The root name of the Python simulation.
     """
 
     p = ap.ArgumentParser(description=__doc__)
@@ -36,6 +37,8 @@ def get_input():
 
 def check_luminosity_balance(root: str, wd: str = "./"):
     """
+    Check the luminosity before and after trans_phot for a Python simulation.
+    This function will also create a plot of the relative change.
 
     Parameters
     ----------
@@ -70,7 +73,7 @@ def check_luminosity_balance(root: str, wd: str = "./"):
     plt.axhline(1, color="k", linestyle="--", label="No Change")
     plt.xlim(1, len(luminosity_after) + 1)
     plt.xlabel("Cycle")
-    plt.ylabel("Luminosity after transphot / luminosity before transphot")
+    plt.ylabel("Luminosity Ratio")
     plt.legend()
     plt.savefig("{}_luminosity_balance.png".format(root))
     plt.show()

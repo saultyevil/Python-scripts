@@ -67,8 +67,8 @@ def plot_convergence(root: str, convergence: List[float], converging: List[float
     ax.set_ylabel("Fraction of Cells Passed")
     ax.set_title("Final Convergence = {:4.2f}%".format(float(convergence[-1]) * 100))
     fig.tight_layout(rect=[0.015, 0.015, 0.985, 0.985])
-
     plt.savefig("{}/{}_convergence.png".format(wd, root))
+    plt.close()
 
     return
 

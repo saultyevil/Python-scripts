@@ -48,7 +48,7 @@ def get_xray_edges(elements: List[str], wmin: float, wmax: float):
         keys = edges.keys()
         prev_key = "K"
         for key in keys:
-            # This bit will skip edges which have the same energy
+            # This bit will skip edges which have the same energy, I hope
             if prev_key != key:
                 if edges[prev_key][0] == edges[key][0]:
                     continue
@@ -57,10 +57,9 @@ def get_xray_edges(elements: List[str], wmin: float, wmax: float):
             frequency = energy / HEV
             wavelength = C / frequency / ANGSTROM
             print("{:9.1f} {:1.12e} {:13.1f}".format(energy, frequency, wavelength))
-
-            if wavelength > wmin and wavelength < wmax:
-                output_table_line = "{:4s} {:9.1f} {:1.12e} {:13.1f}\n"\
-                    .format(elements[i], energy, frequency, wavelength)
+            if wmin < wavelength < wmax:
+                output_table_line = "{:4s} {:9.1f} {:1.12e} {:13.1f}\n".format(
+                        elements[i], energy, frequency, wavelength)
                 output_table.append(output_table_line)
         print()
     print("-" * COL_LEN)

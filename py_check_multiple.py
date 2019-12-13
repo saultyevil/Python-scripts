@@ -16,6 +16,7 @@ from PyPython import Simulation, Utils
 
 def check_multiple(wdpf: List[str]) -> None:
     """
+    Get the convergence for multiple simulations given by the list wdpf.
 
     Parameters
     ----------

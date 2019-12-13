@@ -336,9 +336,9 @@ def main(argc: int, argv: List[str]) -> None:
                   "ztodo_iridis/models/smooth/agn/cno/tde_agn.spec",
                   "ztodo_iridis/models/smooth/spherical/cno/tde_spherical.spec"]
 
-    disk = ["matrix_bb/paper_models/disk_spectra/cv/tde_cv.spec",
-            "matrix_bb/paper_models/disk_spectra/agn/tde_agn.spec",
-            "matrix_bb/paper_models/disk_spectra/spherical/tde_spherical.spec"]
+    disk = ["matrix_bb/paper_models/disc/cv/tde_cv.spec",
+            "matrix_bb/paper_models/disc/agn/tde_agn.spec",
+            "matrix_bb/paper_models/disc/spherical/tde_spherical.spec"]
 
     fig, ax = model_comparison(solar_smooth.copy(), disk, "_solar_cno_smooth_abundances", wmin, wmax,
                                label="Solar Abundance", return_figure=True)

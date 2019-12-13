@@ -314,9 +314,9 @@ def plot_spec_tde(root: str, wd: str) -> None:
 
     nincs = len(incs)
 
-    commands = ["cd {}; tde_spec_plot.py {}".format(wd, root)]
+    commands = ["cd {}; tde_spec_plot.py {} -wmin 100 -wmax 10000".format(wd, root)]
     for i in range(nincs):
-        commands.append("cd {}; tde_spec_plot.py {} -i {}".format(wd, root, incs[i]))
+        commands.append("cd {}; tde_spec_plot.py {} -i {} -wmin 100 -wmax 10000".format(wd, root, incs[i]))
 
     for command in commands:
         Log.log(command)

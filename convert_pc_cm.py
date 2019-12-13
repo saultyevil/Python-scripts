@@ -90,14 +90,6 @@ def pc_to_cm(dist_pc, OoM):
 def main():
     """
     Main steering function.
-
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    None
     """
 
     dist_pc, OoM = parse_distance()
