@@ -93,7 +93,7 @@ def get_convergence(root: str, wd: str = "./") -> None:
     ncycles = len(convergence)
     for i in range(ncycles):
         print("Cycle {:2d} / {:2d}: {:5.2f}% of cells converged and {:5.2f}% of cells are still converging"
-              .format(i + 1, ncycles - 1, convergence[i] * 100, converging[i] * 100))
+              .format(i + 1, ncycles, convergence[i] * 100, converging[i] * 100))
     print("")
 
     plot_convergence(root, convergence, converging, tr, te, te_max, hc, wd)
