@@ -5,7 +5,6 @@ import sys
 import numpy as np
 import time
 from matplotlib import pyplot as plt
-import stretchy_plot_photons as pspw
 
 
 CHAND_SLAB_SOL = np.array(
