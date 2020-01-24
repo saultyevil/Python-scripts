@@ -36,7 +36,7 @@ def plot_line_id(ax: plt.Axes, LINES) -> plt.Axes:
         ax.axvline(x, ymax=1, linestyle="--", linewidth=0.45, color="k")
         # xnorm = x - 0.05 * x
         xnorm = x
-        ax.text(xnorm, 2e8, lab, ha="center", va="center", rotation="vertical", fontsize=13)
+        ax.text(xnorm, 1, lab, ha="center", va="center", rotation="vertical", fontsize=13)
 
     return ax
 
@@ -93,9 +93,52 @@ def plot_for_model(root, model_fname, disc_fname, los, smooth=10, xlims=([100, 1
         plot_line_id(ax[i], SpectrumUtils.common_lines(True))
         ax[i].set_xlim(wmin, wmax)
 
-    # fig.tight_layout(rect=[0.015, 0.015, 0.985, 0.985])
+    fig.tight_layout(rect=[0.015, 0.015, 0.985, 0.985])
     plt.savefig("{}_disc_plot_i{}.png".format(root, los))
-    plt.show()
+    plt.close()
+
+    return
+
+
+def compare_disc_inclinations(root: str, fname: str):
+    """
+
+    Parameters
+    ----------
+    root: str
+        The root name of the Python simulation
+    fname: str
+        The file name for the disc spectrum
+    """
+
+    disc = SpectrumUtils.read_spec(fname)
+    inclinations = SpectrumUtils.spec_inclinations(disc)
+
+    fig, ax = plt.subplots(1, 1, figsize=(12, 5))
+    for los in inclinations:
+        los = str(los)
+        ax.semilogy(disc["Lambda"].values.astype(float), disc[los].values.astype(float), label=los)
+    ax.legend()
+    ax.set_ylabel(r"F$_{\lambda}$ [ergs s$^{-1}$ cm$^{-2}$ $\AA^{-1}$]", fontsize=15)
+    ax.set_xlabel(r"Wavelength $\AA$", fontsize=15)
+    ax.set_xlim(100, 10000)
+
+    fig.tight_layout(rect=[0.015, 0.015, 0.985, 0.985])
+    plt.savefig("{}_disc_comparison.png".format(root))
+    plt.close()
+
+    fig, ax = plt.subplots(1, 1, figsize=(12, 5))
+    for los in inclinations:
+        los = str(los)
+        ax.semilogy(disc["Lambda"].values.astype(float), SpectrumUtils.smooth_spectrum(disc[los].values.astype(float), 100), label=los)
+    ax.legend()
+    ax.set_ylabel(r"F$_{\lambda}$ [ergs s$^{-1}$ cm$^{-2}$ $\AA^{-1}$]", fontsize=15)
+    ax.set_xlabel(r"Wavelength $\AA$", fontsize=15)
+    ax.set_xlim(100, 1000)
+
+    fig.tight_layout(rect=[0.015, 0.015, 0.985, 0.985])
+    plt.savefig("{}_disc_comparison_reduced.png".format(root))
+    plt.close()
 
     return
 
@@ -109,11 +152,32 @@ def main():
 
     model_spec = root_directory + "/ztodo_iridis/models/clump/1e-1/cv/solar/tde_cv.spec"
     disc_spec = root_directory + "/ztodo_iridis/models/disc/cv/tde_cv.spec"
+    compare_disc_inclinations("tde_cv", disc_spec)
     for los in ["10", "30", "45", "60", "75", "85"]:
         if los == "85":
             plot_for_model("tde_cv", model_spec, disc_spec, los, ylims=([1e-7, 1e3], [1e-2, 1e2]))
         else:
             plot_for_model("tde_cv", model_spec, disc_spec, los)
+
+    model_spec = root_directory + "/ztodo_iridis/models/clump/1e-1/agn/solar/tde_agn.spec"
+    disc_spec = root_directory + "/ztodo_iridis/models/disc/agn/tde_agn.spec"
+    compare_disc_inclinations("tde_agn", disc_spec)
+    for los in ["10", "30", "45", "60", "75", "85"]:
+        if los == "85":
+            plot_for_model("tde_agn", model_spec, disc_spec, los, ylims=([1e-7, 1e3], [1e-2, 1e2]))
+        else:
+            plot_for_model("tde_agn", model_spec, disc_spec, los)
+
+    model_spec = root_directory + "/ztodo_iridis/models/clump/1e-1/spherical/solar/tde_spherical.spec"
+    disc_spec = root_directory + "/ztodo_iridis/models/disc/spherical/tde_spherical.spec"
+    compare_disc_inclinations("tde_cv", disc_spec)
+    for los in ["10", "30", "45", "60", "75", "85"]:
+        if los == "85":
+            plot_for_model("tde_spherical", model_spec, disc_spec, los, ylims=([1e-7, 1e3], [1e-2, 1e2]))
+        else:
+            plot_for_model("tde_spherical", model_spec, disc_spec, los)
+
+
 
     return
 

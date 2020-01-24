@@ -72,7 +72,7 @@ def get_xray_edges(elements: List[str], wmin: float, wmax: float):
 
 # Wavelength limits in Angstroms
 wmin = 100
-wmax = 1000
+wmax = 250
 
 # These are the current elements which we use in Python
 elements = ["H", "He", "C", "N", "O", "Ne", "Na", "Mg", "Al", "Si", "S", "Ar", "Ca", "Fe"]

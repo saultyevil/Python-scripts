@@ -7,6 +7,10 @@ import numpy as np
 from consts import *
 
 
+plt.rcParams['xtick.labelsize'] = 15
+plt.rcParams['ytick.labelsize'] = 15
+
+
 def plot_line_id(ax: plt.Axes, LINES) -> plt.Axes:
     """
     Plot labels and vertical lines to indicate important atomic transitions.
@@ -32,14 +36,14 @@ def plot_line_id(ax: plt.Axes, LINES) -> plt.Axes:
             continue
         elif x > xlims[1]:
             continue
-        ax.axvline(x, ymax=1, linestyle="--", linewidth=0.45, color="k")
-        xnorm = x - 0.05 * x
-        ax.text(xnorm, 2e8, lab, ha="center", va="center", rotation="vertical", fontsize=13)
+        # ax.axvline(x, ymin=0.75, ymax=0.98, linestyle="-", linewidth=2, color="k")
+        xnorm = x - 0.07 * x
+        ax.text(xnorm, 1.2e6, lab, ha="center", va="center", rotation="vertical", fontsize=13)
 
     return ax
 
 
-def plot_optical_depth(tau_fname: str, disk_fname: str, extra: str, lims = None):
+def plot_optical_depth(tau_fname: str, disk_fname: str, extra: str, lims=None, los="60"):
     """
     Plot the optical depth as a function of wavelength.
 
@@ -59,15 +63,10 @@ def plot_optical_depth(tau_fname: str, disk_fname: str, extra: str, lims = None)
     disc_spec = SpectrumUtils.read_spec(disk_fname)
     disklamb = disc_spec["Lambda"].values.astype(float)
     diskhz = disc_spec["Freq."].values.astype(float)
-    diskflux = disc_spec["60"].values.astype(float) * 4 * PI * (100 * PARSEC) ** 2 * disklamb
-
-    # https://hea-www.harvard.edu/~pgreen/figs/Conversions.pdf
-    #          Converts Flambda -> Fnu                                               so now it's nu * F_nu   and now it's nu * L nu
-    # diskflux = (disc_spec["Lambda"].values.astype(float) ** 2 * diskflux * 3.34e-19) * diskhz * 4 * PI * (100 * PARSEC) ** 2
+    diskflux = disc_spec[los].values.astype(float) * 4 * PI * (100 * PARSEC) ** 2 * disklamb
 
     spec = np.loadtxt(tau_fname)
-    wl = spec[:, 0]
-    freq = C / (wl * ANGSTROM)  # Because the optical depth thing doesn't output frequency
+    freq = spec[:, 1]
 
     with open(tau_fname, "r") as f:
         angles = f.readline().split()
@@ -77,26 +76,29 @@ def plot_optical_depth(tau_fname: str, disk_fname: str, extra: str, lims = None)
     for i in range(nangles):
         angles[i] = angles[i][1:3]
     angles = sorted(angles)
+    if angles[-1] == "re":
+        angles = angles[:-1]
     ninclinations = len(angles)
 
     ax2 = ax.twinx()
-    # for los in ["10", "30", "45", "60", "75", "85"]:
-    #     diskhz = disc_spec["Freq."].values.astype(float)
-    #     diskflux = disc_spec[los].values.astype(float)
-    #     diskflux *= disc_spec["Lambda"].values.astype(float) * 4 * PI * (100 * PARSEC) ** 2
-    #     ax2.loglog(diskhz, SpectrumUtils.smooth_spectrum(diskflux, 1), "--", zorder=0, label=los)
-    # ax2.legend(loc="center left")
-    ax2.loglog(diskhz, SpectrumUtils.smooth_spectrum(diskflux, 50), "k--", zorder=0)
+    ax2.loglog(diskhz, SpectrumUtils.smooth_spectrum(diskflux, 75), "k--", zorder=0)
     ax2.set_ylabel(r"$\nu$ L$_{\nu}$ [ergs s$^{-1}$]", fontsize=15)
 
+    columns = [0, 4.78e+25, 9.34e+25, 1.64e+26, 3.17e+26, 5.40e+26]
+
+    print(spec.shape)
+
     for i in range(ninclinations - 1):
-        ax.loglog(freq, spec[:, i + 2], label="i = {}".format(int(angles[i + 1])) + r"$^{\circ}$")
-    ax.legend(loc="upper right")
+        print(i, i + 1, i + 3)
+        ax.loglog(freq, spec[:, i + 3]) 
+
+    ax.legend(loc="center left")
     ax.set_ylabel(r"Optical Depth $\tau_{\nu}}$", fontsize=15)
     ax.set_xlabel(r"Frequency $\nu$ [Hz]", fontsize=15)
-    ax.tick_params(axis="x", labelsize=13)
-    ax.tick_params(axis="y", labelsize=13)
+    ax.tick_params(axis="x")
+    ax.tick_params(axis="y")
     ax.set_xlim(np.min(freq), np.max(freq))
+    ax.text(5e14, 4e1, "Electron Scattering", fontsize=13)
 
     if lims:
         ax.set_ylim(lims[0], lims[1])
@@ -117,22 +119,13 @@ def main():
     Main function of the script.
     """
 
-    root = "/home/saultyevil/Dropbox/DiskWinds/PySims/tde"
+    rroot = "/Users/saultyevil/Dropbox/DiskWinds/PySims/tde"
+    root = "/home/saultyevil/Dropbox/DiskWinds/PySims/tests/tau_diag/"
 
-    fname = root + "/paper_models/clump/1e-1/cv/solar/diag_tde_cv/tde_cv.tau_spec.diag"
-    disk_name = root + "/ztodo_iridis/models/disc/cv/tde_cv.spec"
-    # disk_name = root + "/ztodo_iridis/models/clump/1e-1/cv/solar/tde_cv.spec"
-    plot_optical_depth(fname, disk_name, "clumpy", (9e-6, 2e10))
-
-    fname = root + "/paper_models/clump/1e-1/agn/solar/diag_tde_agn/tde_agn.tau_spec.diag"
-    disk_name = root + "/ztodo_iridis/models/disc/agn/tde_agn.spec"
-    # disk_name = root + "/ztodo_iridis/models/clump/1e-1/cv/solar/tde_cv.spec"
-    plot_optical_depth(fname, disk_name, "clumpy", (1e-7, 2e10))
-
-    fname = root + "/paper_models/clump/1e-1/spherical/solar/diag_tde_spherical/tde_spherical.tau_spec.diag"
-    disk_name = root + "/ztodo_iridis/models/disc/spherical/tde_spherical.spec"
-    # disk_name = root + "/ztodo_iridis/models/clump/1e-1/cv/solar/tde_cv.spec"
-    plot_optical_depth(fname, disk_name, "clumpy", (1e-2, 2e10))
+    fname = rroot + "/ztodo_iridis/models/clump/1e-1/cv/solar/diag_tde_cv/tde_cv.tau_spec.diag"
+    fname = "/Users/saultyevil/DiskWinds/PySims/models_no_spec/clump/1e-1/cv/solar/diag_tde_cv/tde_cv.tau_spec.diag"
+    disk_name = rroot + "/ztodo_iridis/models/disc/cv/tde_cv.spec"
+    plot_optical_depth(fname, disk_name, "clumpy", (1, 1e7))
 
 
     return

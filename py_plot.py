@@ -277,9 +277,9 @@ def wind_plot(root: str, output_name: str, wind_names: List[str], wind_types: Li
     return
 
 
-def plot_tau_spec(root: str, wd: str = "./", plot_freq: bool = False, plot_edges: bool = True,
-                  wmin: Union[float, bool] = None, wmax: Union[float, bool] = None, semilogy: bool = True,
-                  loglog: bool = False) -> None:
+def plot_tau_spec(root: str, wd: str = "./", plot_freq: bool = True, plot_edges: bool = True,
+                  wmin: Union[float, bool] = None, wmax: Union[float, bool] = None, semilogy: bool = False,
+                  loglog: bool = True) -> None:
     """
     Create an optical depth spectrum for a Python simulation. Requires a
     root.tau_spec.diag file or something. The figure can be created as a
@@ -570,7 +570,7 @@ def main() -> None:
                           line_of_sights=inclination_angles, ndims=DIMS, subplot_dims=dims[i], fig_size=size[i])
 
         # REMOVE DATA SYMBOLIC LINK TO KEEP THINGS CLEAN FOR DROPBOX
-        Utils.remove_data_sym_links(path, VERBOSITY)
+        # Utils.remove_data_sym_links(path, VERBOSITY)
 
     elif len(input_simulations) > 1 and PLOTS != "spec":
         print("Can only plot {} when one root in folder :^)".format(PLOTS))

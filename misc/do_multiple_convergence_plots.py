@@ -11,7 +11,7 @@ for ii in range(len(pfs)):
     root, wd = Utils.split_root_directory(pfs[ii])
     print(pfs[ii])
     for jj in range(len(i)):
-        cmd = "cd {}; py_plot.py {} tau_spec; py_cell_convergence_plot.py python {} {}; py_plot_cell_spec.py {} {} {} {} {}"\
+        cmd = "cd {}; py_plot.py {} tau_spec; py_detailed_cell_convergence_plot.py python {} {}; py_plot_cell_spec.py {} {} {} {} {}"\
             .format(wd, root, i[jj], j[jj], root, nx, nz, i[jj], j[jj])
         sh = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
         stdout, stderr = sh.communicate()

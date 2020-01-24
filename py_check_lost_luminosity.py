@@ -6,6 +6,7 @@ from sys import exit
 
 
 wd = "/home/saultyevil/Dropbox/DiskWinds/PySims/tde/sanity_checks/cv_cno_f1e-2"
+wd = "./"
 root = "tde_cv"
 
 glob_directory = "{}/diag_{}/{}_*.diag".format(wd, root, root)
@@ -29,6 +30,7 @@ l_unknown = []
 for i in range(ndiag):
 
     diag = diag_files[i]
+
     try:
         with open(diag, "r") as f:
             lines = f.readlines()

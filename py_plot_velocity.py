@@ -8,10 +8,11 @@ py_plot.py or another similar plot.
 """
 
 import numpy as np
-import py_plot as pp
+from PyPython import WindPlot
 from matplotlib import pyplot as plt
 from typing import Union
 from PyPython import WindUtils
+from consts import C
 
 
 def plot_velocity_magnitude(root: str, projection: str, ret_mag: bool = False) -> Union[None, np.ndarray]:
@@ -46,10 +47,10 @@ def plot_velocity_magnitude(root: str, projection: str, ret_mag: bool = False) -
         return v
 
     if projection == "polar":
-        pp.polar_wind_plot(xx, yx, v, 0, "|v|", "wind", (1, 1))
+        WindPlot.create_polar_wind_plot(xx, yx, v, 0, "|v|", "wind", (1, 1))
     else:
         fig, ax = plt.subplots(1, 1, figsize=(12, 8), squeeze=False)
-        fig, ax = pp.rectilinear_wind_plot(fig, ax, xx, yx, v, 0, 0, "|v|", "wind")
+        fig, ax = WindPlot.create_rectilinear_wind_plot(xx, xz, v / C, "wind", "velocity")
 
     plt.savefig("{}.velocitymag.png".format(root))
     plt.close()
@@ -81,6 +82,8 @@ def plot_velocity_maps(root: str, projection: str):
     d = [vx, vy, vz, v]
     n = ["vx", "vy", "vz", "|v|"]
 
+    print(vx[:, 1])
+
     nrows = 2
     ncols = 2
     fig, ax = plt.subplots(nrows, ncols, figsize=(12, 8), squeeze=False)
@@ -89,9 +92,10 @@ def plot_velocity_maps(root: str, projection: str):
     for i in range(nrows):
         for j in range(ncols):
             if projection == "polar":
-                pp.polar_wind_plot(xx, yx, d[iidx], iidx, n[iidx], "wind", (2, 2))
+                # pp.polar_wind_plot(xx, yx, d[iidx], iidx, n[iidx], "wind", (2, 2))
+                pass
             else:
-                fig, ax = pp.rectilinear_wind_plot(fig, ax, xx, yx, d[iidx], i, j, n[iidx], "wind")
+                fig, ax = WindPlot.create_rectilinear_wind_plot(xx, xz, d[iidx], "wind", n[iidx], fig, ax, i, j)
             iidx += 1
 
     if projection == "rectilinear":
@@ -103,7 +107,7 @@ def plot_velocity_maps(root: str, projection: str):
 
 
 if __name__ == "__main__":
-    plot_velocity_maps("tde_agn", "rectilinear")
+    plot_velocity_maps("tde_cv", "rectilinear")
     # plot_velocity_maps("tde_spherical", "polar")
     # velocity_magnitude("tde_agn", "rectilinear")
     # velocity_magnitude("tde_spherical", "polar")

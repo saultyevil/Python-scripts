@@ -10,7 +10,7 @@ print(pfs)
 for i in range(len(pfs)):
     print(pfs[i])
     root, wd = Utils.split_root_directory(pfs[i])
-    sh = "cd {}; rm *.png; py_windsave_plot.py; py_check_run.py {}".format(wd, root)
+    sh = "cd {}; rm *.png; py_plot_windsaves.py; py_check_run.py {}".format(wd, root)
     cmd = Popen(sh, stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = cmd.communicate()
     if stderr:

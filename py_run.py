@@ -287,7 +287,7 @@ def plot_model(root: str, wd: str) -> None:
 
 def plot_spec_tde(root: str, wd: str) -> None:
     """
-    Use tde_spec_plot.py to create a comparison plot to the TDE iPTF15af.
+    Use py_plot_tde.py to create a comparison plot to the TDE iPTF15af.
 
     Parameters
     ----------
@@ -297,7 +297,7 @@ def plot_spec_tde(root: str, wd: str) -> None:
         The working directory for the Python simulation.
     """
 
-    path = which("tde_spec_plot.py")
+    path = which("py_plot_tde.py")
     if path == "":
         Log.log("{}:{}: tde_spec_path.py not in $PATH and executable".format(__file__, plot_spec_tde.__name__))
         return
@@ -314,9 +314,9 @@ def plot_spec_tde(root: str, wd: str) -> None:
 
     nincs = len(incs)
 
-    commands = ["cd {}; tde_spec_plot.py {} -wmin 100 -wmax 10000".format(wd, root)]
+    commands = ["cd {}; py_plot_tde.py {}".format(wd, root)]
     for i in range(nincs):
-        commands.append("cd {}; tde_spec_plot.py {} -i {} -wmin 100 -wmax 10000".format(wd, root, incs[i]))
+        commands.append("cd {}; py_plot_tde.py {} -i {}".format(wd, root, incs[i]))
 
     for command in commands:
         Log.log(command)
@@ -535,7 +535,8 @@ def run_python_simulation(root: str, wd: str, use_mpi: bool, n_cores: int, resta
         return 1
 
     # Construct shell command to run Python and use subprocess to run
-    command = "cd {}; Setup_Py_Dir; ".format(wd)
+    # command = "cd {}; Setup_Py_Dir; ".format(wd)
+    command = "cd {};".format(wd)
     if use_mpi:
         command += "mpirun -n {} ".format(n_cores)
     command += "{} ".format(PY_VERSION)

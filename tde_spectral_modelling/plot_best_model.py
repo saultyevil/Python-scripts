@@ -13,6 +13,9 @@ from matplotlib import pyplot as plt
 from typing import List
 from PyPython import SpectrumUtils
 
+plt.rcParams['xtick.labelsize'] = 15
+plt.rcParams['ytick.labelsize'] = 15
+
 if system() == "Darwin":
     sys.path.append("/Users/saultyevil/Scripts")
 else:
@@ -24,11 +27,11 @@ from consts import *
 SMOOTH = 10
 
 LINES = [
-    ["O VI", 0],
-    ["P V", 1118],
+    ["O VI", 1032],
+    ["P V", 0],
     ["N III]", 0],
     [r"Ly$\alpha$/N V", 1216],
-    ["", 1240],
+    ["", 1242],
     ["O I", 0],
     ["O V/Si IV", 1371],
     ["", 1400],
@@ -75,7 +78,7 @@ def plot_line_id(ax: plt.Axes) -> plt.Axes:
         elif x > xlims[1]:
             continue
 
-        ax.axvline(x, ymax=1, linestyle="--", linewidth=0.45, color="k")
+        ax.axvline(x, ymin=0.8, ymax=0.98, linestyle="-", linewidth=1.5, color="k")
         x = x - 25
         xnorm = (x - xlims[0]) / (xlims[1] - xlims[0])
         ax.text(xnorm, 0.90, lab, ha="center", va="center", rotation="vertical", transform=ax.transAxes, fontsize=13)
@@ -83,14 +86,13 @@ def plot_line_id(ax: plt.Axes) -> plt.Axes:
     return ax
 
 
-def plot_against_data(dfname: List[str], disk: str, inclinations: List[str], name: str):
+def plot_against_data(dfname: str, disk: str, inclinations: List[str], name: str):
     """
 
     Parameters
     ----------
-    dfname: List[str]
-        The file names of the models to plot - typically the solar and cno
-        abundance models are given.
+    dfname: str
+        The file name of the models to plot
     disk: str
         The file names of the disk conts. to plot
     inclinations: List[str]
@@ -101,94 +103,75 @@ def plot_against_data(dfname: List[str], disk: str, inclinations: List[str], nam
         and clump.
     """
 
-    alpha = 0.5
-    wmin = 1000
-    wmax = 3000
+    alpha = 0.8
+    wmin = 950
+    wmax = 3050
 
     iptf = tu.iptf15af_spec(SMOOTH)
     assa = tu.asassn14li_spec(SMOOTH)
+    fig, ax = plt.subplots(2, 1, figsize=(9.5, 12), sharex="col")
 
     if system() == "Darwin":
         pdir = "/Users/saultyevil/PySims/tde/"
     else:
         pdir = "/home/saultyevil/PySims/tde/"
-    for i in range(len(dfname)):
-        dfname[i] = pdir + dfname[i]
-    mspec = SpectrumUtils.read_spec(dfname[0])
-    cnospec = SpectrumUtils.read_spec(dfname[1])
-    disk_spec = SpectrumUtils.read_spec(pdir + disk)
 
-    fig, ax = plt.subplots(2, 1, figsize=(9.5, 11), sharex="col")
+    dfname = pdir + dfname
+    spec1 = SpectrumUtils.read_spec(dfname)
+    disc_spec = SpectrumUtils.read_spec(pdir + disk)
 
     inclination = inclinations[0]
-    mspec_wl = mspec["Lambda"].values.astype(float)
-    mspec_fl = mspec[inclination].values.astype(float)
-    mspec_fl *= (100 * PARSEC) ** 2 / (350 * 1e6 * PARSEC) ** 2
-    cnospec_wl = cnospec["Lambda"].values.astype(float)
-    cnospec_fl = cnospec[inclination].values.astype(float)
-    cnospec_fl *= (100 * PARSEC) ** 2 / (350 * 1e6 * PARSEC) ** 2
-    disk_wl = disk_spec["Lambda"].values.astype(float)
-    disk_fl = disk_spec[inclination].values.astype(float)
-    disk_fl *= (100 * PARSEC) ** 2 / (350 * 1e6 * PARSEC) ** 2
+    spec1_wl = spec1["Lambda"].values.astype(float)
+    spec1_flux = spec1[inclination].values.astype(float)
+    spec1_flux *= (100 * PARSEC) ** 2 / (350 * 1e6 * PARSEC) ** 2
+    disk_wl = disc_spec["Lambda"].values.astype(float)
+    disc_flux = disc_spec[inclination].values.astype(float)
+    disc_flux *= (100 * PARSEC) ** 2 / (350 * 1e6 * PARSEC) ** 2
 
-    if name == "smooth":
-        ax[0].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="Solar Abundance", zorder=4)
-        ax[0].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), "--", label="CNO Abundance",
-                       zorder=4)
-    elif name == "clump":
-        ax[0].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="f = 1", zorder=4)
-        ax[0].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), "--", label="f = 0.1", zorder=4)
-
-    ax[0].semilogy(disk_wl, SpectrumUtils.smooth_spectrum(disk_fl, 15), "-.", label="Disk Continuum")
+    ax[0].semilogy(spec1_wl, SpectrumUtils.smooth_spectrum(spec1_flux, SMOOTH), color="C0", linewidth=3,
+                   label=r"Model: i = {}".format(inclination) + r"$^{\circ}$", alpha=alpha, zorder=4)
+    ax[0].semilogy(disk_wl, SpectrumUtils.smooth_spectrum(disc_flux, 15), "--", color="C0", linewidth=1, alpha=alpha)
     ax[0].semilogy(iptf[:, 0] / (0.07897 + 1), SpectrumUtils.smooth_spectrum(iptf[:, 1], SMOOTH),
-                   "k", label=r"iPTF15af $\Delta t = $52 d", alpha=alpha, zorder=2)
-
+                   "k", label=r"iPTF15af $\Delta t = $52 d", zorder=2)
     ax[0].set_xlim(wmin, wmax)
-    ax[0].set_ylim(2e-17, 2e-14)
+    ax[0].set_ylim(2e-17, 4e-14)
     ax[0] = plot_line_id(ax[0])
-    ax[0].text(0.68, 0.06, r"$i = $" + inclination + r"$^{\circ}$", transform=ax[0].transAxes, fontsize=15)
-    ax[0].legend(loc="lower right", fontsize=9)
+    ax[0].legend(loc="lower right", fontsize=13)
+    ax[0].text(0.05, 0.05, "In-wind", ha="left", va="center", rotation="horizontal", fontsize=15,
+                  transform=ax[0].transAxes)
 
-    inclination = inclinations[1]
-    mspec_wl = mspec["Lambda"].values.astype(float)
-    mspec_fl = mspec[inclination].values.astype(float)
-    mspec_fl *= (100 * PARSEC) ** 2 / (90 * 1e6 * PARSEC) ** 2
-    cnospec_wl = cnospec["Lambda"].values.astype(float)
-    cnospec_fl = cnospec[inclination].values.astype(float)
-    cnospec_fl *= (100 * PARSEC) ** 2 / (90 * 1e6 * PARSEC) ** 2
-    disk_wl = disk_spec["Lambda"].values.astype(float)
-    disk_fl = disk_spec[inclination].values.astype(float)
-    disk_fl *= (100 * PARSEC) ** 2 / (90 * 1e6 * PARSEC) ** 2
+    colors = ["C0", "C1"]
 
-    if name == "smooth":
-        ax[1].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="Solar Abundance", zorder=4)
-        ax[1].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), "--", label="CNO Abundance",
-                       zorder=4)
-    elif name == "clump":
-        ax[1].semilogy(mspec_wl, SpectrumUtils.smooth_spectrum(mspec_fl, SMOOTH), label="f = 1", zorder=4)
-        ax[1].semilogy(cnospec_wl, SpectrumUtils.smooth_spectrum(cnospec_fl, SMOOTH), "--", label="f = 0.1", zorder=4)
+    for i in range(len(inclinations[1])):
+        inclination = inclinations[1][i]
+        spec1_wl = spec1["Lambda"].values.astype(float)
+        spec1_flux = spec1[inclination].values.astype(float)
+        spec1_flux *= (100 * PARSEC) ** 2 / (90 * 1e6 * PARSEC) ** 2
+        disk_wl = disc_spec["Lambda"].values.astype(float)
+        disc_flux = disc_spec[inclination].values.astype(float)
+        disc_flux *= (100 * PARSEC) ** 2 / (90 * 1e6 * PARSEC) ** 2
 
-    ax[1].semilogy(disk_wl, SpectrumUtils.smooth_spectrum(disk_fl, 15), "-.", label="Disk Continuum")
+        ax[1].semilogy(spec1_wl, SpectrumUtils.smooth_spectrum(spec1_flux, SMOOTH), color=colors[i], linewidth=3,
+                       label=r"Model: i = {}".format(inclination) + r"$^{\circ}$", alpha=alpha, zorder=4)
+        ax[1].semilogy(disk_wl, SpectrumUtils.smooth_spectrum(disc_flux, 15), "--", color=colors[i], linewidth=1,
+                       alpha=0.8)
+
     ax[1].semilogy(assa[:, 0] / (0.02058 + 1), SpectrumUtils.smooth_spectrum(assa[:, 1], SMOOTH),
-                   "k", label=r"ASASSN14li $\Delta t = $60 d", alpha=alpha, zorder=2)
-
+                   "k", label=r"ASASSN14li $\Delta t = $60 d", zorder=2)
     ax[1].set_xlim(wmin, wmax)
-    ax[1].set_ylim(4e-16, 2e-13)
+    ax[1].set_ylim(2e-16, 3e-12)
     ax[1] = plot_line_id(ax[1])
-    ax[1].text(0.67, 0.06, r"$i = $" + inclination + "$^{\circ}$", transform=ax[1].transAxes, fontsize=15)
-    ax[1].legend(loc="lower right", fontsize=9)
+    ax[1].legend(loc="lower right", fontsize=13)
+    ax[1].text(0.05, 0.05, "Outside wind", ha="left", va="center", rotation="horizontal", fontsize=15,
+                  transform=ax[1].transAxes)
 
-    fig.text(0.5, 0.02, r"Rest Wavelength [$\AA$]", ha="center", va="center", rotation="horizontal", fontsize=13)
+    fig.text(0.5, 0.02, r"Rest Wavelength $\lambda$ [$\AA$]", ha="center", va="center", rotation="horizontal", fontsize=15)
     fig.text(0.025, 0.5, r"Flux $F_{\lambda}$ [erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$]", ha="center", va="center",
-             rotation="vertical", fontsize=13)
+             rotation="vertical", fontsize=15)
+
     fig.tight_layout(rect=[0.03, 0.03, 0.97, 0.97])
     fig.subplots_adjust(hspace=0, wspace=0)
-
-    if name == "smooth":
-        plt.savefig("best_model_smooth.png")
-    elif name == "clump":
-        plt.savefig("best_model_clump.png")
-
+    plt.savefig("polar_clumped_wind.png")
     plt.show()
 
     return
@@ -206,17 +189,9 @@ def main(argc: int, argv: List[str]):
         The command line arguments provided
     """
 
-    plot_against_data(["ztodo_iridis/models/smooth/cv/solar/tde_cv.spec",
-                       "ztodo_iridis/models/smooth/cv/cno/tde_cv.spec"],
-                      "ztodo_iridis/models/disc/cv/tde_cv.spec",
-                      ["60", "75"],
-                      "smooth")
-
-    plot_against_data(["ztodo_iridis/models/smooth/cv/solar/tde_cv.spec",
-                       "ztodo_iridis/models/clump/1e-1/cv/solar/tde_cv.spec"],
-                      "ztodo_iridis/models/disc/cv/tde_cv.spec",
-                      ["60", "75"],
-                      "clump")
+    plot_against_data("models/clump/1e-1/cv/solar/tde_cv.spec",
+                      "models/disc/cv/tde_cv.spec",
+                      ["60", ["10", "75"]], "clumped_wind")
 
     return
 

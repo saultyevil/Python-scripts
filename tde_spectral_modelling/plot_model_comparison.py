@@ -20,9 +20,71 @@ from typing import List, Tuple, Union
 import numpy as np
 from PyPython import SpectrumUtils, Utils, WindUtils
 
+plt.rcParams['xtick.labelsize'] = 15
+plt.rcParams['ytick.labelsize'] = 15
+
 SMOOTH = 5
 VERBOSITY = False
 SKIP = -1
+
+LINES = [
+    ["O VI", 1032],
+    ["P V", 0],
+    ["N III]", 0],
+    [r"Ly$\alpha$/N V", 1216],
+    ["", 1240],
+    ["O I", 0],
+    ["O V/Si IV", 1371],
+    ["", 1400],
+    ["N IV]", 1489],
+    ["C IV",  1549],
+    ["He II", 1640],
+    ["O III]", 0],
+    ["N III]", 1750],
+    ["C III]", 1908],
+    ["Fe II", 0],
+    ["Fe II / CII]", 0],
+    ["Fe II", 0],
+    ["Fe II", 0],
+    ["Mg II", 2798],
+    ["He II", 4686],
+    [r"H$_{\beta}$", 4861],
+    [r"H$_{\alpha}$", 6564],
+]
+
+
+def plot_line_id(ax: plt.Axes) -> plt.Axes:
+    """
+    Plot labels and vertical lines to indicate important atomic transitions.
+
+    Parameters
+    ----------
+    ax: plt.Axes
+        The Axes object to add line ID labels to.
+
+    Returns
+    -------
+    ax: plt.Axes
+        The input Axes object with additional line IDs.
+    """
+
+    xlims = ax.get_xlim()
+    nlines = len(LINES)
+
+    for i in range(nlines):
+        lab = LINES[i][0]
+        x = LINES[i][1]
+        if x < xlims[0]:
+            continue
+        elif x > xlims[1]:
+            continue
+
+        ax.axvline(x, ymin=0.8, ymax=0.98, linestyle="-", linewidth=1.5, color="k")
+        x = x - 25
+        xnorm = (x - xlims[0]) / (xlims[1] - xlims[0])
+        ax.text(xnorm, 0.90, lab, ha="center", va="center", rotation="vertical", transform=ax.transAxes, fontsize=13)
+
+    return ax
 
 
 def sightline_coords(x: np.ndarray, theta: float):
@@ -46,7 +108,7 @@ def sightline_coords(x: np.ndarray, theta: float):
     return x * np.tan(np.pi / 2 - theta)
 
 
-def model_comparison(direcs: List[str], disk_specs: List[str] = None, extrafname: str = "", wmin: float = 800,
+def model_comparison(direcs: List[str], colour, disk_specs: List[str] = None, extrafname: str = "", wmin: float = 800,
                      wmax: float = 3600, label: str = None, return_figure: bool = False,
                      figure: Tuple[plt.Figure, plt.Axes] = None) -> Union[None, Tuple[plt.Figure, plt.Axes]]:
     """
@@ -100,27 +162,27 @@ def model_comparison(direcs: List[str], disk_specs: List[str] = None, extrafname
         except FileNotFoundError:
             modelspecs.append(SKIP)
 
-    ncols = 3
-    nrows = 4
+    ncols = 2
+    nrows = 3
 
     if figure:
         fig, ax = figure[0], figure[1]
         lstyle = "--"
     else:
-        fig, ax = plt.subplots(nrows, ncols, figsize=(11, 14.5), sharex="col", sharey="row")
+        fig, ax = plt.subplots(nrows, ncols, figsize=(13.5, 15.5), sharex="col", sharey="row")
         lstyle = "-"
 
-    #       CV    AGN   Spherical
-    incl = ["10", "10", "10",
-            "30", "30", "30",
-            "60", "60", "60",
-            "75", "75", "75"]
+    incl = ["10", "10",
+            "60", "60",
+            "75", "75"]
+
     iidx = 0
-    ylims = [(2e-3, 1), (2e-3, 0.8), (0.8e-3, 0.5), (1e-4, 0.2)]
+    ylims = [(1e-2, 0.4), (2e-4, 0.35), (2e-4, 0.35)]
+    alpha = 1.0
 
     for i in range(nrows):
         for j in range(ncols):
-            if type(modelspecs[j]) ==  type(SKIP):
+            if type(modelspecs[j]) == type(SKIP):
                 continue
             wl = modelspecs[j]["Lambda"].values.astype(float)
             try:
@@ -131,7 +193,8 @@ def model_comparison(direcs: List[str], disk_specs: List[str] = None, extrafname
                 print("Current headings: ", modelspecs[j].columns.values)
                 iidx += 1
                 continue
-            ax[i, j].semilogy(wl, SpectrumUtils.smooth_spectrum(fl, SMOOTH), lstyle, label=label, zorder=3)
+            ax[i, j].semilogy(wl, SpectrumUtils.smooth_spectrum(fl, SMOOTH), lstyle, label=label, linewidth=3, zorder=3,
+                              color=colour, alpha=alpha)
             ax[i, j].set_xlim(wmin, wmax)
             ax[i, j].set_ylim(ylims[i])
 
@@ -149,44 +212,52 @@ def model_comparison(direcs: List[str], disk_specs: List[str] = None, extrafname
                     print("Unable to find inclination {} in disk spectrum {}".format(incl[iidx], disk_specs[j]))
                     iidx += 1
                     continue
-                ax[i, j].semilogy(dwl, SpectrumUtils.smooth_spectrum(dfl, 15), "-.", alpha=0.5, zorder=2,
-                                  label="Disk Continuum")
+                ax[i, j].semilogy(dwl, SpectrumUtils.smooth_spectrum(dfl, 15), "k-.", alpha=0.8, zorder=2,
+                                  label="Disc Model")
+                plot_line_id(ax[i, j])
                 iidx += 1
 
     mnames = ["Polar Wind Model", "Equatorial Wind Model", "Spherical Wind Model"]
     for i in range(ncols):
-        ax[0, i].text(0.5, 1.1, mnames[i], va="center", ha="center", rotation="horizontal", fontsize=13,
+        ax[0, i].text(0.5, 1.1, mnames[i], va="center", ha="center", rotation="horizontal", fontsize=15,
                       transform=ax[0, i].transAxes)
-        ax[-1, i].tick_params(axis="x", rotation=30, labelsize=12)
 
-    incls = ["10", "30", "60", "75"]
+    incls = ["10", "60", "75"]
+    comment = [" : outside wind", " : in-wind", " : outside wind"]
     for i in range(nrows):
-        ax[i, 0].tick_params(axis="y", labelsize=12)
-        tstr = r"$i = $" + incls[i] + r"$^{\circ}$"
-        ax[i, -1].text(0.85, 0.93, tstr, ha="center", va="center", rotation="horizontal", fontsize=12,
-                    transform=ax[i, -1].transAxes)
+        tstr = r"$i = $" + incls[i] + r"$^{\circ}$" + comment[i]
+        ax[i, 0].text(0.77, 0.10, tstr, ha="center", va="center", rotation="horizontal", fontsize=15,
+                    transform=ax[i, 0].transAxes)
+    comment = [" : outside wind", " : outside wind", " : in-wind"]
+    for i in range(nrows):
+        tstr = r"$i = $" + incls[i] + r"$^{\circ}$" + comment[i]
+        ax[i, 1].text(0.77, 0.10, tstr, ha="center", va="center", rotation="horizontal", fontsize=15,
+                    transform=ax[i, 1].transAxes)
 
     if figure:
-        ax[-1, 0].legend(loc="lower center")
+        ax[-1, 0].legend(loc="lower left", fontsize=13)
 
-    fig.text(0.5, 0.02, r"Rest Wavelength [$\AA$]", ha="center", va="center", rotation="horizontal", fontsize=15)
+    fig.text(0.5, 0.02, r"Wavelength $\lambda$ [$\AA$]", ha="center", va="center", rotation="horizontal", fontsize=17)
     fig.text(0.025, 0.5, r"Flux $F_{\lambda}$  at 100 pc [erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$]", ha="center", va="center",
-             rotation="vertical", fontsize=15)
+             rotation="vertical", fontsize=17)
     fig.tight_layout(rect=[0.03, 0.03, 0.97, 0.97])
     fig.subplots_adjust(hspace=0, wspace=0)
 
-    fname = "tde_model_comparison"
+    fname = "comparison"
     if extrafname:
         fname += extrafname
     fname += ".png"
 
     if not return_figure:
         plt.savefig(fname)
-        plt.show(block=False)
+        plt.close()
     else:
         return fig, ax
 
     return
+
+
+import numpy.ma as ma
 
 
 def wind_geos(direcs) -> Union[plt.Figure, list]:
@@ -206,8 +277,8 @@ def wind_geos(direcs) -> Union[plt.Figure, list]:
         A list containing plt.Axes for each panel of the figure
     """
 
-    nplots = 5
-    incls = ["10", "30", "60", "75"]
+    nplots = 4
+    incls = ["10", "60", "75"]
     lstyle = ["k-", "k--", "k-.", "k:"]
 
     if system() == "Darwin":
@@ -215,84 +286,66 @@ def wind_geos(direcs) -> Union[plt.Figure, list]:
     else:
         pdir = "/home/saultyevil/PySims/tde/"
 
+    colormap = "t_e"
+
     modelwind = []
-    coords = ["rectilinear", "rectilinear", "polar"]
-    for i in range(len(direcs)):
+    coords = ["rectilinear", "rectilinear"]
+    for i in range(len(coords)):
         direcs[i] = pdir + direcs[i]
         root, wd = Utils.split_root_directory(direcs[i])
-        wx, wz, ww = WindUtils.extract_wind_var(root, "rho", "wind", wd, coords[i])
+        wx, wz, ww = WindUtils.extract_wind_var(root, colormap, "wind", wd, coords[i])
+        for j in range(ww.shape[0]):
+            for k in range(ww.shape[1]):
+                if ww[j, k] < 100 and type(ww[j, k]) == np.float64:
+                    ww[j, k] = 100
         modelwind.append([wx, wz, np.log10(ww)])
 
-    fig = plt.figure(figsize=(15, 8))
-    ax1 = plt.subplot(2, 3, 1)
-    ax2 = plt.subplot(2, 3, 2)
-    ax3 = plt.subplot(2, 3, 3, projection="polar")
-    ax4 = plt.subplot(2, 3, 4)
-    ax5 = plt.subplot(2, 3, 5)
-    ax = [ax1, ax2, ax3, ax4, ax5]
+    fig = plt.figure(figsize=(14, 10))
+    ax1 = plt.subplot(2, 2, 1)
+    ax2 = plt.subplot(2, 2, 2)
+    ax3 = plt.subplot(2, 2, 3)
+    ax4 = plt.subplot(2, 2, 4)
+    ax = [ax1, ax2, ax3, ax4]
 
     for i in range(nplots):
         # Log-Log plots
-        if i < 3:
+        if i < len(coords):
             wx, wz, ww = modelwind[i]
-            if coords[i] != "polar":
-                im = ax[i].pcolor(np.log10(wx), np.log10(wz), ww)
-                ax[i].set_xlim(np.log10(wx[1, 1]), np.log10(wx[-1, -1]))
-                ax[i].set_ylim(np.log10(wz[1, 1]), np.log10(wz[-1, -1]))
-                ax[i].set_xlabel("Log[x] [cm]")
-                ax[i].set_ylabel("Log[z] [cm]")
-            else:
-                ax[i].set_theta_zero_location("N")
-                ax[i].set_theta_direction(-1)
-                im = ax[i].pcolor(wz, np.log10(wx), ww)
-                ax[i].set_thetamin(0)
-                ax[i].set_thetamax(90)
-                ax[i].set_rlim(np.log10(wx[1][0]), np.log10(wx[-2][0]))
-                ax[i].set_xticklabels([])
-                ax[i].set_ylabel("Log[R] [cm]")
-                ax[i].set_rlabel_position(90)
+            im = ax[i].pcolor(np.log10(wx), np.log10(wz), ww)
+            ax[i].set_xlim(np.log10(wx[1, 1]), np.log10(wx[-1, -1]))
+            ax[i].set_ylim(np.log10(wz[1, 1]), np.log10(wz[-1, -1]))
+            ax[i].set_xlabel("Log[x] [cm]", fontsize=15)
+            ax[i].set_ylabel("Log[z] [cm]", fontsize=15)
             plt.colorbar(im, ax=ax[i])
             for j in range(len(incls)):
-                if coords[i] != "polar":
-                    xsight = np.linspace(0, np.max(wx), 1e5)
-                    zsight = sightline_coords(xsight, np.deg2rad(float(incls[j])))
-                    ax[i].plot(np.log10(xsight), np.log10(zsight), lstyle[j],
-                               label=incls[j] + r"$^{\circ}$ sightline")
-                else:
-                    xsight = np.linspace(0, 1e17, 1e5)
-                    zsight = sightline_coords(xsight, np.deg2rad(90 - float(incls[j])))
-                    rsight = np.sqrt(xsight ** 2 + zsight ** 2)
-                    thetasight = np.arctan(zsight / xsight)
-                    ax[i].plot(thetasight, np.log10(rsight), lstyle[j], label=incls[j] + r"$^{\circ}$ sightline")
+                xsight = np.linspace(0, np.max(wx), 1e5)
+                zsight = sightline_coords(xsight, np.deg2rad(float(incls[j])))
+                ax[i].plot(np.log10(xsight), np.log10(zsight), lstyle[j],
+                           label=incls[j] + r"$^{\circ}$ sightline")
         # Lin-Lin plots
         else:
             ii = i - 3
             wx, wz, ww = modelwind[ii]
-            if coords[ii] != "polar":
-                im = ax[i].pcolor(wx, wz, ww)
-                ax[i].set_xlim(wx[1, 1], 5.5e17)
-                ax[i].set_ylim(wz[1, 1], 5.5e17)
-                ax[i].set_xlabel("x [cm]")
-                ax[i].set_ylabel("z [cm]")
-            else:
-                continue
+            im = ax[i].pcolor(wx / 1e17, wz / 1e17, ww)
+            ax[i].set_xlim(wx[1, 1] / 1e17, 5.5e17 / 1e17)
+            ax[i].set_ylim(wz[1, 1] / 1e17, 5.5e17 / 1e17)
+            ax[i].set_xlabel("x ($10^{17}$) [cm]", fontsize=15)
+            ax[i].set_ylabel("z ($10^{17}$) [cm]", fontsize=15)
             plt.colorbar(im, ax=ax[i])
             for j in range(len(incls)):
-                if coords[ii] != "polar":
-                    xsight = np.linspace(0, np.max(wx), 1e5)
-                    zsight = sightline_coords(xsight, np.deg2rad(float(incls[j])))
-                    ax[i].plot(xsight, zsight, lstyle[j], label=incls[j] + r"$^{\circ}$ sightline")
+                xsight = np.linspace(0, np.max(wx), 1e5)
+                zsight = sightline_coords(xsight, np.deg2rad(float(incls[j])))
+                ax[i].plot(xsight, zsight, lstyle[j], label=incls[j] + r"$^{\circ}$ sightline")
 
     ax[0].legend(loc="lower right")
 
-    mnames = ["Polar Wind Model", "Equatorial Wind Model", "Spherical Wind Model"]
-    for i in range(3):
+    mnames = ["Polar Wind Model", "Equatorial Wind Model"]
+    for i in range(len(mnames)):
         ax[i].text(0.5, 1.1, mnames[i], va="center", ha="center", rotation="horizontal", fontsize=13,
                    transform=ax[i].transAxes)
 
     fig.tight_layout(rect=[0.03, 0.03, 0.97, 0.97])
-    
-    plt.savefig("tde_model_comparison_wind_geo.png")
+    plt.savefig("comparison_wind_geo_{}.png".format(colormap))
     plt.show(block=True)
 
     return fig, ax
@@ -310,8 +363,8 @@ def main(argc: int, argv: List[str]) -> None:
         The command line arguments provided
     """
 
-    wmin = 900
-    wmax = 2100
+    wmin = 950
+    wmax = 2050
 
     if argc == 3:
         try:
@@ -322,48 +375,52 @@ def main(argc: int, argv: List[str]) -> None:
         try:
             wmax = float(argv[2])
         except ValueError:
-            print("Could not convert wmax = {} intoig, ax,  float".format(argv[2]))
+            print("Could not convert wmax = {} into float".format(argv[2]))
             exit(1)
     elif argc != 1:
         print(__doc__)
         exit(1)
 
-    solar_smooth = ["ztodo_iridis/models/smooth/cv/solar/tde_cv.spec",
-                    "ztodo_iridis/models/smooth/agn/solar/tde_agn.spec",
-                    "ztodo_iridis/models/smooth/spherical/solar/tde_spherical.spec"]
+    solar_smooth = ["models/smooth/cv/solar/tde_cv.spec",
+                    "models/smooth/agn/solar/tde_agn.spec"]
+                    # "ztodo_iridis/models/smooth/spherical/solar/tde_spherical.spec"]
 
-    cno_smooth = ["ztodo_iridis/models/smooth/cv/cno/tde_cv.spec",
-                  "ztodo_iridis/models/smooth/agn/cno/tde_agn.spec",
-                  "ztodo_iridis/models/smooth/spherical/cno/tde_spherical.spec"]
+    cno_smooth = ["models/smooth/cv/cno/tde_cv.spec",
+                  "models/smooth/agn/cno/tde_agn.spec"]
+                  # "ztodo_iridis/models/smooth/spherical/cno/tde_spherical.spec"]
 
-    disk = ["matrix_bb/paper_models/disc/cv/tde_cv.spec",
-            "matrix_bb/paper_models/disc/agn/tde_agn.spec",
-            "matrix_bb/paper_models/disc/spherical/tde_spherical.spec"]
+    solar_clump = ["models/clump/1e-1/cv/solar/tde_cv.spec",
+                   "models/clump/1e-1/agn/solar/tde_agn.spec"]
+                   # "ztodo_iridis/models/clump/1e-1/spherical/solar/tde_spherical.spec"]
 
-    fig, ax = model_comparison(solar_smooth.copy(), disk, "_solar_cno_smooth_abundances", wmin, wmax,
-                               label="Solar Abundance", return_figure=True)
-    model_comparison(cno_smooth.copy(), disk, "_solar_cno_smooth_abundances", wmin, wmax, return_figure=False,
-                     figure=(fig, ax), label="CNO Processed Abundance\nHe = 2 x Solar\nC = 0.5 x Solar\nN = 7 x Solar")
+    cno_clump = ["models/clump/1e-1/cv/cno/tde_cv.spec",
+                 "models/clump/1e-1/agn/cno/tde_agn.spec"]
+                 # "ztodo_iridis/models/clump/1e-1/spherical/cno/tde_spherical.spec"]
 
-    solar_clump = ["ztodo_iridis/models/clump/1e-1/cv/solar/tde_cv.spec",
-                   "ztodo_iridis/models/clump/1e-1/agn/solar/tde_agn.spec",
-                   "ztodo_iridis/models/clump/1e-1/spherical/solar/tde_spherical.spec"]
+    disk = ["models/disc/cv/tde_cv.spec",
+            "models/disc/agn/tde_agn.spec"]
+            # "ztodo_iridis/models/disc/spherical/tde_spherical.spec"]
 
-    cno_clump = ["ztodo_iridis/models/clump/1e-1/cv/cno/tde_cv.spec",
-                 "ztodo_iridis/models/clump/1e-1/agn/cno/tde_agn.spec",
-                 "ztodo_iridis/models/clump/1e-1/spherical/cno/tde_spherical.spec"]
-    
-    fig, ax = model_comparison(solar_smooth.copy(), disk, "_solar_clump", wmin, wmax, label="f = 1", return_figure=True)
-    model_comparison(solar_clump.copy(), disk, "_solar_clump", wmin, wmax, label="f = 0.1", return_figure=False,
-                     figure=(fig, ax))
+    # fig, ax = model_comparison(solar_smooth.copy(), "C2", disk, "_solar_cno_smooth_abundances", wmin, wmax,
+    #                            label="Solar Abundances", return_figure=True)
+    # model_comparison(cno_smooth.copy(), "C1", disk, "_solar_cno_smooth_abundances", wmin, wmax, return_figure=False,
+    #                  figure=(fig, ax), label="CNO Abundances\nHe = 2 x Solar\nC = 0.5 x Solar\nN = 7 x Solar")
+    #
+    # fig, ax = model_comparison(solar_smooth.copy(), "C2", disk, "_solar_clump", wmin, wmax, label=r"$f_{v}$ = 1", return_figure=True)
+    # model_comparison(solar_clump.copy(), "C0", disk, "_solar_clump", wmin, wmax, label=r"$f_{v}$ = 0.1", return_figure=False,
+    #                  figure=(fig, ax))
+    #
+    # fig, ax = model_comparison(solar_clump.copy(), "C0", disk, "_solar_cno_clump", wmin, wmax,
+    #                            label=r"$f_{v}$ = 0.1" + "\nSolar Abundances", return_figure=True)
+    # model_comparison(cno_clump.copy(), "C1", disk, "_solar_cno_clump", wmin, wmax,
+    #                  label=r"$f_{v}$ = 0.1" + "\nCNO Abundances\nHe = 2 x Solar\nC = 0.5 x Solar\nN = 7 x Solar", return_figure=False,
+    #                  figure=(fig, ax))
 
-    fig, ax = model_comparison(solar_clump.copy(), disk, "_solar_cno_clump", wmin, wmax,
-                               label="Solar Abundance: f = 0.1", return_figure=True)
-    model_comparison(cno_clump.copy(), disk, "_solar_cno_clump", wmin, wmax,
-                     label="CNO Processed Abundance: f = 0.1", return_figure=False,
-                     figure=(fig, ax))
-
+    solar_smooth = ["models/smooth/cv/solar/tde_cv.spec",
+                    "models/smooth/agn/solar/tde_agn.spec"]
     wind_geos(solar_smooth.copy())
+
+    plt.close()
 
     return
 

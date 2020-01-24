@@ -7,6 +7,9 @@ import numpy as np
 from matplotlib import pyplot as plt
 from PyPython import SpectrumUtils
 
+plt.rcParams['xtick.labelsize'] = 16
+plt.rcParams['ytick.labelsize'] = 16
+
 if system() == "Darwin":
     sys.path.append("/Users/saultyevil/Scripts")
 else:
