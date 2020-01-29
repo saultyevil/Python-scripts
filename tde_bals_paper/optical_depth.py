@@ -6,7 +6,6 @@ from matplotlib import pyplot as plt
 import numpy as np
 from consts import *
 
-
 plt.rcParams['xtick.labelsize'] = 15
 plt.rcParams['ytick.labelsize'] = 15
 
@@ -38,7 +37,7 @@ def plot_line_id(ax: plt.Axes, LINES) -> plt.Axes:
             continue
         # ax.axvline(x, ymin=0.75, ymax=0.98, linestyle="-", linewidth=2, color="k")
         xnorm = x - 0.07 * x
-        ax.text(xnorm, 1.2e6, lab, ha="center", va="center", rotation="vertical", fontsize=13)
+        ax.text(xnorm, 4e5, lab, ha="center", va="bottom", rotation="vertical", fontsize=13)
 
     return ax
 
@@ -63,10 +62,20 @@ def plot_optical_depth(tau_fname: str, disk_fname: str, extra: str, lims=None, l
     disc_spec = SpectrumUtils.read_spec(disk_fname)
     disklamb = disc_spec["Lambda"].values.astype(float)
     diskhz = disc_spec["Freq."].values.astype(float)
-    diskflux = disc_spec[los].values.astype(float) * 4 * PI * (100 * PARSEC) ** 2 * disklamb
+    diskflux = disc_spec["Emitted"].values.astype(float) * 4 * PI * (100 * PARSEC) ** 2 * disklamb
+
+    spectrum = SpectrumUtils.read_spec("solar/tde_cv.spec")
+    spectrumlamb = spectrum["Lambda"].values.astype(float)
+    spectrumhz = spectrum["Freq."].values.astype(float)
+    spectrumflux = spectrum["Emitted"].values.astype(float) * 4 * PI * (100 * PARSEC) ** 2 * spectrumlamb
+
+    # https://hea-www.harvard.edu/~pgreen/figs/Conversions.pdf
+    #          Converts Flambda -> Fnu                                               so now it's nu * F_nu   and now it's nu * L nu
+    # diskflux = (disc_spec["Lambda"].values.astype(float) ** 2 * diskflux * 3.34e-19) * diskhz * 4 * PI * (100 * PARSEC) ** 2
 
     spec = np.loadtxt(tau_fname)
     freq = spec[:, 1]
+    # freq = C / (wl * ANGSTROM)  # Because the optical depth thing doesn't output frequency
 
     with open(tau_fname, "r") as f:
         angles = f.readline().split()
@@ -81,16 +90,15 @@ def plot_optical_depth(tau_fname: str, disk_fname: str, extra: str, lims=None, l
     ninclinations = len(angles)
 
     ax2 = ax.twinx()
-    ax2.loglog(diskhz, SpectrumUtils.smooth_spectrum(diskflux, 75), "k--", zorder=0)
+    ax2.loglog(diskhz, SpectrumUtils.smooth_spectrum(diskflux, 75), "k--", zorder=0, alpha=0.5)
+    ax2.loglog(spectrumhz, SpectrumUtils.smooth_spectrum(spectrumflux, 75), "k-", zorder=1, alpha=0.5)
     ax2.set_ylabel(r"$\nu$ L$_{\nu}$ [ergs s$^{-1}$]", fontsize=15)
 
     columns = [0, 4.78e+25, 9.34e+25, 1.64e+26, 3.17e+26, 5.40e+26]
-
-    print(spec.shape)
-
     for i in range(ninclinations - 1):
-        print(i, i + 1, i + 3)
-        ax.loglog(freq, spec[:, i + 3]) 
+        ax.loglog(freq, spec[:, i + 3], label="i = {}"
+                  .format(int(angles[i + 1])) + r"$^{\circ}$: $N_{H} \sim$" + "{:3.2e}".format(columns[i + 1])
+                                              + " cm$^{-2}$")
 
     ax.legend(loc="center left")
     ax.set_ylabel(r"Optical Depth $\tau_{\nu}}$", fontsize=15)
@@ -99,6 +107,9 @@ def plot_optical_depth(tau_fname: str, disk_fname: str, extra: str, lims=None, l
     ax.tick_params(axis="y")
     ax.set_xlim(np.min(freq), np.max(freq))
     ax.text(5e14, 4e1, "Electron Scattering", fontsize=13)
+
+    ax.set_zorder(ax2.get_zorder() + 1)
+    ax.patch.set_visible(False)
 
     if lims:
         ax.set_ylim(lims[0], lims[1])
@@ -119,14 +130,11 @@ def main():
     Main function of the script.
     """
 
-    rroot = "/Users/saultyevil/Dropbox/DiskWinds/PySims/tde"
-    root = "/home/saultyevil/Dropbox/DiskWinds/PySims/tests/tau_diag/"
+    root = "/home/saultyevil/Dropbox/DiskWinds/PySims/tde/"
 
-    fname = rroot + "/ztodo_iridis/models/clump/1e-1/cv/solar/diag_tde_cv/tde_cv.tau_spec.diag"
-    fname = "/Users/saultyevil/DiskWinds/PySims/models_no_spec/clump/1e-1/cv/solar/diag_tde_cv/tde_cv.tau_spec.diag"
-    disk_name = rroot + "/ztodo_iridis/models/disc/cv/tde_cv.spec"
-    plot_optical_depth(fname, disk_name, "clumpy", (1, 1e7))
-
+    fname = "solar/diag_tde_cv/tde_cv.tau_spec.diag"
+    disk_name = root + "models/disc/cv/tde_cv.spec"
+    plot_optical_depth(fname, disk_name, "clumpy", (1, 2e7))
 
     return
 

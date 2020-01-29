@@ -217,7 +217,7 @@ def model_comparison(direcs: List[str], colour, disk_specs: List[str] = None, ex
                 plot_line_id(ax[i, j])
                 iidx += 1
 
-    mnames = ["Polar Wind Model", "Equatorial Wind Model", "Spherical Wind Model"]
+    mnames = ["Wide-angle Wind Model", "Equatorial Wind Model", "Spherical Wind Model"]
     for i in range(ncols):
         ax[0, i].text(0.5, 1.1, mnames[i], va="center", ha="center", rotation="horizontal", fontsize=15,
                       transform=ax[0, i].transAxes)
@@ -300,38 +300,37 @@ def wind_geos(direcs) -> Union[plt.Figure, list]:
                     ww[j, k] = 100
         modelwind.append([wx, wz, np.log10(ww)])
 
-    fig = plt.figure(figsize=(14, 10))
-    ax1 = plt.subplot(2, 2, 1)
-    ax2 = plt.subplot(2, 2, 2)
-    ax3 = plt.subplot(2, 2, 3)
-    ax4 = plt.subplot(2, 2, 4)
-    ax = [ax1, ax2, ax3, ax4]
+    fig, ax = plt.subplots(2, 2, figsize=(12, 10), sharey="row")
+    ax = np.reshape(ax, (nplots,))
+
+    vmin = 2
+    vmax = 4.7
 
     for i in range(nplots):
         # Log-Log plots
         if i < len(coords):
             wx, wz, ww = modelwind[i]
-            im = ax[i].pcolor(np.log10(wx), np.log10(wz), ww)
-            ax[i].set_xlim(np.log10(wx[1, 1]), np.log10(wx[-1, -1]))
-            ax[i].set_ylim(np.log10(wz[1, 1]), np.log10(wz[-1, -1]))
-            ax[i].set_xlabel("Log[x] [cm]", fontsize=15)
-            ax[i].set_ylabel("Log[z] [cm]", fontsize=15)
-            plt.colorbar(im, ax=ax[i])
+            im = ax[i].pcolor(wx, wz, ww, vmin=vmin, vmax=vmax)
+            ax[i].set_xlim(wx[1, 1], wx[-1, -1])
+            ax[i].set_ylim(wz[1, 1], wz[-1, -1])
+            ax[i].set_xlabel(r"$\log_{10}$(x) [cm]", fontsize=15)
+            ax[0].set_ylabel(r"$\log_{10}$(z) [cm]", fontsize=15)
+            ax[i].set_xscale("log")
+            ax[i].set_yscale("log")
             for j in range(len(incls)):
                 xsight = np.linspace(0, np.max(wx), 1e5)
                 zsight = sightline_coords(xsight, np.deg2rad(float(incls[j])))
-                ax[i].plot(np.log10(xsight), np.log10(zsight), lstyle[j],
-                           label=incls[j] + r"$^{\circ}$ sightline")
+                ax[i].plot(xsight, zsight, lstyle[j], label=incls[j] + r"$^{\circ}$ sightline")
         # Lin-Lin plots
         else:
-            ii = i - 3
+            ii = i - 4
             wx, wz, ww = modelwind[ii]
-            im = ax[i].pcolor(wx / 1e17, wz / 1e17, ww)
+            im = ax[i].pcolor(wx / 1e17, wz / 1e17, ww, vmin=vmin, vmax=vmax)
             ax[i].set_xlim(wx[1, 1] / 1e17, 5.5e17 / 1e17)
             ax[i].set_ylim(wz[1, 1] / 1e17, 5.5e17 / 1e17)
             ax[i].set_xlabel("x ($10^{17}$) [cm]", fontsize=15)
-            ax[i].set_ylabel("z ($10^{17}$) [cm]", fontsize=15)
-            plt.colorbar(im, ax=ax[i])
+            ax[2].set_ylabel("z ($10^{17}$) [cm]", fontsize=15)
+            # plt.colorbar(im, ax=ax[i])
             for j in range(len(incls)):
                 xsight = np.linspace(0, np.max(wx), 1e5)
                 zsight = sightline_coords(xsight, np.deg2rad(float(incls[j])))
@@ -339,13 +338,17 @@ def wind_geos(direcs) -> Union[plt.Figure, list]:
 
     ax[0].legend(loc="lower right")
 
-    mnames = ["Polar Wind Model", "Equatorial Wind Model"]
+    mnames = ["Wide-angle Wind Model", "Equatorial Wind Model"]
     for i in range(len(mnames)):
-        ax[i].text(0.5, 1.1, mnames[i], va="center", ha="center", rotation="horizontal", fontsize=13,
+        ax[i].text(0.5, 1.1, mnames[i], va="center", ha="center", rotation="horizontal", fontsize=15,
                    transform=ax[i].transAxes)
 
     fig.tight_layout(rect=[0.03, 0.03, 0.97, 0.97])
-    plt.savefig("comparison_wind_geo_{}.png".format(colormap))
+    fig.subplots_adjust(right=0.825, wspace=0)
+    cax = fig.add_axes([0.85, 0.06, 0.035, 0.91])
+    fig.colorbar(im, cax=cax)
+
+    plt.savefig("comparison_wind_geo.png".format(colormap))
     plt.show(block=True)
 
     return fig, ax
@@ -383,38 +386,33 @@ def main(argc: int, argv: List[str]) -> None:
 
     solar_smooth = ["models/smooth/cv/solar/tde_cv.spec",
                     "models/smooth/agn/solar/tde_agn.spec"]
-                    # "ztodo_iridis/models/smooth/spherical/solar/tde_spherical.spec"]
 
     cno_smooth = ["models/smooth/cv/cno/tde_cv.spec",
                   "models/smooth/agn/cno/tde_agn.spec"]
-                  # "ztodo_iridis/models/smooth/spherical/cno/tde_spherical.spec"]
 
     solar_clump = ["models/clump/1e-1/cv/solar/tde_cv.spec",
                    "models/clump/1e-1/agn/solar/tde_agn.spec"]
-                   # "ztodo_iridis/models/clump/1e-1/spherical/solar/tde_spherical.spec"]
 
     cno_clump = ["models/clump/1e-1/cv/cno/tde_cv.spec",
                  "models/clump/1e-1/agn/cno/tde_agn.spec"]
-                 # "ztodo_iridis/models/clump/1e-1/spherical/cno/tde_spherical.spec"]
 
     disk = ["models/disc/cv/tde_cv.spec",
             "models/disc/agn/tde_agn.spec"]
-            # "ztodo_iridis/models/disc/spherical/tde_spherical.spec"]
 
-    # fig, ax = model_comparison(solar_smooth.copy(), "C2", disk, "_solar_cno_smooth_abundances", wmin, wmax,
-    #                            label="Solar Abundances", return_figure=True)
-    # model_comparison(cno_smooth.copy(), "C1", disk, "_solar_cno_smooth_abundances", wmin, wmax, return_figure=False,
-    #                  figure=(fig, ax), label="CNO Abundances\nHe = 2 x Solar\nC = 0.5 x Solar\nN = 7 x Solar")
-    #
-    # fig, ax = model_comparison(solar_smooth.copy(), "C2", disk, "_solar_clump", wmin, wmax, label=r"$f_{v}$ = 1", return_figure=True)
-    # model_comparison(solar_clump.copy(), "C0", disk, "_solar_clump", wmin, wmax, label=r"$f_{v}$ = 0.1", return_figure=False,
-    #                  figure=(fig, ax))
-    #
-    # fig, ax = model_comparison(solar_clump.copy(), "C0", disk, "_solar_cno_clump", wmin, wmax,
-    #                            label=r"$f_{v}$ = 0.1" + "\nSolar Abundances", return_figure=True)
-    # model_comparison(cno_clump.copy(), "C1", disk, "_solar_cno_clump", wmin, wmax,
-    #                  label=r"$f_{v}$ = 0.1" + "\nCNO Abundances\nHe = 2 x Solar\nC = 0.5 x Solar\nN = 7 x Solar", return_figure=False,
-    #                  figure=(fig, ax))
+    fig, ax = model_comparison(solar_smooth.copy(), "C2", disk, "_solar_cno_smooth_abundances", wmin, wmax,
+                               label="Solar Abundances", return_figure=True)
+    model_comparison(cno_smooth.copy(), "C1", disk, "_solar_cno_smooth_abundances", wmin, wmax, return_figure=False,
+                     figure=(fig, ax), label="CNO Abundances\nHe = 2 x Solar\nC = 0.5 x Solar\nN = 7 x Solar")
+
+    fig, ax = model_comparison(solar_smooth.copy(), "C2", disk, "_solar_clump", wmin, wmax, label=r"$f_{v}$ = 1", return_figure=True)
+    model_comparison(solar_clump.copy(), "C0", disk, "_solar_clump", wmin, wmax, label=r"$f_{v}$ = 0.1", return_figure=False,
+                     figure=(fig, ax))
+
+    fig, ax = model_comparison(solar_clump.copy(), "C0", disk, "_solar_cno_clump", wmin, wmax,
+                               label=r"$f_{v}$ = 0.1" + "\nSolar Abundances", return_figure=True)
+    model_comparison(cno_clump.copy(), "C1", disk, "_solar_cno_clump", wmin, wmax,
+                     label=r"$f_{v}$ = 0.1" + "\nCNO Abundances\nHe = 2 x Solar\nC = 0.5 x Solar\nN = 7 x Solar", return_figure=False,
+                     figure=(fig, ax))
 
     solar_smooth = ["models/smooth/cv/solar/tde_cv.spec",
                     "models/smooth/agn/solar/tde_agn.spec"]
