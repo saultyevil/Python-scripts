@@ -11,6 +11,7 @@ matrix_pow ionisation solver.
 import argparse as ap
 from PyPython import WindUtils
 from PyPython import Utils
+from PyPython.SpectrumUtils import smooth_spectrum
 from subprocess import Popen, PIPE
 import numpy as np
 from matplotlib import pyplot as plt
@@ -86,15 +87,15 @@ def py_wind(root: str, nx: int, nz: int, i: int, j: int):
     sh = Popen("Setup_Py_Dir; py_wind {} < _tmpcmd.txt".format(root), stdout=PIPE, stderr=PIPE, shell=True)
     stdout, stderr = sh.communicate()
 
-    if stderr:
-        print(stderr.decode("utf-8"))
+    # if stderr:
+    #     print(stderr.decode("utf-8"))
 
     Utils.remove_data_sym_links("./")
 
     return stdout.decode("utf-8")
 
 
-def plot_cell_sed(model_bands: List[str], filename: str) -> None:
+def plot_cell_sed(model_bands: List[str], filename: str, icell: int, jcell: int, smooth: int = 30) -> None:
     """
     Create a plot of a cell SED given the model bands.
 
@@ -154,13 +155,15 @@ def plot_cell_sed(model_bands: List[str], filename: str) -> None:
         if freq[i] > 3.288e15:
             xi = xi + ((f_nu[i + 1] + f_nu[i]) / 2.0) * (freq[i + 1] - freq[i])
 
-    fig, ax = plt.subplots(1, 1, figsize=(8, 5))
+    fig, ax = plt.subplots(1, 1, figsize=(8, 6))
 
-    ax.loglog(freq, f_nu)
-    ax.set_xlim(np.min(freq) / 10, np.max(freq) * 10)
-    ax.set_xlabel(r"$\rm{Frequency(Hz)}$")
-    ax.set_ylabel(r"$\rm{J_{\nu}~in~cell(ergs~s^{-1}~cm^{-3}~Sr^-1~Hz^-1)}$")
-    ax.set_title(filename)
+    ax.loglog(freq, f_nu, "k-", linewidth=3)
+    ax.loglog(freq, smooth_spectrum(np.array(f_nu, dtype=np.float64), smooth), "r-", label="smoothed")
+    ax.set_xlim(np.min(freq), np.max(freq))
+    ax.set_xlabel(r"Frequency, $\nu$")
+    ax.set_ylabel(r"$J_{\nu}$ in cell (ergs s$^{-1}$ cm$^{-3}$ Sr$^{-1}$ Hz$^{-1}$)")
+    ax.set_title("Cell SED i = {} j = {}".format(icell, jcell))
+    ax.legend(loc="lower left")
 
     # Add axes labels for photon energy
     axx = ax.twiny()
@@ -170,8 +173,9 @@ def plot_cell_sed(model_bands: List[str], filename: str) -> None:
     axx.set_xlabel("Energy, eV")
     axx.set_xscale("log")
 
+    fig.tight_layout(rect=[0.03, 0.03, 0.97, 0.97])
     fig.savefig(filename + '.png')
-    plt.close(fig)
+    plt.show(fig)
 
     return
 
@@ -191,7 +195,7 @@ def main() -> None:
 
     model = get_spec_model(args.root, args.nx, args.nz, args.i, args.j)
     filename = "cell_i{}_j{}".format(args.i, args.j)
-    plot_cell_sed(model, filename)
+    plot_cell_sed(model, filename, args.i, args.j)
 
 
 if __name__ == "__main__":
