@@ -4,7 +4,7 @@
 
 import argparse as ap
 import pandas as pd
-from PyPython.Utils import windsave2table
+from PyPython.PythonUtils import windsave2table
 from typing import Union
 
 

@@ -20,9 +20,11 @@ import shutil
 import numpy as np
 from typing import List
 from consts import *
+from iridis_create_slurm_file import write_slurm_file
 
 
-def create_grid(pf: str, parameter: str, grid: List[str]) -> List[str]:
+def create_grid(pf: str, parameter: str, grid: List[str], ncores: int, thours: int, names: List[str],
+                flags: str) -> List[str]:
     """
     The purpose of this function is to use a base parameter file and to create
     directories containing parameter files with a different value to the given
@@ -41,6 +43,17 @@ def create_grid(pf: str, parameter: str, grid: List[str]) -> List[str]:
                     The name of the parameter for which a grid will be created
     grid            List[str]
                     The values of the parameter to make a grid with
+
+    name: str
+        The name of the slurm file
+    root: str
+        The root name of the Python simulation
+    ncores: int
+        The number of cores which to use
+    thours: int
+        The number of hours to execute for
+    flags: str
+        The flags of which to execute Python with
 
     Returns
     -------
@@ -89,6 +102,8 @@ def create_grid(pf: str, parameter: str, grid: List[str]) -> List[str]:
             for par, val in new_pf:
                 f.write("{}\t\t{}\n".format(par, val))
 
+        write_slurm_file(names[i], root, ncores, thours, flags, wd=grid[i])
+
     return pfs
 
 
@@ -104,6 +119,7 @@ def run_grid() -> List[str]:
     # This is the parameter which will be changed
     root = "tde_cv.pf"
     parameter = "SV.v_infinity(in_units_of_vescape"
+    short = "vinf"
 
     tmp = [0.2, 0.5, 0.7]
     grid = []
@@ -118,8 +134,14 @@ def run_grid() -> List[str]:
     print("Parameter: {}".format(parameter))
     print("Grid values: {}".format(grid))
 
+    ncores = 120
+    thours = 12
+    flags = "-p 2"
+    name = []
+    for i in range(len(grid)):
+        name.append("{}_{}_{}".format(root, short, grid[i]))
 
-    pfs = create_grid(root, parameter, grid)
+    pfs = create_grid(root, parameter, grid, ncores, thours, name, flags)
 
     print(pfs)
 

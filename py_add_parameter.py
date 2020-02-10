@@ -23,7 +23,8 @@ Usage
 
 from sys import argv, exit
 from typing import List
-from PyPython import Utils, Grid
+from PyPython import PythonUtils as Utils
+from PyPython import Grid
 
 
 def add_parameter(wdpf: List[str], parameter: str, value: str):

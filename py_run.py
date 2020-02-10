@@ -19,7 +19,8 @@ from sys import exit
 from shutil import which, copyfile
 from typing import Union, List
 from subprocess import Popen, PIPE
-from PyPython import Grid, Simulation, Utils, Log, SpectrumUtils, Quotes
+from PyPython import Grid, Simulation, Log, SpectrumUtils, Quotes
+from PyPython import PythonUtils as Utils
 
 
 CONVERGED = \
@@ -251,6 +252,8 @@ def plot_model(root: str, wd: str) -> None:
     Use py_plot.py to create plots of the synthetic spectra and wind variables
     for a Python model.
 
+    58480455
+
     Parameters
     ----------
     root: str
@@ -259,12 +262,15 @@ def plot_model(root: str, wd: str) -> None:
         The working directory for the Python simulation.
     """
 
+    if root != "agn_short":
+        return
+
     path = which("py_plot.py")
     if path == "":
         Log.log("py_plot.py not in $PATH and executable")
         return
 
-    commands = "cd {}; py_plot.py {}".format(wd, root)
+    commands = "cd {}; rm *.png; py_plot.py agn_short.spec spec -r".format(wd, root)
     if POLAR:
         commands += " -p"
 

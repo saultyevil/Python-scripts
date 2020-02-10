@@ -9,7 +9,7 @@ and to create any plots which are related to the convergence of a simulation.
 import numpy as np
 from matplotlib import pyplot as plt
 from PyPython import Simulation
-from PyPython import Utils
+from PyPython import PythonUtils as Utils
 from PyPython import Quotes
 from typing import List
 

@@ -18,7 +18,8 @@ from sys import argv
 from matplotlib import pyplot as plt
 from typing import List, Tuple, Union
 import numpy as np
-from PyPython import SpectrumUtils, Utils, WindUtils
+from PyPython import SpectrumUtils, WindUtils
+from PyPython import PythonUtils as Utils
 
 plt.rcParams['xtick.labelsize'] = 15
 plt.rcParams['ytick.labelsize'] = 15

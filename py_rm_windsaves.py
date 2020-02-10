@@ -9,7 +9,7 @@ standard name, i.e. python_01.wind_save
 from sys import argv
 from subprocess import Popen, PIPE
 from typing import List
-from PyPython import Utils
+from PyPython import PythonUtils as Utils
 
 
 def delete_windsaves(wdpf: List[str], root) -> None:

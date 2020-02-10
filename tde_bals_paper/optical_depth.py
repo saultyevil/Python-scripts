@@ -1,7 +1,8 @@
 #!/usr/bin/env python 3
 # -*- coding: utf-8 -*-
 
-from PyPython import SpectrumUtils, Utils
+from PyPython import SpectrumUtils
+from PyPython import PythonUtils as Utils
 from matplotlib import pyplot as plt
 import numpy as np
 from consts import *

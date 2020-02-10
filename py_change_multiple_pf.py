@@ -22,7 +22,8 @@ Usage
 
 
 from sys import argv, exit
-from PyPython import Utils, Grid
+from PyPython import Grid
+from PyPython import PythonUtils as Utils
 from typing import List
 
 

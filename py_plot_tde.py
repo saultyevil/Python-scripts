@@ -15,7 +15,8 @@ import numpy as np
 from consts import *
 from typing import Tuple
 from matplotlib import pyplot as plt
-from PyPython import SpectrumUtils, Utils
+from PyPython import SpectrumUtils
+from PyPython import PythonUtils as Utils
 from PyPython import Quotes
 
 SMOOTH = 5
@@ -101,7 +102,7 @@ def plot_single_inclination(root: str, inc: str) -> None:
     except KeyError:
         print("tde_spec_plot.spec_plot_one: could not find inclination angle of {}".format(inc))
         return
-    flux = SpectrumUtils.smooth_spectrum(raw_flux, SMOOTH)
+    flux = SpectrumUtils.smoothtrum(raw_flux, SMOOTH)
     flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
     ax.semilogy(wavelength, flux, label="Model at i = {}".format(inc) + r"$^{\circ}$")
 
@@ -168,7 +169,7 @@ def plot_all_inclinations(root: str) -> None:
 
             inc = inclinations[index]
             raw_flux = spectrum[inc].values.astype(float)
-            flux = SpectrumUtils.smooth_spectrum(raw_flux, SMOOTH)
+            flux = SpectrumUtils.smoothtrum(raw_flux, SMOOTH)
             flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
             ax[i, j].semilogy(wavelength, flux, label=r"$i$ = {}".format(inc) + r"$^{\circ}$")
 
@@ -268,7 +269,7 @@ def plot_model_comparisons(name: str, inc: str = None):
                     raw_flux = spectrum[ii].values.astype(float)
                 except KeyError:
                     continue
-                flux = SpectrumUtils.smooth_spectrum(raw_flux, SMOOTH)
+                flux = SpectrumUtils.smoothtrum(raw_flux, SMOOTH)
                 flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
 
                 ax[i, j].semilogy(wavelength, flux, label=r"{}/{}: $i$: {}".format(dir, root, ii) + r"$^{\circ}$")

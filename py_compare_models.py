@@ -82,9 +82,9 @@ def create_plot(root1: str, model1_path: str, root2: str, model2_path: str, incl
     model2_convergence = Simulation.check_convergence(root2, model2_path)
 
     model1_wl = model1_spec["Lambda"].values.astype(float)
-    model1_fl = SpectrumUtils.smooth_spectrum(model1_spec[inclination[0]].values.astype(float), smooth)
+    model1_fl = SpectrumUtils.smoothtrum(model1_spec[inclination[0]].values.astype(float), smooth)
     model2_wl = model2_spec["Lambda"].values.astype(float)
-    model2_fl = SpectrumUtils.smooth_spectrum(model2_spec[inclination[0]].values.astype(float), smooth)
+    model2_fl = SpectrumUtils.smoothtrum(model2_spec[inclination[0]].values.astype(float), smooth)
 
     ipt = tde_spectra.iptf15af_spec(smooth)
 
@@ -102,9 +102,9 @@ def create_plot(root1: str, model1_path: str, root2: str, model2_path: str, incl
     plt.legend(loc="lower right")
 
     model1_wl = model1_spec["Lambda"].values.astype(float)
-    model1_fl = SpectrumUtils.smooth_spectrum(model1_spec[inclination[1]].values.astype(float), smooth)
+    model1_fl = SpectrumUtils.smoothtrum(model1_spec[inclination[1]].values.astype(float), smooth)
     model2_wl = model2_spec["Lambda"].values.astype(float)
-    model2_fl = SpectrumUtils.smooth_spectrum(model2_spec[inclination[1]].values.astype(float), smooth)
+    model2_fl = SpectrumUtils.smoothtrum(model2_spec[inclination[1]].values.astype(float), smooth)
     ax = plt.subplot2grid(pdims, (0, 2), colspan=2)
     plt.semilogy(model1_wl, model1_fl, label="Model 1")
     plt.semilogy(model2_wl, model2_fl, "--", label="Model 2")

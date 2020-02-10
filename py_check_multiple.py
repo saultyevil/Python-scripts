@@ -11,7 +11,8 @@ where there is only one Python simulation.
 
 
 from typing import List
-from PyPython import Simulation, Utils
+from PyPython import Simulation
+from PyPython import PythonUtils as Utils
 
 
 def check_multiple(wdpf: List[str]) -> None:

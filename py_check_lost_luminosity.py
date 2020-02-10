@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from glob import glob
-from sys import exit
 
 
 wd = "/home/saultyevil/Dropbox/DiskWinds/PySims/tde/sanity_checks/cv_cno_f1e-2"

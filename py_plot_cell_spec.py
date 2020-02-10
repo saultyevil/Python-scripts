@@ -10,8 +10,8 @@ matrix_pow ionisation solver.
 
 import argparse as ap
 from PyPython import WindUtils
-from PyPython import Utils
-from PyPython.SpectrumUtils import smooth_spectrum
+from PyPython import PythonUtils as Utils
+from PyPython.SpectrumUtils import smooth
 from subprocess import Popen, PIPE
 import numpy as np
 from matplotlib import pyplot as plt
@@ -95,7 +95,7 @@ def py_wind(root: str, nx: int, nz: int, i: int, j: int):
     return stdout.decode("utf-8")
 
 
-def plot_cell_sed(model_bands: List[str], filename: str, icell: int, jcell: int, smooth: int = 30) -> None:
+def plot_cell_sed(model_bands: List[str], filename: str, icell: int, jcell: int, smooth_amount: int = 30) -> None:
     """
     Create a plot of a cell SED given the model bands.
 
@@ -158,7 +158,7 @@ def plot_cell_sed(model_bands: List[str], filename: str, icell: int, jcell: int,
     fig, ax = plt.subplots(1, 1, figsize=(8, 6))
 
     ax.loglog(freq, f_nu, "k-", linewidth=3)
-    ax.loglog(freq, smooth_spectrum(np.array(f_nu, dtype=np.float64), smooth), "r-", label="smoothed")
+    ax.loglog(freq, smooth(np.array(f_nu, dtype=np.float64), smooth_amount), "r-", label="smoothed")
     ax.set_xlim(np.min(freq), np.max(freq))
     ax.set_xlabel(r"Frequency, $\nu$")
     ax.set_ylabel(r"$J_{\nu}$ in cell (ergs s$^{-1}$ cm$^{-3}$ Sr$^{-1}$ Hz$^{-1}$)")
