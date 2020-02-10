@@ -13,24 +13,25 @@ import argparse
 from typing import Tuple
 
 
-def write_slurm_file(name: str, root: str, ncores: int, thours: int, flags: str, vers: str = "py") -> None:
+def write_slurm_file(name: str, ncores: int, thours: int, tminutes: int, flags: str, wd: str = "./") -> None:
     """
-    Create a slurm file in the directory wd with the name root.slurm.
+    Create a slurm file in the directory wd with the name root.slurm. All
+    of the script flags are passed using the flags variable.
 
     Parameters
     ----------
     name: str
         The name of the slurm file
-    root: str
-        The root name of the Python simulation
     ncores: int
         The number of cores which to use
     thours: int
-        The number of hours to execute for
+        The number of hours to allow
+    tminutes: int
+        The number of minutes to allow
     flags: str
-        The flags of which to execute Python with
-    vers: str, optional
-        The version of Python to use, i.e. py83c
+        The run-time flags of which to execute Python with
+    wd: str
+        The directory to write the file to
     """
 
     slurm = \
@@ -38,29 +39,24 @@ def write_slurm_file(name: str, root: str, ncores: int, thours: int, flags: str,
 #SBATCH --mail-user=ejp1n17@soton.ac.uk
 #SBATCH --mail-type=ALL
 #SBATCH --ntasks={}
-#SBATCH --time={}:00:00
+#SBATCH --time={}:{}:00
 #SBATCH --partition=batch
 module load openmpi/3.0.0/gcc
-N_TASKS="{}"
-DIR=$(pwd)
-PY_VER="{}"
-PY_FLAGS="-t {} {}"
-ROOT="{}"
-export PYTHON="$HOME/python"
-export PYTHON_BIN="$HOME/python/bin"
-cd $DIR
-$PYTHON_BIN/Setup_Py_Dir
-mpirun -np $N_TASKS $PYTHON_BIN/$PY_VER $PY_FLAGS $ROOT >> {}_out.txt"""\
-            .format(ncores, thours, ncores, vers, thours * 3600 - 60, flags, root, name)
+module load conda/py3-latest
+source activate PyPython
+python /home/ejp1n17/PythonScripts/py_run.py -n {} {}
+""".format(ncores, thours, tminutes, ncores, flags)
 
-    fname = name + ".slurm"
+    if wd[-1] != "/":
+        wd += "/"
+    fname = wd + name + ".slurm"
     with open(fname, "w") as f:
-        f.write("{}\n".format(slurm))
+        f.write("{}".format(slurm))
 
     return
 
 
-def parse_arguments() -> Tuple[str, str, int, int, str, str]:
+def parse_arguments() -> Tuple[str, int, int, int, str]:
     """
     Parse arguments from the command line.
 
@@ -80,16 +76,15 @@ def parse_arguments() -> Tuple[str, str, int, int, str, str]:
         The version of Python to use
     """
 
-    p = argparse.ArgumentParser(description="Create a slurm file to submit to the Iridis queue")
-    p.add_argument("name", type=str, help="The name of the slurm file, i.e. name.slurm")
-    p.add_argument("root", type=str, help="The root name of the Python simulation")
-    p.add_argument("ncores", type=int, help="The number of CPUs to use")
-    p.add_argument("thours", type=int, help="The maximum run time allowed")
-    p.add_argument("-flags", type=str, help="Any flags to pass to Python")
-    p.add_argument("-vers", type=str, help="The version of Python to use")
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("name", type=str, help="The name of the slurm file, i.e. name.slurm.")
+    p.add_argument("ncores", type=int, help="The number of CPUs to use.")
+    p.add_argument("thours", type=int, help="The number of hours of run time allowed.")
+    p.add_argument("tminutes", type=int, help="The number of minutes of additional run time allowed.")
+    p.add_argument("-f", "--flags", type=str, help="Any flags to pass to the py_run.py Python running script.")
     args = p.parse_args()
 
-    return args.name, args.root, args.ncores, args.thours, args.flags, args.vers
+    return args.name, args.ncores, args.thours, args.tminutes, args.flags
 
 
 def main() -> None:
@@ -98,12 +93,13 @@ def main() -> None:
     then executes the function to generate the slurm file.
     """
 
-    name, root, ncores, thours, flags, vers = parse_arguments()
-    if vers is None:
-        vers = "py"
+    name, ncores, thours, tminutes, flags = parse_arguments()
+
     if flags is None:
         flags = ""
-    write_slurm_file(name, root, ncores, thours, flags, vers)
+    flags += " -t {} ".format(int(thours * 3600 + tminutes * 60))
+
+    write_slurm_file(name, ncores, thours, tminutes, flags)
 
     return
 
