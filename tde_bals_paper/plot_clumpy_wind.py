@@ -135,8 +135,8 @@ def wind_plot(root: str, output_name: str, wind_names: List[str], wind_types: Li
 
     incls = ["10", "60", "75"]
     lstyle = ["k-", "k--", "k-.", "k:"]
-    namezzz = [r"$\log_{10}$(Electron Temperature) [K]", r"$\log_{10}$(Electron Density) [cm$^{-2}$]",
-               r"$\log_{10}$(Carbon IV) fraction", r"$\log_{10}$(Ionization Parameter)",
+    namezzz = [r"$\log_{10}$(Electron Temperature) [K]", r"$\log_{10}$(Electron Density) [cm$^{-3}$]",
+               r"$\log_{10}$(Carbon IV Density) [cm$^{-3}$]", r"$\log_{10}$(Ionization Parameter)",
                r"$\log_{10}$(Rotational Velocity) [km s$^{-1}$]", r"$\log_{10}$(Polodial Velocity) [km s$^{-1}$]"]
 
     if plot_indices:
@@ -184,17 +184,12 @@ def wind_plot(root: str, output_name: str, wind_names: List[str], wind_types: Li
                     vl = np.zeros_like(wvx)
                     for ii in range(n1):
                         for jj in range(n2):
-                            xx = xvx[ii, jj]
-                            yy = 0
-                            zz = zvx[ii, jj]
-                            r = [xx, yy, zz]
-                            vx = wvx[ii, jj]
-                            vy = wvy[ii, jj]
-                            vz = wvz[ii, jj]
-                            if type(vx) != np.float64 or type(vy) != np.float64 or type(vz) != np.float64:
+                            r = [xvx[ii, jj], 0, zvx[ii, jj]]
+                            if type(wvx[ii, jj]) != np.float64 or type(wvy[ii, jj]) != np.float64 \
+                                    or type(wvz[ii, jj]) != np.float64:
                                 vl[ii, jj] = 0
                             else:
-                                v = [vx, vy, vz]
+                                v = [wvx[ii, jj], wvy[ii, jj], wvz[ii, jj]]
                                 v_cyl = project_from_xyz_cyl(r, v)
                                 if type(v_cyl) == int:
                                     continue
@@ -205,13 +200,16 @@ def wind_plot(root: str, output_name: str, wind_names: List[str], wind_types: Li
                         im = ax[i, j].pcolor(xvx, zvx, np.log10(v_cyl[1] / 1e5))
                 else:
                     if wind_name == "c4":
-                        im = ax[i, j].pcolor(x, z, np.log10(w), vmin=-10, vmax=0)
+                        x, z, w = WindUtils.extract_wind_var(root, "i04", "ion", wd, projection,
+                                                             input_file="/home/saultyevil/PySims/tde/models/clump/1e-1/cv/solar/tde_cv.0.C.txt",
+                                                             return_indices=plot_indices)
+                        im = ax[i, j].pcolor(x, z, np.log10(w)) # , vmin=-10, vmax=0)
                     else:
                         im = ax[i, j].pcolor(x, z, np.log10(w))
 
             print(wind_name, wind_type)
 
-            if i == 0 and j == 0:
+            if i == 1 and j == 0:
                 for k in range(len(incls)):
                     xsight = np.linspace(0, np.max(x), int(1e5))
                     zsight = sightline_coords(xsight, np.deg2rad(float(incls[k])))
@@ -227,7 +225,7 @@ def wind_plot(root: str, output_name: str, wind_names: List[str], wind_types: Li
             if scale == "loglog" or scale == "logy":
                 ax[i, j].set_yscale("log")
 
-            if i == 0 and j == 0:
+            if i == 1 and j == 0:
                 ax[i, j].legend(loc="lower right")
 
             ax[i, j].text(0.03, 0.93, namezzz[index], ha="left", va="center", rotation="horizontal", fontsize=15,

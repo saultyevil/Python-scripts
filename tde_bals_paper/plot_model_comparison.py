@@ -346,7 +346,8 @@ def wind_geos(direcs) -> Union[plt.Figure, list]:
     fig.tight_layout(rect=[0.03, 0.03, 0.97, 0.97])
     fig.subplots_adjust(right=0.825, wspace=0)
     cax = fig.add_axes([0.85, 0.06, 0.035, 0.91])
-    fig.colorbar(im, cax=cax)
+    cbar = fig.colorbar(im, cax=cax)
+    cbar.set_label(label=r"$\log_{10}(T_{e})$ [K]", fontsize=17)
 
     plt.savefig("comparison_wind_geo.png".format(colormap))
     plt.show(block=True)
