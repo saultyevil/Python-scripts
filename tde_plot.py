@@ -102,11 +102,11 @@ def plot_single_inclination(root: str, inc: str) -> None:
     except KeyError:
         print("tde_spec_plot.spec_plot_one: could not find inclination angle of {}".format(inc))
         return
-    flux = SpectrumUtils.smoothtrum(raw_flux, SMOOTH)
+    flux = SpectrumUtils.smooth(raw_flux, SMOOTH)
     flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
     ax.semilogy(wavelength, flux, label="Model at i = {}".format(inc) + r"$^{\circ}$")
 
-    ymax, ymin = SpectrumUtils.ylims(wavelength, flux, WMIN, WMAX)
+    ymin, ymax = SpectrumUtils.ylims(wavelength, flux, WMIN, WMAX)
     ax.set_xlim(WMIN, WMAX)
     ax.set_ylim(ymin, ymax)
     if PLOT_LINE_IDS:
@@ -169,11 +169,11 @@ def plot_all_inclinations(root: str) -> None:
 
             inc = inclinations[index]
             raw_flux = spectrum[inc].values.astype(float)
-            flux = SpectrumUtils.smoothtrum(raw_flux, SMOOTH)
+            flux = SpectrumUtils.smooth(raw_flux, SMOOTH)
             flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
             ax[i, j].semilogy(wavelength, flux, label=r"$i$ = {}".format(inc) + r"$^{\circ}$")
 
-            ymax, ymin = SpectrumUtils.ylims(wavelength, flux, WMIN, WMAX)
+            ymin, ymax = SpectrumUtils.ylims(wavelength, flux, WMIN, WMAX)
             ax[i, j].set_ylim(ymin, ymax)
             ax[i, j].set_xlim(WMIN, WMAX)
             if PLOT_LINE_IDS:
@@ -269,12 +269,12 @@ def plot_model_comparisons(name: str, inc: str = None):
                     raw_flux = spectrum[ii].values.astype(float)
                 except KeyError:
                     continue
-                flux = SpectrumUtils.smoothtrum(raw_flux, SMOOTH)
+                flux = SpectrumUtils.smooth(raw_flux, SMOOTH)
                 flux *= DEFAULT_DIST ** 2 / observe_dist ** 2
 
                 ax[i, j].semilogy(wavelength, flux, label=r"{}/{}: $i$: {}".format(dir, root, ii) + r"$^{\circ}$")
 
-                tymax, tymin = SpectrumUtils.ylims(wavelength, flux, WMIN, WMAX)
+                tymin, tymax = SpectrumUtils.ylims(wavelength, flux, WMIN, WMAX)
                 if tymin is not None and tymin < ymin:
                     ymin = tymin
                 if tymax is not None and tymax > ymax:

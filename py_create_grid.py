@@ -102,7 +102,8 @@ def create_grid(pf: str, parameter: str, grid: List[str], ncores: int, thours: i
             for par, val in new_pf:
                 f.write("{}\t\t{}\n".format(par, val))
 
-        write_slurm_file(names[i], root, ncores, thours, flags, wd=grid[i])
+        the_name = names[i][names[i].rfind("/")+1:]
+        write_slurm_file(the_name, ncores, thours, 0, grid[i], flags)
 
     return pfs
 
@@ -117,11 +118,12 @@ def run_grid() -> List[str]:
     """
 
     # This is the parameter which will be changed
-    root = "tde_cv.pf"
+    root = "../../tde_uv.pf"
     parameter = "SV.v_infinity(in_units_of_vescape"
-    short = "vinf"
+    short = "Vinf"
 
-    tmp = [0.2, 0.5, 0.7]
+    # These parameters are for creating the pf files
+    tmp = [0.1, 0.5, 0.8]
     grid = []
     for i in range(len(tmp)):
         grid.append("{:.4e}".format(tmp[i]))
@@ -134,6 +136,7 @@ def run_grid() -> List[str]:
     print("Parameter: {}".format(parameter))
     print("Grid values: {}".format(grid))
 
+    # These parameters are for creating the slurm files
     ncores = 120
     thours = 12
     flags = "-p 2"
@@ -142,8 +145,6 @@ def run_grid() -> List[str]:
         name.append("{}_{}_{}".format(root, short, grid[i]))
 
     pfs = create_grid(root, parameter, grid, ncores, thours, name, flags)
-
-    print(pfs)
 
     return pfs
 

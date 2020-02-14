@@ -13,7 +13,8 @@ import argparse
 from typing import Tuple
 
 
-def write_slurm_file(name: str, ncores: int, thours: int, tminutes: int, flags: str, wd: str = "./") -> None:
+def write_slurm_file(name: str, ncores: int, thours: int, tminutes: int, root: str, flags: str, wd: str = "./") \
+        -> None:
     """
     Create a slurm file in the directory wd with the name root.slurm. All
     of the script flags are passed using the flags variable.
@@ -30,6 +31,8 @@ def write_slurm_file(name: str, ncores: int, thours: int, tminutes: int, flags: 
         The number of minutes to allow
     flags: str
         The run-time flags of which to execute Python with
+    root: str
+        The root name of the model
     wd: str
         The directory to write the file to
     """
@@ -44,8 +47,10 @@ def write_slurm_file(name: str, ncores: int, thours: int, tminutes: int, flags: 
 module load openmpi/3.0.0/gcc
 module load conda/py3-latest
 source activate PyPython
-python /home/ejp1n17/PythonScripts/py_run.py -n {} {}
-""".format(ncores, thours, tminutes, ncores, flags)
+python /home/ejp1n17/PythonScripts/py_run.py -n {} -f="{}"
+python /home/ejp1n17/PythonScripts/py_plot.py {}
+python /home/ejp1n17/PythonScripts/py_analyse_run.py {}
+""".format(ncores, thours, tminutes, ncores, flags, root, root)
 
     if wd[-1] != "/":
         wd += "/"
@@ -56,7 +61,7 @@ python /home/ejp1n17/PythonScripts/py_run.py -n {} {}
     return
 
 
-def parse_arguments() -> Tuple[str, int, int, int, str]:
+def parse_arguments() -> Tuple[str, int, int, int, str, str]:
     """
     Parse arguments from the command line.
 
@@ -81,10 +86,11 @@ def parse_arguments() -> Tuple[str, int, int, int, str]:
     p.add_argument("ncores", type=int, help="The number of CPUs to use.")
     p.add_argument("thours", type=int, help="The number of hours of run time allowed.")
     p.add_argument("tminutes", type=int, help="The number of minutes of additional run time allowed.")
+    p.add_argument("root", type=str, help="The root name of the model.")
     p.add_argument("-f", "--flags", type=str, help="Any flags to pass to the py_run.py Python running script.")
     args = p.parse_args()
 
-    return args.name, args.ncores, args.thours, args.tminutes, args.flags
+    return args.name, args.ncores, args.thours, args.tminutes, args.root, args.flags
 
 
 def main() -> None:
@@ -93,13 +99,13 @@ def main() -> None:
     then executes the function to generate the slurm file.
     """
 
-    name, ncores, thours, tminutes, flags = parse_arguments()
+    name, ncores, thours, tminutes, root, flags = parse_arguments()
 
     if flags is None:
         flags = ""
     flags += " -t {} ".format(int(thours * 3600 + tminutes * 60))
 
-    write_slurm_file(name, ncores, thours, tminutes, flags)
+    write_slurm_file(name, ncores, thours, tminutes, root, flags)
 
     return
 

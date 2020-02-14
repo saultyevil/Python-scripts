@@ -14,13 +14,13 @@ from socket import gethostname
 from platform import system
 
 
-def iptf15af_spec(smooth: int, verbose: bool = False) -> np.array:
+def iptf15af_spec(smooth_amount: int, verbose: bool = False) -> np.array:
     """
     Return an array containing the UV spectrum for iPTF15af as in Blagordonova et al. (2019)
 
     Parameters
     ----------
-    smooth              int
+    smooth_amount              int
                         The size of the window for the boxcar filter
     verbose             bool, optional
                         Enable verbose logging
@@ -34,9 +34,9 @@ def iptf15af_spec(smooth: int, verbose: bool = False) -> np.array:
     """
 
     try:
-        smooth = int(smooth)
+        smooth_amount = int(smooth_amount)
     except ValueError:
-        print("py_util.iptf15af_spec: Unable to convert smooth into an integer")
+        print("py_util.iptf15af_spec: Unable to convert smooth_amount into an integer")
         exit(1)
 
     spec_dir = ""
@@ -48,7 +48,7 @@ def iptf15af_spec(smooth: int, verbose: bool = False) -> np.array:
     else:
         print("py_util.iptf15af_spec: unknown system type {}".format(sys))
         exit(1)
-    spec_dir += "PySims/tde/observed_spec/Blagorodnova_iPTF15af.dat"
+    spec_dir += "PySims/tde_uv_bals_vs_bels/observed_spec/Blagorodnova_iPTF15af.dat"
 
     if verbose:
         print("Hostname: {}".format(gethostname()))
@@ -62,18 +62,18 @@ def iptf15af_spec(smooth: int, verbose: bool = False) -> np.array:
               "Update the directories in the script".format(spec_dir))
         exit(1)
 
-    spec[:, 1] = SpectrumUtils.smooth_spectrum(spec[:, 1], smooth)
+    spec[:, 1] = SpectrumUtils.smooth(spec[:, 1], smooth_amount)
 
     return spec
 
 
-def asassn14li_spec(smooth: int, verbose: bool = False) -> np.array:
+def asassn14li_spec(smooth_amount: int, verbose: bool = False) -> np.array:
     """
     Return an array containing the UV spectrum for ASSASN14li as in Cenko et al. (2016)
 
     Parameters
     ----------
-    smooth              int
+    smooth_amount              int
                         The size of the window for the boxcar filter
     verbose             bool, optional
                         Enable verbose logging
@@ -88,9 +88,9 @@ def asassn14li_spec(smooth: int, verbose: bool = False) -> np.array:
     """
 
     try:
-        smooth = int(smooth)
+        smooth_amount = int(smooth_amount)
     except ValueError:
-        print("py_util.asassn14li_spec: Unable to convert smooth into an integer")
+        print("py_util.asassn14li_spec: Unable to convert smooth_amount into an integer")
         exit(1)
 
     spec_dir = ""
@@ -102,7 +102,7 @@ def asassn14li_spec(smooth: int, verbose: bool = False) -> np.array:
     else:
         print("py_util.iptf15af_spec: unknown system type {}".format(sys))
         exit(1)
-    spec_dir += "PySims/tde/observed_spec/ASASSN-14li_spec_Cenko.dat"
+    spec_dir += "PySims/tde_uv_bals_vs_bels/observed_spec/ASASSN-14li_spec_Cenko.dat"
 
     if verbose:
         print("Hostname: {}".format(gethostname()))
@@ -115,25 +115,25 @@ def asassn14li_spec(smooth: int, verbose: bool = False) -> np.array:
               "Update the directories in the script".format(spec_dir))
         exit(1)
 
-    spec[:, 1] = SpectrumUtils.smooth_spectrum(spec[:, 1], smooth)
+    spec[:, 1] = SpectrumUtils.smooth(spec[:, 1], smooth_amount)
 
     return spec
 
 
-def iptf16fnl_spec(smooth: int, verbose: bool = False) -> np.array:
+def iptf16fnl_spec(smooth_amount: int, verbose: bool = False) -> np.array:
     """
     Parameters
     ----------
-    smooth              int
+    smooth_amount              int
                         The size of the window for the boxcar filter
     verbose             bool, optional
                         Enable verbose logging
     """
 
     try:
-        smooth = int(smooth)
+        smooth_amount = int(smooth_amount)
     except ValueError:
-        print("py_util.iptf16fnl_spec: Unable to convert smooth into an integer")
+        print("py_util.iptf16fnl_spec: Unable to convert smooth_amount into an integer")
         exit(1)
 
     spec_dir = ""
@@ -145,7 +145,7 @@ def iptf16fnl_spec(smooth: int, verbose: bool = False) -> np.array:
     else:
         print("py_util.iptf16fnl_spec: unknown system type {}".format(sys))
         exit(1)
-    spec_dir += "PySims/tde/observed_spec/iPTF16fnl_52d.dat"
+    spec_dir += "PySims/tde_uv_bals_vs_bels/observed_spec/iPTF16fnl_52d.dat"
 
     if verbose:
         print("Hostname: {}".format(gethostname()))
@@ -158,25 +158,25 @@ def iptf16fnl_spec(smooth: int, verbose: bool = False) -> np.array:
               "Update the directories in the script".format(spec_dir))
         exit(1)
 
-    spec[:, 1] = SpectrumUtils.smooth_spectrum(spec[:, 1], smooth)
+    spec[:, 1] = SpectrumUtils.smooth(spec[:, 1], smooth_amount)
 
     return spec
 
 
-def at2018zr_spec(smooth: int, verbose: bool = False) -> np.array:
+def at2018zr_spec(smooth_amount: int, verbose: bool = False) -> np.array:
     """
     Parameters
     ----------
-    smooth              int
+    smooth_amount              int
                         The size of the window for the boxcar filter
     verbose             bool, optional
                         Enable verbose logging
     """
 
     try:
-        smooth = int(smooth)
+        smooth_amount = int(smooth_amount)
     except ValueError:
-        print("py_util.at2018zr_spec: Unable to convert smooth into an integer")
+        print("py_util.at2018zr_spec: Unable to convert smooth_amount into an integer")
         exit(1)
 
     spec_dir = ""
@@ -188,7 +188,7 @@ def at2018zr_spec(smooth: int, verbose: bool = False) -> np.array:
     else:
         print("py_util.iptf16fnl_spec: unknown system type {}".format(sys))
         exit(1)
-    spec_dir += "PySims/tde/observed_spec/at2018zr_59d.dat"
+    spec_dir += "PySims/tde_uv_bals_vs_bels/observed_spec/at2018zr_59d.dat"
 
     if verbose:
         print("Hostname: {}".format(gethostname()))
@@ -201,7 +201,7 @@ def at2018zr_spec(smooth: int, verbose: bool = False) -> np.array:
               "Update the directories in the script".format(spec_dir))
         exit(1)
 
-    spec[:, 1] = SpectrumUtils.smooth_spectrum(spec[:, 1], smooth)
+    spec[:, 1] = SpectrumUtils.smooth(spec[:, 1], smooth_amount)
 
     return spec
 
@@ -223,7 +223,7 @@ def sdss_qso_spec(verbose: bool = False) -> np.array:
     else:
         print("py_util.sdss_qso_spec: unknown system type {}".format(sys))
         exit(1)
-    spec_dir += "PySims/tde/observed_spec/sdss_composite_qso.dat"
+    spec_dir += "PySims/tde_uv_bals_vs_bels/observed_spec/sdss_composite_qso.dat"
 
 
     if verbose:
@@ -257,7 +257,7 @@ def lobal_qso_spec(verbose: bool = False) -> np.array:
     else:
         print("py_util.lobal_qso_spec: unknown system type {}".format(sys))
         exit(1)
-    spec_dir += "PySims/tde/observed_spec/LoBALQSO.dat"
+    spec_dir += "PySims/tde_uv_bals_vs_bels/observed_spec/LoBALQSO.dat"
 
     if verbose:
         print("Hostname: {}".format(gethostname()))
@@ -292,8 +292,8 @@ def n_rich_qso_spec(verbose: bool = False) -> np.array:
     else:
         print("py_util.n_rich_qso_spec: unknown system type {}".format(sys))
         exit(1)
-    spec_dir += "PySims/tde/observed_spec/sdss_J164148.20+223225.22_n_rich_QSO.dat"
-    # spec_dir += "PySims/tde/observed_spec/nrichqso.dat"
+    spec_dir += "PySims/tde_uv_bals_vs_bels/observed_spec/sdss_J164148.20+223225.22_n_rich_QSO.dat"
+    # spec_dir += "PySims/tde_uv_bals_vs_bels/observed_spec/nrichqso.dat"
 
     if verbose:
         print("Hostname: {}".format(gethostname()))
