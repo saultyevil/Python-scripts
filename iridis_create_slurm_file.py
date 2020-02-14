@@ -13,7 +13,7 @@ import argparse
 from typing import Tuple
 
 
-def write_slurm_file(name: str, ncores: int, thours: int, tminutes: int, root: str, flags: str, wd: str = "./") \
+def write_slurm_file(name: str, ncores: int, split_cycle: bool, thours: int, tminutes: int, root: str, flags: str, wd: str = "./") \
         -> None:
     """
     Create a slurm file in the directory wd with the name root.slurm. All
@@ -29,6 +29,8 @@ def write_slurm_file(name: str, ncores: int, thours: int, tminutes: int, root: s
         The number of hours to allow
     tminutes: int
         The number of minutes to allow
+    split_cycle: bool
+        If True, then py_run will use the split_cycle method
     flags: str
         The run-time flags of which to execute Python with
     root: str
@@ -36,6 +38,10 @@ def write_slurm_file(name: str, ncores: int, thours: int, tminutes: int, root: s
     wd: str
         The directory to write the file to
     """
+
+    split = ""
+    if split_cycle:
+        split = "-sc"
 
     slurm = \
         """#!/bin/bash
@@ -47,10 +53,9 @@ def write_slurm_file(name: str, ncores: int, thours: int, tminutes: int, root: s
 module load openmpi/3.0.0/gcc
 module load conda/py3-latest
 source activate PyPython
-python /home/ejp1n17/PythonScripts/py_run.py -n {} -f="{}"
-python /home/ejp1n17/PythonScripts/py_plot.py {}
+python /home/ejp1n17/PythonScripts/py_run.py -n {} {} -f="{}"
 python /home/ejp1n17/PythonScripts/py_analyse_run.py {}
-""".format(ncores, thours, tminutes, ncores, flags, root, root)
+""".format(ncores, thours, tminutes, ncores, split, flags, root, root)
 
     if wd[-1] != "/":
         wd += "/"
@@ -61,7 +66,7 @@ python /home/ejp1n17/PythonScripts/py_analyse_run.py {}
     return
 
 
-def parse_arguments() -> Tuple[str, int, int, int, str, str]:
+def parse_arguments() -> Tuple[str, int, int, int, bool, str, str]:
     """
     Parse arguments from the command line.
 
@@ -88,9 +93,14 @@ def parse_arguments() -> Tuple[str, int, int, int, str, str]:
     p.add_argument("tminutes", type=int, help="The number of minutes of additional run time allowed.")
     p.add_argument("root", type=str, help="The root name of the model.")
     p.add_argument("-f", "--flags", type=str, help="Any flags to pass to the py_run.py Python running script.")
+    p.add_argument("-sc", "--split_cycle", action="store_true", help="Use the split cycle method for py_run.py")
     args = p.parse_args()
 
-    return args.name, args.ncores, args.thours, args.tminutes, args.root, args.flags
+    split_cycle = False
+    if args.split_cycle:
+        split_cycle = True
+
+    return args.name, args.ncores, args.thours, args.tminutes, split_cycle, args.root, args.flags
 
 
 def main() -> None:
@@ -99,13 +109,13 @@ def main() -> None:
     then executes the function to generate the slurm file.
     """
 
-    name, ncores, thours, tminutes, root, flags = parse_arguments()
+    name, ncores, thours, tminutes, split_cycle, root, flags = parse_arguments()
 
     if flags is None:
         flags = ""
     flags += " -t {} ".format(int(thours * 3600 + tminutes * 60))
 
-    write_slurm_file(name, ncores, thours, tminutes, root, flags)
+    write_slurm_file(name, ncores, split_cycle, thours, tminutes, root, flags)
 
     return
 
