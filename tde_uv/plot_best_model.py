@@ -109,12 +109,12 @@ def plot_against_data(dfname: str, disk: str, inclinations: List[str], name: str
 
     iptf = tu.iptf15af_spec(SMOOTH)
     assa = tu.asassn14li_spec(SMOOTH)
-    fig, ax = plt.subplots(2, 1, figsize=(9.5, 12), sharex="col")
+    fig, ax = plt.subplots(1, 2, figsize=(20, 8))  # , sharey="row")
 
     if system() == "Darwin":
-        pdir = "/Users/saultyevil/PySims/tde/"
+        pdir = "/Users/saultyevil/PySims/tde_uv_bals_vs_bels/"
     else:
-        pdir = "/home/saultyevil/PySims/tde/"
+        pdir = "/home/saultyevil/PySims/tde_uv_bals_vs_bels/"
 
     dfname = pdir + dfname
     spec1 = SpectrumUtils.read_spec(dfname)
@@ -128,10 +128,10 @@ def plot_against_data(dfname: str, disk: str, inclinations: List[str], name: str
     disc_flux = disc_spec[inclination].values.astype(float)
     disc_flux *= (100 * PARSEC) ** 2 / (350 * 1e6 * PARSEC) ** 2
 
-    ax[0].semilogy(spec1_wl, SpectrumUtils.smooth_spectrum(spec1_flux, SMOOTH), color="C0", linewidth=3,
+    ax[0].semilogy(spec1_wl, SpectrumUtils.smooth(spec1_flux, SMOOTH), color="C0", linewidth=3,
                    label=r"Model: i = {}".format(inclination) + r"$^{\circ}$", alpha=alpha, zorder=4)
-    ax[0].semilogy(disk_wl, SpectrumUtils.smooth_spectrum(disc_flux, 15), "--", color="C0", linewidth=1, alpha=alpha)
-    ax[0].semilogy(iptf[:, 0] / (0.07897 + 1), SpectrumUtils.smooth_spectrum(iptf[:, 1], SMOOTH),
+    ax[0].semilogy(disk_wl, SpectrumUtils.smooth(disc_flux, 15), "--", color="C0", linewidth=1, alpha=alpha)
+    ax[0].semilogy(iptf[:, 0] / (0.07897 + 1), SpectrumUtils.smooth(iptf[:, 1], SMOOTH),
                    "k", label=r"iPTF15af $\Delta t = $52 d", zorder=2)
     ax[0].set_xlim(wmin, wmax)
     ax[0].set_ylim(2e-17, 4e-14)
@@ -151,12 +151,12 @@ def plot_against_data(dfname: str, disk: str, inclinations: List[str], name: str
         disc_flux = disc_spec[inclination].values.astype(float)
         disc_flux *= (100 * PARSEC) ** 2 / (90 * 1e6 * PARSEC) ** 2
 
-        ax[1].semilogy(spec1_wl, SpectrumUtils.smooth_spectrum(spec1_flux, SMOOTH), color=colors[i], linewidth=3,
+        ax[1].semilogy(spec1_wl, SpectrumUtils.smooth(spec1_flux, SMOOTH), color=colors[i], linewidth=3,
                        label=r"Model: i = {}".format(inclination) + r"$^{\circ}$", alpha=alpha, zorder=4)
-        ax[1].semilogy(disk_wl, SpectrumUtils.smooth_spectrum(disc_flux, 15), "--", color=colors[i], linewidth=1,
+        ax[1].semilogy(disk_wl, SpectrumUtils.smooth(disc_flux, 15), "--", color=colors[i], linewidth=1,
                        alpha=0.8)
 
-    ax[1].semilogy(assa[:, 0] / (0.02058 + 1), SpectrumUtils.smooth_spectrum(assa[:, 1], SMOOTH),
+    ax[1].semilogy(assa[:, 0] / (0.02058 + 1), SpectrumUtils.smooth(assa[:, 1], SMOOTH),
                    "k", label=r"ASASSN14li $\Delta t = $60 d", zorder=2)
     ax[1].set_xlim(wmin, wmax)
     ax[1].set_ylim(2e-16, 3e-12)
@@ -170,7 +170,7 @@ def plot_against_data(dfname: str, disk: str, inclinations: List[str], name: str
              rotation="vertical", fontsize=15)
 
     fig.tight_layout(rect=[0.03, 0.03, 0.97, 0.97])
-    fig.subplots_adjust(hspace=0, wspace=0)
+    # fig.subplots_adjust(hspace=0, wspace=0)
     plt.savefig("polar_clumped_wind.png")
     plt.show()
 
