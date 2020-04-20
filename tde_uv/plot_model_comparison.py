@@ -258,9 +258,6 @@ def model_comparison(direcs: List[str], colour, disk_specs: List[str] = None, ex
     return
 
 
-import numpy.ma as ma
-
-
 def wind_geos(direcs) -> Union[plt.Figure, list]:
     """
     Create a plot of the three different wind geometries.

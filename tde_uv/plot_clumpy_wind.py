@@ -120,7 +120,7 @@ def wind_plot(root: str, output_name: str, wind_names: List[str], wind_types: Li
 
     # Check to ensure the subplot dimensions are provided and valid
     if subplot_dims is None:
-        subplot_dims = (4, 2)
+        subplot_dims = (2, 2)
     if subplot_dims[0] * subplot_dims[1] < len(wind_names):
         print("{}: not enough subplot panels to plot all the provided wind variables".format(n))
         return
@@ -136,8 +136,7 @@ def wind_plot(root: str, output_name: str, wind_names: List[str], wind_types: Li
     incls = ["10", "60", "75"]
     lstyle = ["k-", "k--", "k-.", "k:"]
     namezzz = [r"$\log_{10}$(Electron Temperature) [K]", r"$\log_{10}$(Electron Density) [cm$^{-3}$]",
-               r"$\log_{10}$(Carbon IV Density) [cm$^{-3}$]", r"$\log_{10}$(Ionization Parameter)",
-               r"$\log_{10}$(Rotational Velocity) [km s$^{-1}$]", r"$\log_{10}$(Polodial Velocity) [km s$^{-1}$]"]
+               r"$\log_{10}$(Carbon IV Density) [cm$^{-3}$]", r"$\log_{10}$(Polodial Velocity) [km s$^{-1}$]"]
 
     if plot_indices:
         scale = "linlin"
@@ -153,7 +152,7 @@ def wind_plot(root: str, output_name: str, wind_names: List[str], wind_types: Li
 
             if wind_name != "v_l":
                 try:
-                    x, z, w = WindUtils.extract_wind_var(root, wind_name, wind_type, wd, projection,
+                    x, z, w = WindUtils.get_wind_variable(root, wind_name, wind_type, wd, projection,
                                                          input_file=input_file, return_indices=plot_indices)
                 except Exception:
                     print("Exception occured >:(. Can't plot {} for some reason".format(wind_name))
@@ -172,11 +171,11 @@ def wind_plot(root: str, output_name: str, wind_names: List[str], wind_types: Li
                                 vk[ii, jj] = rotational_velocity(r0, x[ii, jj]) / 1e5
                     im = ax[i, j].pcolor(x, z, np.log10(vk))
                 elif wind_name == "v_l" or wind_name == "v_x":
-                    xvx, zvx, wvx = WindUtils.extract_wind_var(root, "v_x", wind_type, wd, projection,
+                    xvx, zvx, wvx = WindUtils.get_wind_variable(root, "v_x", wind_type, wd, projection,
                                                                input_file=input_file, return_indices=plot_indices)
-                    xvy, zvy, wvy = WindUtils.extract_wind_var(root, "v_y", wind_type, wd, projection,
+                    xvy, zvy, wvy = WindUtils.get_wind_variable(root, "v_y", wind_type, wd, projection,
                                                                input_file=input_file, return_indices=plot_indices)
-                    xvz, zvz, wvz = WindUtils.extract_wind_var(root, "v_z", wind_type, wd, projection,
+                    xvz, zvz, wvz = WindUtils.get_wind_variable(root, "v_z", wind_type, wd, projection,
                                                                input_file=input_file, return_indices=plot_indices)
                     x = copy(xvx)
                     z = copy(zvx)
@@ -200,8 +199,8 @@ def wind_plot(root: str, output_name: str, wind_names: List[str], wind_types: Li
                         im = ax[i, j].pcolor(xvx, zvx, np.log10(v_cyl[1] / 1e5))
                 else:
                     if wind_name == "c4":
-                        x, z, w = WindUtils.extract_wind_var(root, "i04", "ion", wd, projection,
-                                                             input_file="/home/saultyevil/PySims/tde/models/clump/1e-1/cv/solar/tde_cv.0.C.txt",
+                        x, z, w = WindUtils.get_wind_variable(root, "i04", "ion", wd, projection,
+                                                             input_file="/home/saultyevil/PySims/tde_uv/models/clump/1e-1/cv/solar/tde_cv.0.C.txt",
                                                              return_indices=plot_indices)
                         im = ax[i, j].pcolor(x, z, np.log10(w)) # , vmin=-10, vmax=0)
                     else:
@@ -209,7 +208,7 @@ def wind_plot(root: str, output_name: str, wind_names: List[str], wind_types: Li
 
             print(wind_name, wind_type)
 
-            if i == 1 and j == 0:
+            if i == 0 and j == 0:
                 for k in range(len(incls)):
                     xsight = np.linspace(0, np.max(x), int(1e5))
                     zsight = sightline_coords(xsight, np.deg2rad(float(incls[k])))
@@ -225,7 +224,7 @@ def wind_plot(root: str, output_name: str, wind_names: List[str], wind_types: Li
             if scale == "loglog" or scale == "logy":
                 ax[i, j].set_yscale("log")
 
-            if i == 1 and j == 0:
+            if i == 0 and j == 0:
                 ax[i, j].legend(loc="lower right")
 
             ax[i, j].text(0.03, 0.93, namezzz[index], ha="left", va="center", rotation="horizontal", fontsize=15,
@@ -240,8 +239,8 @@ def wind_plot(root: str, output_name: str, wind_names: List[str], wind_types: Li
     # cax = fig.add_axes([0.85, 0.06, 0.035, 0.91])
     # fig.colorbar(im, cax=cax)
 
-    fig.text(0.5, 0.02, r"$\log_{10}$(x) [cm]", ha="center", va="center", rotation="horizontal", fontsize=17)
-    fig.text(0.025, 0.5, r"$\log_{10}$(z) [cm]", ha="center", va="center", rotation="vertical", fontsize=17)
+    fig.text(0.5, 0.02, r"x [cm]", ha="center", va="center", rotation="horizontal", fontsize=17)
+    fig.text(0.025, 0.5, r"z [cm]", ha="center", va="center", rotation="vertical", fontsize=17)
 
     if plot_title:
         fig.suptitle(plot_title)
@@ -259,12 +258,12 @@ def wind_plot(root: str, output_name: str, wind_names: List[str], wind_types: Li
 root = "tde_cv"
 output_name = "wind"
 projection = "rectilinear"
-path = "/home/saultyevil/PySims/tde/models/clump/1e-1/cv/solar"
+path = "/home/saultyevil/PySims/tde_uv/models/clump/1e-1/cv/solar"
 inclination_angles = None
 DIMS = "2d"
 
-wind_names = ["t_e", "ne", "c4", "ip", "v_x", "v_l"]
+wind_names = ["t_e", "ne", "c4", "v_l"]
 wind_types = ["wind"] * len(wind_names)
 wind_plot(root, output_name + "_wind", wind_names, wind_types, path, projection=projection,
-          line_of_sights=inclination_angles, ndims=DIMS, verbose=True, subplot_dims=(3, 2),
-          fig_size=(14, 15))
+          line_of_sights=inclination_angles, ndims=DIMS, verbose=True, subplot_dims=(2, 2),
+          fig_size=(17, 15))
