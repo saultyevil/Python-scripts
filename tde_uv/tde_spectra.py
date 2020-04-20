@@ -48,7 +48,7 @@ def iptf15af_spec(smooth_amount: int, verbose: bool = False) -> np.array:
     else:
         print("py_util.iptf15af_spec: unknown system type {}".format(sys))
         exit(1)
-    spec_dir += "PySims/tde_uv_bals_vs_bels/observed_spec/Blagorodnova_iPTF15af.dat"
+    spec_dir += "PySims/tde_uv/observed_spec/Blagorodnova_iPTF15af.dat"
 
     if verbose:
         print("Hostname: {}".format(gethostname()))
@@ -102,7 +102,7 @@ def asassn14li_spec(smooth_amount: int, verbose: bool = False) -> np.array:
     else:
         print("py_util.iptf15af_spec: unknown system type {}".format(sys))
         exit(1)
-    spec_dir += "PySims/tde_uv_bals_vs_bels/observed_spec/ASASSN-14li_spec_Cenko.dat"
+    spec_dir += "PySims/tde_uv/observed_spec/ASASSN-14li_spec_Cenko.dat"
 
     if verbose:
         print("Hostname: {}".format(gethostname()))
@@ -145,7 +145,7 @@ def iptf16fnl_spec(smooth_amount: int, verbose: bool = False) -> np.array:
     else:
         print("py_util.iptf16fnl_spec: unknown system type {}".format(sys))
         exit(1)
-    spec_dir += "PySims/tde_uv_bals_vs_bels/observed_spec/iPTF16fnl_52d.dat"
+    spec_dir += "PySims/tde_uv/observed_spec/iPTF16fnl_52d.dat"
 
     if verbose:
         print("Hostname: {}".format(gethostname()))
@@ -188,7 +188,7 @@ def at2018zr_spec(smooth_amount: int, verbose: bool = False) -> np.array:
     else:
         print("py_util.iptf16fnl_spec: unknown system type {}".format(sys))
         exit(1)
-    spec_dir += "PySims/tde_uv_bals_vs_bels/observed_spec/at2018zr_59d.dat"
+    spec_dir += "PySims/tde_uv/observed_spec/at2018zr_59d.dat"
 
     if verbose:
         print("Hostname: {}".format(gethostname()))
@@ -223,7 +223,7 @@ def sdss_qso_spec(verbose: bool = False) -> np.array:
     else:
         print("py_util.sdss_qso_spec: unknown system type {}".format(sys))
         exit(1)
-    spec_dir += "PySims/tde_uv_bals_vs_bels/observed_spec/sdss_composite_qso.dat"
+    spec_dir += "PySims/tde_uv/observed_spec/sdss_composite_qso.dat"
 
 
     if verbose:
@@ -257,7 +257,7 @@ def lobal_qso_spec(verbose: bool = False) -> np.array:
     else:
         print("py_util.lobal_qso_spec: unknown system type {}".format(sys))
         exit(1)
-    spec_dir += "PySims/tde_uv_bals_vs_bels/observed_spec/LoBALQSO.dat"
+    spec_dir += "PySims/tde_uv/observed_spec/LoBALQSO.dat"
 
     if verbose:
         print("Hostname: {}".format(gethostname()))
@@ -292,8 +292,8 @@ def n_rich_qso_spec(verbose: bool = False) -> np.array:
     else:
         print("py_util.n_rich_qso_spec: unknown system type {}".format(sys))
         exit(1)
-    spec_dir += "PySims/tde_uv_bals_vs_bels/observed_spec/sdss_J164148.20+223225.22_n_rich_QSO.dat"
-    # spec_dir += "PySims/tde_uv_bals_vs_bels/observed_spec/nrichqso.dat"
+    spec_dir += "PySims/tde_uv/observed_spec/sdss_J164148.20+223225.22_n_rich_QSO.dat"
+    # spec_dir += "PySims/tde_uv/observed_spec/nrichqso.dat"
 
     if verbose:
         print("Hostname: {}".format(gethostname()))
