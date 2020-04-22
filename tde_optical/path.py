@@ -1,3 +1,49 @@
+#!/usr/bin/env python
+
+from platform import system
+from typing import List
+from PyPython import SpectrumUtils
+
+SKIP = -1
+
+
+def get_fiducial_uv_model():
+    """Load the spectrum for the fiducial uv model"""
+
+    if system() == "Darwin":
+        original_model = "/Users/saultyevil/PySims/tde_uv/models/clump/1e-1/cv/solar/tde_cv.spec"
+    else:
+        original_model = "/home/saultyevil/PySims/tde_uv/models/clump/1e-1/cv/solar/tde_cv.spec"
+
+    t = SpectrumUtils.read_spec(original_model)
+
+    return t
+
+
+def get_the_models(directories: List[str], generic_file_name: str):
+    """Get the spectra of interest from file"""
+
+    if system() == "Darwin":
+        pdir = "/Users/saultyevil/PySims/tde_optical/grid/round1/"
+    else:
+        pdir = "/home/saultyevil/PySims/tde_optical/grid/round1/"
+
+    modelspecs = []
+    for i in range(len(directories)):
+        directories[i] = pdir + directories[i] + "/" + generic_file_name
+        if generic_file_name.find(".spec") != -1:
+            try:
+                modelspecs.append(SpectrumUtils.read_spec(directories[i]))
+            except:
+                modelspecs.append(SKIP)
+        else:
+            try:
+                modelspecs.append(directories[i])
+            except:
+                modelspecs.append(SKIP)
+
+    return modelspecs
+
 
 # BLACK HOLE MASS
 
