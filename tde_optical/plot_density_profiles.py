@@ -2,15 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import pandas as pd
-from sys import exit
-from platform import system
-from sys import argv
+from sys import exit, argv
 from matplotlib import pyplot as plt
 from typing import List, Tuple, Union
 import numpy as np
-from PyPython import SpectrumUtils, WindUtils
 from astropy.io import ascii
-from PyPython import PythonUtils as Utils
+from path import *
 
 plt.rcParams['xtick.labelsize'] = 15
 plt.rcParams['ytick.labelsize'] = 15
@@ -18,8 +15,7 @@ plt.rcParams['ytick.labelsize'] = 15
 MPROT = 1.672661e-24
 
 
-def sightline_coords(x: np.ndarray, inclination: float) \
-        -> np.ndarray:
+def sightline_coords(x: np.ndarray, inclination: float):
     """
     Return the z coordinates for a given inclination angle and x coordinates.
     """
@@ -32,24 +28,30 @@ def extract_density_profile(t: pd.DataFrame, inclination: float, density_type: s
     """Extract the requested density from the table t."""
 
     stride = np.max(t["j"]) + 1
-
-    x = t["x"][::stride]
+    x = np.array(t["x"][::stride])
     z = sightline_coords(x, inclination)
     density = np.zeros_like(z)
 
-    if len(x) != len(z):
-        print("len(x) =", len(x))
-        print("len(z) =", len(z))
-        exit(1)
+    assert (len(x) == len(z))
 
     for i in range(len(x)):
         j = 0
         while t["x"][j] < x[i]:
             j += 1
+            if j > len(t["x"]):
+                j = -1
+                break
+        if j == -1:
+            continue
         k = 0
-        tt = t[j:j+stride]
+        tt = t[j:j + stride]
         while tt["z"][k] < z[i]:
             k += 1
+            if k > stride - 1:
+                k = -1
+                break
+        if k == -1:
+            continue
         index = j + k
         try:
             label = density_type
@@ -65,32 +67,31 @@ def extract_density_profile(t: pd.DataFrame, inclination: float, density_type: s
     return z, z, density
 
 
-def plot_density_profile_inclination(models: List[str], inclination: Union[str, float, int], labels: List[str],
+def plot_density_profile_inclination(directories: List[str], inclination: Union[str, float, int], labels: List[str],
                                      filename: str, density_type: str = "ne") \
         -> Tuple[plt.Figure, plt.Axes]:
     """Plot the density profiles along a specific inclination for the provided
     models."""
 
     density_type = density_type.lower()
+    models = get_the_models(directories, "tde_uv.master.txt")
+
+    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
 
     try:
         inclination = float(inclination)
     except ValueError as e:
         print(e)
         print("Unable to convert the provided inclination into a floating point number")
-        exit(1)
-
-    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-
-    r = 0  # Scope related hack ;-)
+        return fig, ax
 
     for i, m in enumerate(models):
+        print(m, inclination, density_type)
         grid = ascii.read(m, format="basic", data_start=1)
         x, z, density = extract_density_profile(grid, inclination, density_type)
         r = np.sqrt(x ** 2 + z ** 2)
         ax.loglog(r[density != 0], density[density != 0], label=labels[i], linewidth=3)
 
-    # ax.set_xlim(np.min(r[r != 0]), np.max(r))
     if density_type == "rho":
         ax.set_ylabel(r"Mass Density $\rho$ [g / cm$^{-3}$]", fontsize=15)
     elif density_type == "ne":
@@ -102,82 +103,49 @@ def plot_density_profile_inclination(models: List[str], inclination: Union[str, 
 
     fig.tight_layout()
 
-    plt.savefig("density/" + filename + "_i_{}".format(inclination) + ".png")
+    fig.savefig("density/" + filename + "_i{}".format(inclination) + ".pdf", dpi=300)
+    fig.savefig("density/" + filename + "_i{}".format(inclination) + ".png", dpi=300)
     plt.close()
 
     return fig, ax
 
 
-if __name__ == "__main__":
+def main(argc: int, argv: List[str]) -> None:
+    """
+    Main function of the script
 
-    mbh_grid = [
-        "/home/saultyevil/PySims/tde_optical/grid/round1/Mbh/1.0000e+06/tde_uv.master.txt",
-        "/home/saultyevil/PySims/tde_optical/grid/round1/Mbh/1.0000e+07/tde_uv.master.txt",
-        "/home/saultyevil/PySims/tde_optical/grid/round1/Mbh/1.0000e+08/tde_uv.master.txt"
-    ]
+    Parameters
+    ----------
+    argc: int
+        The number of command line arguments provided
+    argv: List[str]
+        The command line arguments provided
+    """
 
-    mbh_labels = [
-        r"M$_{BH}$ = 10$^6$ M$_{\odot}$",
-        r"M$_{BH}$ = 10$^7$ M$_{\odot}$",
-        r"M$_{BH}$ = 10$^8$ M$_{\odot}$",
-    ]
-
-    rmin_grid = [
-        "/home/saultyevil/PySims/tde_optical/grid/round1/Rmin/5.0000e+00/tde_uv.master.txt",
-        "/home/saultyevil/PySims/tde_optical/grid/round1/Rmin/1.0000e+01/tde_uv.master.txt",
-        "/home/saultyevil/PySims/tde_optical/grid/round1/Rmin/1.5000e+01/tde_uv.master.txt"
-    ]
-
-    rmin_labels = [
-        r"R$_{min}$ = 5 R$_{ISCO}$",
-        r"R$_{min}$ = 10 R$_{ISCO}$",
-        r"R$_{min}$ = 15 R$_{ISCO}$",
-    ]
-
-    vinf_grid = [
-        "/home/saultyevil/PySims/tde_optical/grid/round1/Vinf/1.0000e-01/tde_uv.master.txt",
-        "/home/saultyevil/PySims/tde_optical/grid/round1/Vinf/5.0000e-01/tde_uv.master.txt",
-        "/home/saultyevil/PySims/tde_optical/grid/round1/Vinf/8.0000e-01/tde_uv.master.txt"
-    ]
-
-    vinf_labels = [
-        r"V$_{\infty}$ = 0.1 V$_{esc}$",
-        r"V$_{\infty}$ = 0.5 V$_{esc}$",
-        r"V$_{\infty}$ = 0.8 V$_{esc}$"
-    ]
+    incls = ["20", "35", "60", "75"]
 
     # Mbh grid
+    for i in incls:
+        plot_density_profile_inclination(mbh_grid.copy(), i, mbh_labels, "ne_Mbh", "ne")
+        plot_density_profile_inclination(mbh_grid.copy(), i, mbh_labels, "rho_Mbh", "rho")
 
-    fig, ax = plot_density_profile_inclination(mbh_grid.copy(), "60", mbh_labels, "Mbh_ne", "ne")
-    fig, ax = plot_density_profile_inclination(mbh_grid.copy(), "60", mbh_labels, "Mbh_Nh", "nh")
-    fig, ax = plot_density_profile_inclination(mbh_grid.copy(), "60", mbh_labels, "Mbh_rho", "rho")
+        # Rmin grid
 
-    # Rmin grid
+        plot_density_profile_inclination(rmin_grid.copy(), i, rmin_labels, "ne_Rmin", "ne")
+        plot_density_profile_inclination(rmin_grid.copy(), i, rmin_labels, "rho_Rmin", "rho")
 
-    fig, ax = plot_density_profile_inclination(rmin_grid.copy(), "60", rmin_labels, "Rmin_ne", "ne")
-    fig, ax = plot_density_profile_inclination(rmin_grid.copy(), "60", rmin_labels, "Rmin_Nh", "nh")
-    fig, ax = plot_density_profile_inclination(rmin_grid.copy(), "60", rmin_labels, "Rmin_rho", "rho")
+        # Vinf grid
 
-    # Vinf grid
+        plot_density_profile_inclination(vinf_grid.copy(), i, vinf_labels, "ne_Vinf", "ne")
+        plot_density_profile_inclination(vinf_grid.copy(), i, vinf_labels, "rho_Vinf", "rho")
 
-    fig, ax = plot_density_profile_inclination(vinf_grid.copy(), "60", vinf_labels, "Vinf_ne", "ne")
-    fig, ax = plot_density_profile_inclination(vinf_grid.copy(), "60", vinf_labels, "Vinf_Nh", "nh")
-    fig, ax = plot_density_profile_inclination(vinf_grid.copy(), "60", vinf_labels, "Vinf_rho", "rho")
+        # Plot the "best" lines
 
-    # Plot the "best" lines
+        plot_density_profile_inclination(best_lines_grid.copy(), i, best_lines_labels, "ne_zBestLines", "ne")
+        plot_density_profile_inclination(best_lines_grid.copy(), i, best_lines_labels, "rho_zBestLines", "rho")
 
-    files = [
-        "/home/saultyevil/PySims/tde_optical/grid/round1/Mbh/1.0000e+07/tde_uv.master.txt",
-        "/home/saultyevil/PySims/tde_optical/grid/round1/Rmin/1.5000e+01/tde_uv.master.txt",
-        "/home/saultyevil/PySims/tde_optical/grid/round1/Vinf/1.0000e-01/tde_uv.master.txt"
-    ]
+    return
 
-    labels = [
-        r"M$_{BH}$ = 10$^7$ M$_{\odot}$",
-        r"R$_{min}$ = 15 R$_{ISCO}$",
-        r"V$_{\infty}$ = 0.1 V$_{esc}$"
-    ]
 
-    fig, ax = plot_density_profile_inclination(files, "60", labels, "BestLines_ne", "ne")
-    fig, ax = plot_density_profile_inclination(files, "60", labels, "BestLines_nh", "nh")
-    fig, ax = plot_density_profile_inclination(files, "60", labels, "BestLines_rho", "rho")
+if __name__ == "__main__":
+    main(len(argv), argv)
