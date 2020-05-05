@@ -34,6 +34,10 @@ def extract_density_profile(t: pd.DataFrame, inclination: float, density_type: s
 
     assert (len(x) == len(z))
 
+    index = 0
+    prev_index = 0
+    col = 0
+
     for i in range(len(x)):
         j = 0
         while t["x"][j] < x[i]:
@@ -52,6 +56,7 @@ def extract_density_profile(t: pd.DataFrame, inclination: float, density_type: s
                 break
         if k == -1:
             continue
+        prev_index = index
         index = j + k
         try:
             label = density_type
@@ -63,6 +68,8 @@ def extract_density_profile(t: pd.DataFrame, inclination: float, density_type: s
         except KeyError:
             print("The density {} is unknown or not implemented yet".format(density_type))
             exit(1)
+
+        # prev_r =
 
     return z, z, density
 
@@ -88,9 +95,17 @@ def plot_density_profile_inclination(directories: List[str], inclination: Union[
     for i, m in enumerate(models):
         print(m, inclination, density_type)
         grid = ascii.read(m, format="basic", data_start=1)
+
         x, z, density = extract_density_profile(grid, inclination, density_type)
         r = np.sqrt(x ** 2 + z ** 2)
         ax.loglog(r[density != 0], density[density != 0], label=labels[i], linewidth=3)
+        ax.text(0.1, 0.1, "i = {}".format(inclination), transform=ax.transAxes)
+       
+    gridf = ascii.read("/home/saultyevil/PySims/tde_uv/models/clump/1e-1/cv/solar/tde_cv.master.txt",
+                       format="basic", data_start=1)
+    xf, zf, densityf = extract_density_profile(gridf, inclination, density_type)
+    rf = np.sqrt(xf ** 2 + zf ** 2)
+    ax.loglog(rf[densityf != 0], densityf[densityf != 0], label="UV Model", linewidth=3, color="k")
 
     if density_type == "rho":
         ax.set_ylabel(r"Mass Density $\rho$ [g / cm$^{-3}$]", fontsize=15)
@@ -128,19 +143,19 @@ def main(argc: int, argv: List[str]) -> None:
     for i in incls:
         plot_density_profile_inclination(mbh_grid.copy(), i, mbh_labels, "ne_Mbh", "ne")
         plot_density_profile_inclination(mbh_grid.copy(), i, mbh_labels, "rho_Mbh", "rho")
-
+        
         # Rmin grid
-
+        
         plot_density_profile_inclination(rmin_grid.copy(), i, rmin_labels, "ne_Rmin", "ne")
         plot_density_profile_inclination(rmin_grid.copy(), i, rmin_labels, "rho_Rmin", "rho")
-
+        
         # Vinf grid
-
+        
         plot_density_profile_inclination(vinf_grid.copy(), i, vinf_labels, "ne_Vinf", "ne")
         plot_density_profile_inclination(vinf_grid.copy(), i, vinf_labels, "rho_Vinf", "rho")
-
+        
         # Plot the "best" lines
-
+        
         plot_density_profile_inclination(best_lines_grid.copy(), i, best_lines_labels, "ne_zBestLines", "ne")
         plot_density_profile_inclination(best_lines_grid.copy(), i, best_lines_labels, "rho_zBestLines", "rho")
 

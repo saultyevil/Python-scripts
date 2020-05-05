@@ -34,7 +34,8 @@ def plot(mbh_grid: List[str], labels: List[str], inclination: str) \
     ax.set_xlabel(r"Wavelength $\lambda$ [$\AA$]", fontsize=15)
     ax.set_ylabel(r" $\lambda$ $F_{\lambda}$  at 100 pc [erg s$^{-1}$ cm$^{-2}$]", fontsize=15)
 
-    fig.savefig("misc/Mbh_continuum_i{}.pdf".format(inclination))
+    fig.savefig("continua/Mbh_continuum_i{}.png".format(inclination), dpi=300)
+    fig.savefig("continua/Mbh_continuum_i{}.pdf".format(inclination), dpi=300)
     plt.close()
 
     return fig, ax

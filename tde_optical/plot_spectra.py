@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from sys import argv
+import numpy as np
 from platform import system
 from matplotlib import pyplot as plt
 from typing import List, Tuple, Union
@@ -37,8 +38,12 @@ LINES = [
     ["Fe II", 0],
     ["Fe II", 0],
     ["Mg II", 2798],
+    ["Ca II", 3934],
+    ["", 3969],
     ["He II", 4686],
     [r"H$\beta$", 4861],
+    ["Na I", 5891],
+    ["", 5897],
     [r"H$\alpha$", 6564],
 ]
 
@@ -61,7 +66,7 @@ comment = [
 ]
 
 
-def plot_line_id(ax: plt.Axes, offset: Union[float, int] = 55) -> plt.Axes:
+def plot_line_id(ax: plt.Axes, logx: bool = False, offset: Union[float, int] = 55) -> plt.Axes:
     """
     Plot labels and vertical lines to indicate important atomic transitions.
     """
@@ -70,16 +75,20 @@ def plot_line_id(ax: plt.Axes, offset: Union[float, int] = 55) -> plt.Axes:
     nlines = len(LINES)
 
     for i in range(nlines):
-        lab = LINES[i][0]
         x = LINES[i][1]
         if x < xlims[0]:
             continue
         elif x > xlims[1]:
             continue
-
+        lab = LINES[i][0]
         ax.axvline(x, ymin=0.8, ymax=0.98, linestyle="-", linewidth=1.5, color="k")
         x = x - offset
-        xnorm = (x - xlims[0]) / (xlims[1] - xlims[0])
+
+        if logx:
+            xnorm = (np.log10(x) - np.log10(xlims[0])) / (np.log10(xlims[1]) - np.log10(xlims[0]))
+        else:
+            xnorm = (x - xlims[0]) / (xlims[1] - xlims[0])
+
         ax.text(xnorm, 0.90, lab, ha="center", va="center", rotation="vertical", transform=ax.transAxes, fontsize=13)
 
     return ax
@@ -142,11 +151,12 @@ def panel_all_grids(directories: List[str], line_colours: List[str], wmin: float
                 except KeyError:
                     continue
 
-                ax[i, j].semilogy(wl, SpectrumUtils.smooth(fl, SMOOTH), label=labels[j][k], linewidth=3,
-                                  color=line_colours[k], linestyle=lstyle[k], alpha=alpha)
                 if k == 0:
                     ax[i, j].semilogy(uv_fid_wl, SpectrumUtils.smooth(uv_fid_fl, SMOOTH), "k-", linewidth=3,
                                       alpha=alpha, zorder=0, label=fid_label)
+                ax[i, j].semilogy(wl, SpectrumUtils.smooth(fl, SMOOTH), label=labels[j][k], linewidth=3,
+                                  color=line_colours[k], linestyle=lstyle[k], alpha=alpha)
+
                 ax[i, j].set_xlim(wmin, wmax)
                 if i == 0:  # Lazy programming :-)
                     if extra_file_name == "the_uv_grid":
@@ -264,7 +274,7 @@ def single_panel(directories: List[str], line_colours: List[str], labels: List[s
     nrows = ncols = 1
     fig, ax = None, None
 
-    sm = 50
+    sm = 5
 
     for j in range(len(incl)):
         fig, ax = plt.subplots(nrows, ncols, figsize=(15, 7))
@@ -278,7 +288,7 @@ def single_panel(directories: List[str], line_colours: List[str], labels: List[s
                 continue
             ax.loglog(wl, SpectrumUtils.smooth(fl, sm), "-", label=labels[i], linewidth=3,
                       color=line_colours[i], alpha=alpha)
-        ax.text(0.83, 0.9, r"$i = $" + incl[j] + r"$^{\circ}$" + comment[j], ha="center", va="center",
+        ax.text(0.80, 0.2, r"$i = $" + incl[j] + r"$^{\circ}$" + comment[j], ha="center", va="center",
                 rotation="horizontal", fontsize=15, transform=ax.transAxes)
 
         # Plot the fiducial model
@@ -286,11 +296,13 @@ def single_panel(directories: List[str], line_colours: List[str], labels: List[s
         # fid_fl = t[incl[j]].values.astype(float)
         # ax.loglog(fid_wl, SpectrumUtils.smooth(fid_fl, sm), "k-", linewidth=2, alpha=0.3, zorder=0)
 
-        ax.set_xlabel(r"Wavelength $\lambda$ [$\AA$]")
-        ax.set_ylabel(r"Flux $F_{\lambda}$  at 100 pc [erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$]", )
-        ax.legend(loc="upper left", fontsize=13)
+        # ax = SpectrumUtils.plot_line_ids(ax, SpectrumUtils.common_lines(), True)
+        ax.set_xlabel(r"Wavelength $\lambda$ [$\AA$]", fontsize=15)
+        ax.set_ylabel(r"Flux $F_{\lambda}$  at 100 pc [erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$]", fontsize=15)
+        ax.legend(loc="lower left", fontsize=13)
         ax.set_ylim(1e-5, 1e0)
-        # ax = SpectrumUtils.plot_line_ids(ax, LINES, logx=True, offset=55)
+        # ax.set_xlim(1000, 7000)
+        ax = plot_line_id(ax, logx=True, offset=0)
 
         fig.tight_layout(rect=[0.03, 0.03, 0.97, 0.97])
 
@@ -301,6 +313,65 @@ def single_panel(directories: List[str], line_colours: List[str], labels: List[s
 
         fig.savefig(fname + ".pdf", dpi=300)
         fig.savefig(fname + ".png", dpi=300)
+
+    if DISPLAY:
+        plt.show()
+    else:
+        plt.close()
+
+    return fig, ax
+
+
+def three_panel_single(directories: List[str], line_colours: List[str], labels: List[str], extra_file_name: str = "") \
+        -> Union[None, Tuple[plt.Figure, plt.Axes]]:
+    """Plot 1000 - 3000 A for each inclination"""
+
+    modelspecs = get_the_models(directories, "tde_uv.spec")
+    t = get_fiducial_uv_model()
+
+    nrows = len(incl)
+    ncols = 1
+    fig, ax = None, None
+
+    sm = 5
+    fig, ax = plt.subplots(nrows, ncols, figsize=(15, 25))
+
+    for j in range(len(incl)):
+        for i in range(len(modelspecs)):
+            if type(modelspecs[i]) == type(SKIP):
+                continue
+            wl = modelspecs[i]["Lambda"].values.astype(float)
+            try:
+                fl = modelspecs[i][incl[j]].values.astype(float)
+            except KeyError:
+                continue
+            ax[j].loglog(wl, SpectrumUtils.smooth(fl, sm), "-", label=labels[i], linewidth=3,
+                         color=line_colours[i], alpha=alpha)
+        ax[j].text(0.9, 0.1, r"$i = $" + incl[j] + r"$^{\circ}$" + comment[j], ha="center", va="center",
+                   rotation="horizontal", fontsize=15, transform=ax[j].transAxes)
+
+        # Plot the fiducial model
+        fid_wl = t["Lambda"].values.astype(float)
+        fid_fl = t[incl[j]].values.astype(float)
+        ax[j].loglog(fid_wl, SpectrumUtils.smooth(fid_fl, sm), "k-", linewidth=3, zorder=0, alpha=alpha,
+                     label="Fiducial UV Model")
+
+        # ax = SpectrumUtils.plot_line_ids(ax, SpectrumUtils.common_lines(), True)
+        ax[j].set_xlabel(r"Wavelength $\lambda$ [$\AA$]", fontsize=15)
+        ax[j].set_ylabel(r"Flux $F_{\lambda}$  at 100 pc [erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$]", fontsize=15)
+        ax[j].legend(loc="lower left", fontsize=13)
+        ax[j].set_ylim(1e-5, 5)
+        ax[j].set_xlim(1000, 7000)
+        ax[j] = plot_line_id(ax[j], logx=True, offset=0)
+
+    fig.tight_layout(rect=[0.03, 0.03, 0.97, 0.97])
+
+    fname = "spectra/"
+    if extra_file_name:
+        fname += extra_file_name
+
+    fig.savefig(fname + ".pdf", dpi=300)
+    fig.savefig(fname + ".png", dpi=300)
 
     if DISPLAY:
         plt.show()
@@ -329,31 +400,33 @@ def main(argc: int, argv: List[str]) -> None:
 
     # Plot the "best" lines
 
-    panel_1_by_3(best_lines_grid, colors, optical_wmin, optical_wmax, [1e-4, 2e-2], best_lines_labels,
-                 "Original", "optical_fiducial")
+    # panel_1_by_3(best_lines_grid, colors, optical_wmin, optical_wmax, [1e-4, 2e-2], best_lines_labels,
+    #              "Original", "optical_fiducial")
 
     # Plot the grids on a single panel, full wavelength range, for each inclination angle
+    
+    # single_panel(mbh_grid.copy(), colors, mbh_labels, extra_file_name="sed_Mbh")
+    # single_panel(rmin_grid.copy(), colors, rmin_labels, extra_file_name="sed_Rmin")
+    # single_panel(vinf_grid.copy(), colors, vinf_labels, extra_file_name="sed_Vinf")
 
-    single_panel(mbh_grid.copy(), colors, mbh_labels, extra_file_name="sed_Mbh")
-    single_panel(rmin_grid.copy(), colors, rmin_labels, extra_file_name="sed_Rmin")
-    single_panel(vinf_grid.copy(), colors, vinf_labels, extra_file_name="sed_Vinf")
+    three_panel_single(mbh_grid.copy(), colors, mbh_labels, extra_file_name="opt_uv_Mbh")
 
     # Individual grids for just optical
-
-    panel_1_by_3(mbh_grid.copy(), colors, optical_wmin, optical_wmax, [1e-5, 4e-2], mbh_labels,
-                 r"M$_{BH}$ = 5$\times$10$^6$ M$_{\odot}$", "optical_Mbh")
-    panel_1_by_3(rmin_grid.copy(), colors, optical_wmin, optical_wmax, [2e-4, 2e-2], rmin_labels,
-                 r"R$_{min}$ = 1 R$_{ISCO}$", "optical_Rmin")
-    panel_1_by_3(vinf_grid.copy(), colors, optical_wmin, optical_wmax, [2e-4, 1e-2], vinf_labels,
-                 r"V$_{\infty}$ = 1 V$_{esc}$", "optical_Vinf")
-
+    
+    # panel_1_by_3(mbh_grid.copy(), colors, optical_wmin, optical_wmax, [1e-5, 4e-2], mbh_labels,
+    #              r"M$_{BH}$ = 5$\times$10$^6$ M$_{\odot}$", "optical_Mbh")
+    # panel_1_by_3(rmin_grid.copy(), colors, optical_wmin, optical_wmax, [2e-4, 2e-2], rmin_labels,
+    #              r"R$_{min}$ = 1 R$_{ISCO}$", "optical_Rmin")
+    # panel_1_by_3(vinf_grid.copy(), colors, optical_wmin, optical_wmax, [2e-4, 1e-2], vinf_labels,
+    #              r"V$_{\infty}$ = 1 V$_{esc}$", "optical_Vinf")
+    
     # Optical + UV together
-
-    the_grid = [mbh_grid.copy(), rmin_grid.copy(), vinf_grid.copy()]
-    the_labels = [mbh_labels, rmin_labels, vinf_labels]
-
-    panel_all_grids(the_grid.copy(), colors, optical_wmin, optical_wmax, [9e-6, 2e-2], the_labels, "the_optical_grid")
-    panel_all_grids(the_grid.copy(), colors, uv_wmin, uv_wmax, [1e-6, 3], the_labels, "the_uv_grid")
+    
+    # the_grid = [mbh_grid.copy(), rmin_grid.copy(), vinf_grid.copy()]
+    # the_labels = [mbh_labels, rmin_labels, vinf_labels]
+    
+    # panel_all_grids(the_grid.copy(), colors, optical_wmin, optical_wmax, [9e-6, 2e-2], the_labels, "the_optical_grid")
+    # panel_all_grids(the_grid.copy(), colors, uv_wmin, uv_wmax, [1e-6, 3], the_labels, "the_uv_grid")
 
     return
 
