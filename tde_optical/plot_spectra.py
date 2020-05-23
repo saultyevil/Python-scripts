@@ -110,9 +110,9 @@ def panel_all_grids(directories: List[str], line_colours: List[str], wmin: float
     """Creates a 3 x 3 figure for showing the entire grid in one figure."""
 
     if system() == "Darwin":
-        pdir = "/Users/saultyevil/PySims/tde_optical/grid/round1/"
+        pdir = "/Users/saultyevil/PySims/tde_optical/grid/"
     else:
-        pdir = "/home/saultyevil/PySims/tde_optical/grid/round1/"
+        pdir = "/home/saultyevil/PySims/tde_optical/grid/"
     t = get_fiducial_uv_model()
 
     incl = [
@@ -269,7 +269,7 @@ def single_panel(directories: List[str], line_colours: List[str], labels: List[s
     """Plot a single panel"""
 
     modelspecs = get_the_models(directories, "tde_uv.spec")
-    t = get_fiducial_uv_model()
+    # t = get_fiducial_uv_model()
 
     nrows = ncols = 1
     fig, ax = None, None
@@ -322,7 +322,8 @@ def single_panel(directories: List[str], line_colours: List[str], labels: List[s
     return fig, ax
 
 
-def three_panel_single(directories: List[str], line_colours: List[str], labels: List[str], extra_file_name: str = "") \
+def three_panel_single(directories: List[str], line_colours: List[str], labels: List[str], ylim: List[List[float]],
+                       extra_file_name: str = "") \
         -> Union[None, Tuple[plt.Figure, plt.Axes]]:
     """Plot 1000 - 3000 A for each inclination"""
 
@@ -334,7 +335,7 @@ def three_panel_single(directories: List[str], line_colours: List[str], labels: 
     fig, ax = None, None
 
     sm = 5
-    fig, ax = plt.subplots(nrows, ncols, figsize=(15, 25))
+    fig, ax = plt.subplots(nrows, ncols, figsize=(10, 18), sharex="col")
 
     for j in range(len(incl)):
         for i in range(len(modelspecs)):
@@ -356,15 +357,15 @@ def three_panel_single(directories: List[str], line_colours: List[str], labels: 
         ax[j].loglog(fid_wl, SpectrumUtils.smooth(fid_fl, sm), "k-", linewidth=3, zorder=0, alpha=alpha,
                      label="Fiducial UV Model")
 
-        # ax = SpectrumUtils.plot_line_ids(ax, SpectrumUtils.common_lines(), True)
-        ax[j].set_xlabel(r"Wavelength $\lambda$ [$\AA$]", fontsize=15)
-        ax[j].set_ylabel(r"Flux $F_{\lambda}$  at 100 pc [erg s$^{-1}$ cm$^{-2}$ $\AA^{-1}$]", fontsize=15)
-        ax[j].legend(loc="lower left", fontsize=13)
-        ax[j].set_ylim(1e-5, 5)
+        ax[j].set_ylim(ylim[j])
         ax[j].set_xlim(1000, 7000)
         ax[j] = plot_line_id(ax[j], logx=True, offset=0)
 
-    fig.tight_layout(rect=[0.03, 0.03, 0.97, 0.97])
+    ax[0].legend(loc="lower left", fontsize=13)
+    fig, ax = add_axes_labels(fig, ax)
+    fig.subplots_adjust(wspace=0, hspace=0)
+
+    # fig.tight_layout(rect=[0.03, 0.03, 0.97, 0.97])
 
     fname = "spectra/"
     if extra_file_name:
@@ -393,40 +394,50 @@ def main(argc: int, argv: List[str]) -> None:
         The command line arguments provided
     """
 
-    optical_wmin = 3900
-    optical_wmax = 7350
+    optical_wmin = 4000
+    optical_wmax = 7500
     uv_wmin = 900
     uv_wmax = 2400
 
     # Plot the "best" lines
 
-    # panel_1_by_3(best_lines_grid, colors, optical_wmin, optical_wmax, [1e-4, 2e-2], best_lines_labels,
-    #              "Original", "optical_fiducial")
+    panel_1_by_3(best_lines_grid, colors, optical_wmin, optical_wmax, [1e-4, 2e-2], best_lines_labels,
+                 "Original", "optical_fiducial")
 
     # Plot the grids on a single panel, full wavelength range, for each inclination angle
-    
-    # single_panel(mbh_grid.copy(), colors, mbh_labels, extra_file_name="sed_Mbh")
-    # single_panel(rmin_grid.copy(), colors, rmin_labels, extra_file_name="sed_Rmin")
-    # single_panel(vinf_grid.copy(), colors, vinf_labels, extra_file_name="sed_Vinf")
 
-    three_panel_single(mbh_grid.copy(), colors, mbh_labels, extra_file_name="opt_uv_Mbh")
+    single_panel(mbh_grid.copy(), colors, mbh_labels, extra_file_name="sed_Mbh")
+    single_panel(mbh_fixed_grid.copy(), colors, mbh_labels, extra_file_name="sed_Mbh_fixed")
+    single_panel(rmin_grid.copy(), colors, rmin_labels, extra_file_name="sed_Rmin")
+    single_panel(vinf_grid.copy(), colors, vinf_labels, extra_file_name="sed_Vinf")
+
+    # Plot the grids on a 1 x 3 panel showing 1000-7000 A
+    three_panel_single(mbh_grid.copy(), colors, mbh_labels, [[1e-5, 5], [1e-5, 5], [1e-5, 5]],
+                       extra_file_name="opt_uv_Mbh")           # 2e-5       5e-7
+    three_panel_single(mbh_fixed_grid.copy(), colors, mbh_labels, [[1e-5, 5], [1e-5, 5], [1e-5, 5]],
+                       extra_file_name="opt_uv_Mbh_fixed")          # 5e-5
+    three_panel_single(rmin_grid.copy(), colors, rmin_labels, [[1e-5, 5], [1e-5, 5], [1e-5, 5]],
+                       extra_file_name="opt_uv_Rmin")          # 5e-5
+    three_panel_single(vinf_grid.copy(), colors, vinf_labels, [[1e-5, 5], [1e-5, 5], [1e-5, 5]],
+                       extra_file_name="opt_uv_Vinf")
 
     # Individual grids for just optical
-    
-    # panel_1_by_3(mbh_grid.copy(), colors, optical_wmin, optical_wmax, [1e-5, 4e-2], mbh_labels,
-    #              r"M$_{BH}$ = 5$\times$10$^6$ M$_{\odot}$", "optical_Mbh")
-    # panel_1_by_3(rmin_grid.copy(), colors, optical_wmin, optical_wmax, [2e-4, 2e-2], rmin_labels,
-    #              r"R$_{min}$ = 1 R$_{ISCO}$", "optical_Rmin")
-    # panel_1_by_3(vinf_grid.copy(), colors, optical_wmin, optical_wmax, [2e-4, 1e-2], vinf_labels,
-    #              r"V$_{\infty}$ = 1 V$_{esc}$", "optical_Vinf")
-    
+    panel_1_by_3(mbh_grid.copy(), colors, optical_wmin, optical_wmax, [1e-5, 4e-2], mbh_labels,
+                 r"M$_{BH}$ = 5$\times$10$^6$ M$_{\odot}$", "optical_Mbh")
+    panel_1_by_3(mbh_fixed_grid.copy(), colors, optical_wmin, optical_wmax, [1e-5, 4e-2], mbh_labels,
+                 r"M$_{BH}$ = 5$\times$10$^6$ M$_{\odot}$", "optical_Mbh_fixed")
+    panel_1_by_3(rmin_grid.copy(), colors, optical_wmin, optical_wmax, [2e-4, 2e-2], rmin_labels,
+                 r"R$_{min}$ = 1 R$_{ISCO}$", "optical_Rmin")
+    panel_1_by_3(vinf_grid.copy(), colors, optical_wmin, optical_wmax, [2e-4, 1e-2], vinf_labels,
+                 r"V$_{\infty}$ = 1 V$_{esc}$", "optical_Vinf")
+
     # Optical + UV together
-    
-    # the_grid = [mbh_grid.copy(), rmin_grid.copy(), vinf_grid.copy()]
-    # the_labels = [mbh_labels, rmin_labels, vinf_labels]
-    
-    # panel_all_grids(the_grid.copy(), colors, optical_wmin, optical_wmax, [9e-6, 2e-2], the_labels, "the_optical_grid")
-    # panel_all_grids(the_grid.copy(), colors, uv_wmin, uv_wmax, [1e-6, 3], the_labels, "the_uv_grid")
+
+    the_grid = [mbh_fixed_grid.copy(), rmin_grid.copy(), vinf_grid.copy()]
+    the_labels = [mbh_labels, rmin_labels, vinf_labels]
+
+    panel_all_grids(the_grid.copy(), colors, optical_wmin, optical_wmax, [9e-6, 2e-2], the_labels, "the_optical_grid")
+    panel_all_grids(the_grid.copy(), colors, uv_wmin, uv_wmax, [1e-6, 3], the_labels, "the_uv_grid")
 
     return
 

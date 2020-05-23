@@ -24,9 +24,9 @@ def get_the_models(directories: List[str], generic_file_name: str):
     """Get the spectra of interest from file"""
 
     if system() == "Darwin":
-        pdir = "/Users/saultyevil/PySims/tde_optical/grid/round1/"
+        pdir = "/Users/saultyevil/PySims/tde_optical/grid/"
     else:
-        pdir = "/home/saultyevil/PySims/tde_optical/grid/round1/"
+        pdir = "/home/saultyevil/PySims/tde_optical/grid/"
 
     modelspecs = []
     for i in range(len(directories)):
@@ -54,6 +54,18 @@ mbh_grid = [
 ]
 
 mbh_labels = [
+    r"M$_{BH}$ = 10$^6$ M$_{\odot}$",
+    r"M$_{BH}$ = 10$^7$ M$_{\odot}$",
+    r"M$_{BH}$ = 10$^8$ M$_{\odot}$",
+]
+
+mbh_fixed_grid = [
+    "Mbh_fixed_Rmin/1.0000e+06",
+    "Mbh_fixed_Rmin/1.0000e+07",
+    "Mbh/1.0000e+08"              # Technically not fixed :^)
+]
+
+mbh_fixed_labels = [
     r"M$_{BH}$ = 10$^6$ M$_{\odot}$",
     r"M$_{BH}$ = 10$^7$ M$_{\odot}$",
     r"M$_{BH}$ = 10$^8$ M$_{\odot}$",
