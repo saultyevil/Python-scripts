@@ -17,6 +17,7 @@ PLOT FOR EACH PROCESS.
 import numpy as np
 import argparse as ap
 from matplotlib import pyplot as plt
+from PyPython.PythonUtils import find_parameter_files, split_root_directory
 
 
 def get_input():
@@ -63,10 +64,14 @@ def check_luminosity_balance(root: str, wd: str = "./"):
             luminosity_after.append(float(line.split()[6]))
             absorbed_lost.append(float(line.split()[8][:-2]))
 
-    print("Root              = ", root)
-    print("Luminosity before = ", luminosity_before)
-    print("Luminosity after  = ", luminosity_after)
-    print("Absorbed/lost     = ", absorbed_lost)
+    if len(luminosity_before) == 0:
+        return
+
+    print("Root                  = ", root)
+    print("Luminosity before     = ", luminosity_before[-1])
+    print("Luminosity after      = ", luminosity_after[-1])
+    print("Absorbed/lost         = ", absorbed_lost[-1])
+    print("Ratio: after / before = ", luminosity_after[-1] / luminosity_before[-1])
 
     cycles = np.arange(1, len(luminosity_after) + 1)
     plt.plot(cycles, np.array(luminosity_after) / luminosity_before[0], label="After / Before")
@@ -86,8 +91,13 @@ def main():
     Main function of the script.
     """
 
-    root = get_input()
-    check_luminosity_balance(root)
+    # root = get_input()
+
+    pfs = find_parameter_files()
+    for pf in pfs:
+        print(pf)
+        root, wd = split_root_directory(pf)
+        check_luminosity_balance(root, wd)
 
     return
 

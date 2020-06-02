@@ -8,7 +8,7 @@ HPC cluster which uses slurm.
 """
 
 
-from sys import exit, argv
+import argparse as ap
 from subprocess import Popen, PIPE
 from typing import List, Tuple
 from pathlib import Path
@@ -108,30 +108,42 @@ def find_slurm_files(path: str = "./") -> List[str]:
     return slurmf
 
 
-def main(argc: int, argv: List[str]) -> None:
+def setup():
+    """
+    Parse the command line for run time arguments.
+    """
+
+    p = ap.ArgumentParser(desc=__doc__)
+
+    p.add_argument("-a",
+                   "--add_to_queue",
+                   action="store_true",
+                   default=False,
+                   help="Add slurm files to the slurm queue.")
+
+    args = p.parse_args()
+
+    return args.add_to_queue
+
+
+def main() -> None:
     """
     Main function - calls find_slurm_files to find the slurm files in directories
     and then uses add_to_queue to add them to the slurm queue.
     """
 
+    add = setup()
     slurmf = find_slurm_files()
+
     print("The following .slurm {} files will be added to the queue:\n".format(len(slurmf)))
-    for i in range(len(slurmf)):
-        print("\t{}".format(slurmf[i]))
-    print("")
-    if argc == 2 and argv[1] == "-check":
-        exit(0)
-    add_to_queue(slurmf)
+    for f in slurmf:
+        print("\t{}".format(f))
+
+    if add:
+        add_to_queue(slurmf)
 
     return
 
 
 if __name__ == "__main__":
-    if len(argv) == 2 and argv[1] == "-h":
-        print(__doc__)
-        exit(0)
-    elif len(argv) >= 2 and argv[1] != "-check":
-        print("Unknown command line arguments: ", argv[1:])
-        print(__doc__)
-        exit(1)
-    main(len(argv), argv)
+    main()

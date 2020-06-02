@@ -39,9 +39,10 @@ def write_slurm_file(name: str, ncores: int, split_cycle: bool, thours: int, tmi
         The directory to write the file to
     """
 
-    split = ""
     if split_cycle:
         split = "-sc"
+    else:
+        split = ""
 
     slurm = \
         """#!/bin/bash
@@ -55,7 +56,7 @@ module load conda/py3-latest
 source activate PyPython
 python /home/ejp1n17/PythonScripts/py_run.py -n {} {} -f="{}"
 python /home/ejp1n17/PythonScripts/py_analyse_run.py {}
-""".format(ncores, thours, tminutes, ncores, split, flags, root, root)
+""".format(ncores, thours, tminutes, ncores, split, flags, root)
 
     if wd[-1] != "/":
         wd += "/"
@@ -87,20 +88,39 @@ def parse_arguments() -> Tuple[str, int, int, int, bool, str, str]:
     """
 
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("name", type=str, help="The name of the slurm file, i.e. name.slurm.")
-    p.add_argument("ncores", type=int, help="The number of CPUs to use.")
-    p.add_argument("thours", type=int, help="The number of hours of run time allowed.")
-    p.add_argument("tminutes", type=int, help="The number of minutes of additional run time allowed.")
-    p.add_argument("root", type=str, help="The root name of the model.")
-    p.add_argument("-f", "--flags", type=str, help="Any flags to pass to the py_run.py Python running script.")
-    p.add_argument("-sc", "--split_cycle", action="store_true", help="Use the split cycle method for py_run.py")
+
+    p.add_argument("name",
+                   help="The name of the slurm file, i.e. name.slurm.")
+
+    p.add_argument("root",
+                   help="The root name of the model.")
+
+    p.add_argument("ncores",
+                   type=int,
+                   help="The number of CPUs to use.")
+
+    p.add_argument("thours",
+                   type=int,
+                   help="The number of hours of run time allowed.")
+
+    p.add_argument("tminutes",
+                   type=int,
+                   help="The number of minutes of additional run time allowed.")
+
+    p.add_argument("-f",
+                   "--flags",
+                   default="",
+                   help="Any flags to pass to the py_run.py Python running script.")
+
+    p.add_argument("-sc",
+                   "--split_cycle",
+                   action="store_true",
+                   default=False,
+                   help="Use the split cycle method for py_run.py")
+
     args = p.parse_args()
 
-    split_cycle = False
-    if args.split_cycle:
-        split_cycle = True
-
-    return args.name, args.ncores, args.thours, args.tminutes, split_cycle, args.root, args.flags
+    return args.name, args.ncores, args.thours, args.tminutes, args.split_cycle, args.root, args.flags
 
 
 def main() -> None:
@@ -110,11 +130,7 @@ def main() -> None:
     """
 
     name, ncores, thours, tminutes, split_cycle, root, flags = parse_arguments()
-
-    if flags is None:
-        flags = ""
     flags += " -t {} ".format(int(thours * 3600 + tminutes * 60))
-
     write_slurm_file(name, ncores, split_cycle, thours, tminutes, root, flags)
 
     return

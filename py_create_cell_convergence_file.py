@@ -1,6 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+The purpose of this script is to print out detailed convergence information -
+with a specific focus on cells which have failed the specified number of
+convergence checks in Python. One should then be able to study which cells are
+failing to converge, or study cells which are not converging. The cell information
+contained in a regular master file should be printed out. Note that this will
+not work as well with all master files, but only those which contain the
+converging output as well.
+"""
+
 
 import argparse as ap
 import pandas as pd
@@ -19,28 +29,28 @@ def setup_script() -> Union[str, int, int]:
     nfails: int
         The number of checks failed to look at.
     converging: int
-        Either 0 or 1 depending on if you want a converging or non-converging cells.  
+        Either 0 or 1 depending on if you want a converging or non-converging cells.
     """
 
     pd.set_option('display.expand_frame_repr', False)  # Expand the Pandas table to streeeetch
 
-    desc = "The purpose of this script is to print out detailed convergence information - with a specific focus on" \
-           "cells which have failed the specified number of convergence checks in Python. One should then be able to" \
-           "study which cells are failing to converge, or study cells which are not converging. The cell information" \
-           "contained in a regular master file should be printed out. Note that this will not work as well with all " \
-           "master files, but only those which contain the converging output as well."
+    p = ap.ArgumentParser(description=__doc__)
 
-    p = ap.ArgumentParser(description=desc)
-    p.add_argument("root", help="Root name of the wind_save file")
-    p.add_argument("nfails", type=int, help="Extract cells which failed this number of convergence checks")
-    p.add_argument("converging", nargs="?", type=int, help="Extract cells with the corresponding converging flag")
+    p.add_argument("root",
+                   help="Root name of the wind_save file")
+
+    p.add_argument("nfails",
+                   type=int,
+                   help="Extract cells which failed this number of convergence checks")
+
+    p.add_argument("converging",
+                   nargs="?",
+                   type=int,
+                   help="Extract cells with the corresponding converging flag")
+
     args = p.parse_args()
 
-    root = args.root
-    nfails = args.nfails
-    converging = args.converging
-
-    return root, nfails, converging
+    return args.root, args.nfails, args.converging
 
 
 def main():

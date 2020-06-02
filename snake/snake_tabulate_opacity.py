@@ -21,11 +21,11 @@ from matplotlib import pyplot as plt
 
 # Global variables
 verbose = False
-show_comparison = False
+showComparison = False
 splicingTemp = 3.8
-opalTable = "opal_opac.dat"
-la08Table = "la08_opac.dat"
-la08TableSets = "la08_sets.dat"
+opalTable = "data/opal_opac.dat"
+la08Table = "data/la08_opac.dat"
+la08TableSets = "data/la08_sets.dat"
 newTableOutputName = "largerT_opacity.dat"
 X = 0.7
 Z = 0.02
@@ -36,46 +36,72 @@ def parse_inputs():
     Parse various options from the command line
     """
 
+    global verbose
+    global showComparison
+    global splicingTemp
+    global opalTable
+    global la08Table
+    global la08TableSets
+    global newTableOutputName
+    global X
+    global Z
+
     p = argparse.ArgumentParser(description="Splice two opacity tables together :-)")
-    p.add_argument("-X", type=float, nargs="?", action="store", help="Hydrogen mass fraction")
-    p.add_argument("-Z", type=float, nargs="?", action="store", help="Metals mass fraction")
-    p.add_argument("-spliceT", type=float, nargs="?", action="store", help="The temperature to splice the tables between")
-    p.add_argument("-opal_location", type=str, nargs="?", action="store", help="Location of the Opal opacity tables")
-    p.add_argument("-low_temp_location", type=str, nargs="?", action="store", help="Location of the LA08 Low Temperature Opacity Tables")
-    p.add_argument("-low_temp_sets", type=str, nargs="?", action="store", help="Location of the LA08 Low Temperature sets data")
-    p.add_argument("-output_name", type=str, nargs="?", action="store", help="The name of the new opacity table")
-    p.add_argument("-v", "--verbose", action="store_true", help="Increase output verbosity")
-    p.add_argument("-s", "--show_comparison", action="store_true", help="Show a plot of the log(RMO) against temperature")
+
+    p.add_argument("-X",
+                   type=float,
+                   default=X,
+                   help="Hydrogen mass fraction")
+
+    p.add_argument("-Z",
+                   type=float,
+                   default=Z,
+                   help="Metals mass fraction")
+
+    p.add_argument("-splice_temperature",
+                   type=float,
+                   default=splicingTemp,
+                   help="The temperature to splice the tables between")
+
+    p.add_argument("-opal_location",
+                   default=opalTable,
+                   help="Location of the Opal opacity tables")
+
+    p.add_argument("-low_temp_location",
+                   default=la08Table,
+                   help="Location of the LA08 Low Temperature Opacity Tables")
+
+    p.add_argument("-low_temp_sets",
+                   default=la08TableSets,
+                   help="Location of the LA08 Low Temperature sets data")
+
+    p.add_argument("-output_name",
+                   default=newTableOutputName,
+                   help="The name of the new opacity table")
+
+    p.add_argument("-v",
+                   "--verbose",
+                   action="store_true",
+                   default=verbose,
+                   help="Increase output verbosity")
+
+    p.add_argument("-s",
+                   "--show_comparison",
+                   action="store_true",
+                   default=showComparison,
+                   help="Show a plot of the log(RMO) against temperature")
 
     args = p.parse_args()
 
-    if args.verbose:
-        global verbose
-        verbose = True
-    if args.spliceT:
-        global splicingTemp
-        splicingTemp = args.spliceT
-    if args.opal_location:
-        global opalTable
-        opalTable = args.opal_location
-    if args.low_temp_location:
-        global la08Table
-        la08Table = args.low_temp_location
-    if args.low_temp_sets:
-        global la08TableSets
-        la08TableSets = args.low_temp_sets
-    if args.output_name:
-        global newTableOutputName
-        newTableOutputName = args.output_name
-    if args.show_comparison:
-        global show_comparison
-        show_comparison = True
-    if args.X:
-        global X
-        X = args.X
-    if args.Z:
-        global Z
-        Z = args.Z
+    verbose = args.verbose
+    splicingTemp = args.splice_temperature
+    opalTable = args.opal_location
+    la08Table = args.low_temp_location
+    la08TableSets = args.low_temp_sets
+    newTableOutputName = args.output_name
+    showComparison = args.show_comparison
+    X = args.X
+    Z = args.Z
 
     return
 
@@ -120,7 +146,7 @@ def readOpal(filename):
     tableId = 241   # Used to index from the first table
 
     # Arrays to hold Opal table
-    opalRMO = np.zeros((nTables, nLogT+1, nLogR+1))
+    opalRMO = np.zeros((nTables, nLogT + 1, nLogR + 1))
     opalMassFractions = np.zeros((nTables, 3))
 
     # Read in the table
@@ -129,21 +155,21 @@ def readOpal(filename):
         # First, we'll get the mass fractions for each table
         X = Y = Z = 0
         for i in range(len(opal[tableId])):
-            if opal[tableId][i] == "X" and opal[tableId][i+1] == "=":
-                X = opal[tableId][i+2:i+8]
-            if opal[tableId][i] == "Y" and opal[tableId][i+1] == "=":
-                Y = opal[tableId][i+2:i+8]
-            if opal[tableId][i] == "Z" and opal[tableId][i+1] == "=":
-                Z = opal[tableId][i+2:i+8]
+            if opal[tableId][i] == "X" and opal[tableId][i + 1] == "=":
+                X = opal[tableId][i + 2:i + 8]
+            if opal[tableId][i] == "Y" and opal[tableId][i + 1] == "=":
+                Y = opal[tableId][i + 2:i + 8]
+            if opal[tableId][i] == "Z" and opal[tableId][i + 1] == "=":
+                Z = opal[tableId][i + 2:i + 8]
 
         opalMassFractions[table, 0] = X
         opalMassFractions[table, 1] = Y
         opalMassFractions[table, 2] = Z
 
         # Add the Opal data into the arrays
-        opalRMO[table, 0, 1:] = np.array(opal[tableId+4].split()[1:], dtype=float)
+        opalRMO[table, 0, 1:] = np.array(opal[tableId + 4].split()[1:], dtype=float)
         for i in range(nLogT):
-            line = opal[tableId+6+i].split()
+            line = opal[tableId + 6 + i].split()
             # Due to the Opal tables not being square, keep appending 0 to the end of the list to avoid dimension
             # miss match
             nAppends = 0
@@ -152,7 +178,7 @@ def readOpal(filename):
                 nAppends += 1
             if verbose and nAppends != 0:
                 print("Appended {} 0's to line {} in table {}".format(nAppends, i, nTable))
-            opalRMO[table, 1+i, :] = line
+            opalRMO[table, 1 + i, :] = line
         tableId += nLines
         nTable += 1
 
@@ -191,7 +217,7 @@ def readLowTempOpac(filenameOpac, filenameSets):
 
     # Reshape the arrays into the format I want
     logR = np.arange(-7, 1.05, 0.5)
-    lowTempRMO = np.zeros((nTables, nLogT+1, lowTempCols-2))
+    lowTempRMO = np.zeros((nTables, nLogT + 1, lowTempCols - 2))
     for table in range(nTables):
         lowTempRMO[table, 0, 1:] = logR
         lowTempRMO[table, 1:, :] = lowTemp[table, :, 2:]
@@ -244,14 +270,14 @@ def createNewTable(outputName, lowTempRMO, opalRMO, idx, X, Z):
         k = int(x)
     else:
         print("3.6 <= splicingTemp <= 3.9")
-        exit (1)
+        exit(1)
 
     # Generate the logR values, there should hopefully be 17
     logR = np.arange(-7, 1.5, 0.5)
     nLogR = len(logR)
 
     # Create the new table and fill in the logR header and logT columns
-    newTable = np.zeros((nLogT+1, nLogR+1))
+    newTable = np.zeros((nLogT + 1, nLogR + 1))
     newTable[1:, 0] = logT
     newTable[0, 1:] = logR
 
@@ -263,7 +289,7 @@ def createNewTable(outputName, lowTempRMO, opalRMO, idx, X, Z):
     # Add the LA08 data to the table.. not using vector operations as this *should* be temp code
     for i in range(k):
         for j in range(len(logR)):
-            newTable[1+i, 1+j] = lowTempRMO[idx, 1+i, 1+j]
+            newTable[1 + i, 1 + j] = lowTempRMO[idx, 1 + i, 1 + j]
 
     #
     # I will generate the data for the LA08 mass fractions using the Opal interpolation function which was provided.
@@ -272,8 +298,8 @@ def createNewTable(outputName, lowTempRMO, opalRMO, idx, X, Z):
     # logR table, so it will take a while as it has to read in the data table each time :^)
     #
 
-    for i in range(nOpalT-1):
-        T6 = 1e-6 * 10 ** logT[i+k]
+    for i in range(nOpalT - 1):
+        T6 = 1e-6 * 10 ** logT[i + k]
         for j in range(nLogR):
             R = 10 ** logR[j]
             # TODO: error checking for opal to make sure it can find the opacity tables
@@ -283,12 +309,12 @@ def createNewTable(outputName, lowTempRMO, opalRMO, idx, X, Z):
                 opalRMO = float(stdout.decode("utf-8"))
             except ValueError:
                 if verbose:
-                    print("logT = {:1.2e} or logR = {:1.2e} out of table range".format(logT[i+k], logR[j]))
-                    print("Setting to 9.999 for table element [{}, {}]".format(i+1+k, 1+j))
+                    print("logT = {:1.2e} or logR = {:1.2e} out of table range".format(logT[i + k], logR[j]))
+                    print("Setting to 9.999 for table element [{}, {}]".format(i + 1 + k, 1 + j))
                 opalRMO = 9.999
-            newTable[1+i+k, 1+j] = opalRMO
+            newTable[1 + i + k, 1 + j] = opalRMO
         if i % 5 == 0 and i != 0:
-            print("\t- Row {} of {} completed".format(i, nLogT-k))
+            print("\t- Row {} of {} completed".format(i, nLogT - k))
 
     print("\t- Table completed\n")
     writeTable(newTable, outputName)
@@ -318,7 +344,7 @@ def plot_comparisons(newTable, la08Table):
             ax[i, j].plot(la08Table[2:15, 0], la08Table[2:15, colIdx], "--+", label="LA08")
             ax[i, j].set_title(title)
             ax[i, j].set_xlabel("log T [K]")
-            ax[i, j].set_ylabel("log $\kappa_{R}$ [$cm^{2}g^{-1}$]")
+            ax[i, j].set_ylabel(r"log $\kappa_{R}$ [$cm^{2}g^{-1}$]")
             ax[i, j].set_xlim(newTable[0, 0], newTable[12, 0])
             ax[i, j].legend()
             k += 1
@@ -345,12 +371,13 @@ def main():
     # Now splice the table together given the desired mass fractions
     idx = findLowTempIndex(lowTempMassFrac, X, Z)
     newTable = createNewTable(newTableOutputName, lowTempRMO, opalRMO, idx, X, Z)
-    if show_comparison:
+    if showComparison:
         plot_comparisons(newTable[3:, :], lowTempRMO[idx, 1:, :])
 
     print("\nEnjoy!")
 
     return
+
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+The original purpose of this script was to plot various important quantities for
+cells which are having trouble converging. However, there is nothing to stop one
+from using this for any cell in a model. The input files in general are expected
+to be in the form of rootXX.0.master.txt, where XX is a series of numbers.
+"""
+
 
 import glob
 import argparse as ap
@@ -13,7 +20,7 @@ import numpy as np
 def setup_script() -> Union[str, int, int]:
     """
     Parse the cell number from the command line and other setup options.
-    
+
     Returns
     -------
     root: str
@@ -24,22 +31,22 @@ def setup_script() -> Union[str, int, int]:
         The j index for the cell to query.
     """
 
-    desc = "The original purpose of this script was to plot various important quantities for cells which are having " \
-           "trouble converging. However, there is nothing to stop one from using this for any cell in a model. The " \
-           "input files in general are expected to be in the form of rootXX.0.master.txt, where XX is a series of " \
-           "numbers."
+    p = ap.ArgumentParser(desc=__doc__)
 
-    p = ap.ArgumentParser()
-    p.add_argument("root", help="The root name of master files to query")
-    p.add_argument("icell", type=int, help="The i index number of the cell")
-    p.add_argument("jcell", type=int, help="the j index number of the cell")
+    p.add_argument("root",
+                   help="The root name of master files to query")
+
+    p.add_argument("icell",
+                   type=int,
+                   help="The i index number of the cell")
+
+    p.add_argument("jcell",
+                   type=int,
+                   help="the j index number of the cell")
+
     args = p.parse_args()
 
-    root = args.root
-    icell = args.icell
-    jcell = args.jcell
-
-    return root, icell, jcell
+    return args.root, args.icell, args.jcell
 
 
 def main():
