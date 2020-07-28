@@ -31,7 +31,7 @@ def setup_script() -> Union[str, int, int]:
         The j index for the cell to query.
     """
 
-    p = ap.ArgumentParser(desc=__doc__)
+    p = ap.ArgumentParser(description=__doc__)
 
     p.add_argument("root",
                    help="The root name of master files to query")

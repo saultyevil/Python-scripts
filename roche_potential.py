@@ -9,6 +9,7 @@ import numpy as np
 from consts import *
 from matplotlib import pyplot as plt
 
+
 def calc_orbital_separation(period: float, m_star: float, m_seco: float):
     """
     Calculate the oribtal separation a for a binary system given the orbital

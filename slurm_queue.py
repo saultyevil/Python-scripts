@@ -113,7 +113,7 @@ def setup():
     Parse the command line for run time arguments.
     """
 
-    p = ap.ArgumentParser(desc=__doc__)
+    p = ap.ArgumentParser(description=__doc__)
 
     p.add_argument("-a",
                    "--add_to_queue",

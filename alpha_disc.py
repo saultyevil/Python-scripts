@@ -204,10 +204,7 @@ def main():
 
     # Plot spectrum
     fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-    ax.semilogy(lamda, flux)
-    # ax.plot(np.log10(lamda), np.log10(lamda*flux))
-    # ax.set_ylim(10, 50)
-    # ax.set_xlim(11, 18)
+    ax.loglog(lamda, flux)
     ax.set_xlabel(r"log[$\nu$]", fontsize=15)
     ax.set_ylabel(r"log[$\nu$L$_{\nu}$]", fontsize=15)
     plt.show()

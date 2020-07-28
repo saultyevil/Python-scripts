@@ -45,9 +45,9 @@ def plot_power_law():
     """
 
     plt.figure(figsize=(12, 8))
-   
+
     betas = [1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 7.5, 10.0, 12.4, 15.0, 20.0]
-   
+
     # vinf = 1
     mobj = 3e7 * MSOL
     rin = 2.65e13
@@ -60,7 +60,7 @@ def plot_power_law():
     for beta in betas:
         v_r = cl_velocity(rgrid, v0, vinf, rin, beta)
         plt.semilogx(rgrid, v_r / vinf, label=r"$\beta$ = " + str(beta))
-  
+
     # plt.xlim(1.0, rout)
     plt.ylim(0.0, 1.0)
     plt.xlabel(r"r/$R_{*}$", fontsize=14)
@@ -70,7 +70,7 @@ def plot_power_law():
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.show()
-   
+
     return
 
 

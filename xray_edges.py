@@ -59,7 +59,8 @@ def get_xray_edges(elements: List[str], wmin: float, wmax: float):
             print("{:9.1f} {:1.12e} {:13.1f}".format(energy, frequency, wavelength))
             if wmin < wavelength < wmax:
                 output_table_line = "{:4s} {:9.1f} {:1.12e} {:13.1f}\n".format(
-                        elements[i], energy, frequency, wavelength)
+                    elements[i], energy, frequency, wavelength
+                )
                 output_table.append(output_table_line)
         print()
     print("-" * COL_LEN)
