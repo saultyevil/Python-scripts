@@ -5,7 +5,7 @@ Plot the velocity law for a Schlosman and Vitello wind for a CV disk wind.
 """
 
 
-import alpha_disc
+import alpha_disc_spectrum
 import numpy as np
 from consts import *
 from scipy.optimize import brentq
@@ -190,7 +190,7 @@ def plot_power_law():
     v0_sound_speed = 1
     if v0_sound_speed:
         print("SV93 v0 set to {} sound speed at {}rmin".format(v0_sound_speed, r0 / wind.rmin))
-        teff = alpha_disc.t_eff(r0, wind.mobj, wind.mdot, r_star)
+        teff = alpha_disc_spectrum.t_eff(r0, wind.mobj, wind.mdot, r_star)
         wind.v0 = 1e6 * np.sqrt(teff / 1e4)  # Taken from Frank, King & Raine 1985, pg 13 in cm/s
         wind.v0 *= v0_sound_speed
         print("teff = {:e}".format(teff))

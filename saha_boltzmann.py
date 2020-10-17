@@ -14,8 +14,9 @@ from matplotlib import pyplot as plt
 from consts import *
 
 
-def saha_equation(ne: float, g_upper: float, g_lower: float, energy_upper: float, energy_lower: float, 
-                  temperature: float):
+def saha_equation(
+    ne: float, g_upper: float, g_lower: float, energy_upper: float, energy_lower: float, temperature: float
+):
     """
     Calculate the ratio of n_i+1 / n_i, using the Saha-Boltzman equation.
 
@@ -84,6 +85,7 @@ def helium_example():
     plt.show()
 
     return
+
 
 if __name__ == "__main__":
     helium_example()

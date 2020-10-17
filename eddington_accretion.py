@@ -44,8 +44,8 @@ def l_edd(m_bh):
 
 if __name__ == "__main__":
 
-    mdot = 1e-2
-    m_bh = 3e7
+    mdot = 1e-3
+    m_bh = 10 ** 6
     efficiency = 0.1
 
     print("Efficiency       = {:3.2f}".format(efficiency))
