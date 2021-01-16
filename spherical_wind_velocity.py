@@ -7,7 +7,7 @@ a stellar wind.
 
 
 import numpy as np
-from consts import *
+from constants import *
 from matplotlib import pyplot as plt
 
 

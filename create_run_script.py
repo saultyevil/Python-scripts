@@ -3,7 +3,7 @@
 
 from sys import argv
 from typing import List
-from PyPython import PythonUtils
+from pyPython import pythonUtil
 
 """
 #!/bin/bash
@@ -32,9 +32,9 @@ def create_run_script(commands: List[str]):
 
     # Find any python parameter file in the directory and subdirectories
     directories = []
-    pfs = PythonUtils.find_parameter_files()
+    pfs = pythonUtil.find_parameter_files()
     for pf in pfs:
-        root, directory = PythonUtils.split_root_directory(pf)
+        root, directory = pythonUtil.get_root(pf)
         directories.append(directory)
 
     # Construct the file as shown in the doc string of the script

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import xraydb
-from consts import HEV
+from constants import HEV
 from typing import List
 
 C = 299792458

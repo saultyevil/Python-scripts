@@ -2,15 +2,17 @@
 # -*- coding: utf-8 -*-
 
 """
-Quick and dirty script to plot the Roche potential for a binary system.
+Create a plot of the Roche potential for a simple binary system.
 """
 
 import numpy as np
-from consts import *
+from constants import PI, MSOL, G
 from matplotlib import pyplot as plt
 
 
-def calc_orbital_separation(period: float, m_star: float, m_seco: float):
+def calc_orbital_separation(
+    period: float, m_star: float, m_seco: float
+) -> float:
     """
     Calculate the oribtal separation a for a binary system given the orbital
     period and masses - uses Kepler's law.
@@ -38,8 +40,9 @@ def calc_orbital_separation(period: float, m_star: float, m_seco: float):
     return tmp ** (1 / 3)
 
 
-def roche_potential(m1: float, m2: float, a: float, omega: float, x: np.ndarray,
-                    xc: float, y: np.ndarray, z: np.ndarray):
+def roche_potential(
+    m1: float, m2: float, a: float, omega: float, x: np.ndarray, xc: float, y: np.ndarray, z: np.ndarray
+) -> np.ndarray:
     """
     Calculate the Roche potential.
 
@@ -79,7 +82,9 @@ def roche_potential(m1: float, m2: float, a: float, omega: float, x: np.ndarray,
     return phi
 
 
-def dimensionless_roche_potential(r1, r2, q, x, y):
+def dimensionless_roche_potential(
+    r1: float, r2: float, q: float, x: float, y: foat
+) -> float:
     """
     Calculate the shape of the Roche potential independent of the size of the
     binary system.

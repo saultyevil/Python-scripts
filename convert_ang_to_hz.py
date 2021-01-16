@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from consts import *
+from constants import *
 
 
 def convert_to_frequency(wavelength):
@@ -10,8 +10,8 @@ def convert_to_frequency(wavelength):
 
     Parameters
     ----------
-    wavelength          float
-                        The wavelength in Angstroms
+    wavelength: float
+        The wavelength in Angstroms
 
     Returns
     -------
@@ -26,16 +26,13 @@ def convert_to_frequency(wavelength):
             sys.exit(1)
 
     frequency = C / (wavelength * ANGSTROM)
-
     print("Photon of wavelength {:.0f} A has frequency {:e} Hz".format(wavelength, frequency))
 
     return frequency
 
 
 if __name__ == "__main__":
-
     if len(sys.argv) != 2:
-        print("Provide a wavelength pls")
-        sys.exit(1)
+        print("Please provide a wavelength in Angstroms")
     else:
         convert_to_frequency(sys.argv[1])

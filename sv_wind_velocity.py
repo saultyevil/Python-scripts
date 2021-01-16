@@ -7,7 +7,7 @@ Plot the velocity law for a Schlosman and Vitello wind for a CV disk wind.
 
 import alpha_disc_spectrum
 import numpy as np
-from consts import *
+from constants import *
 from scipy.optimize import brentq
 from matplotlib import pyplot as plt
 
